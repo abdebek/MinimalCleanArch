@@ -399,3 +399,4 @@ log/
 obj/
 _temp/
 _exported_templates/
+docs/MinimalCleanArch.Docs/log.txt
