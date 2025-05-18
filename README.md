@@ -25,41 +25,41 @@ A comprehensive library for implementing Clean Architecture with Minimal API in 
 
 ### 1. Define your entities
 
-`csharp
+```csharp
 public class Todo : BaseSoftDeleteEntity
 {
     public string Title { get; private set; }
-    
+
     [Encrypted]
     public string Description { get; private set; }
-    
+
     public bool IsCompleted { get; private set; }
-    
+
     // Constructor with validation
     public Todo(string title, string description)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new DomainException("Title cannot be empty");
-            
+
         Title = title;
         Description = description;
     }
-    
+
     // Methods for state changes
     public void MarkAsCompleted()
     {
         IsCompleted = true;
     }
 }
-`
+```
 
 ### 2. Create your DbContext
 
-`csharp
+```csharp
 public class ApplicationDbContext : DbContextBase
 {
     private readonly IEncryptionService _encryptionService;
-    
+
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
         IEncryptionService encryptionService)
@@ -67,19 +67,19 @@ public class ApplicationDbContext : DbContextBase
     {
         _encryptionService = encryptionService;
     }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Apply entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        
+
         // Apply encryption
         modelBuilder.UseEncryption(_encryptionService);
-        
+
         base.OnModelCreating(modelBuilder);
     }
 }
-`
+```
 
 ## License
 
