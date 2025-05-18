@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Description>Validation components for MinimalCleanArch using FluentValidation, including extensions for service registration.</Description>
+		<PackageTags>clean-architecture;validation;fluent-validation</PackageTags>
+		<RootNamespace>MinimalCleanArch.Validation</RootNamespace>
+		<AssemblyName>MinimalCleanArch.Validation</AssemblyName>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="FluentValidation" Version="12.0.0" />
+		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" /> 
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="MinVer" Version="4.3.0" PrivateAssets="All" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
+		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+	</ItemGroup>
+
+</Project>

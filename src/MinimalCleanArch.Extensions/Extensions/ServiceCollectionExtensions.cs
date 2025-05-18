@@ -1,0 +1,111 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using FluentValidation;
+using System.Reflection;
+using MinimalCleanArch.Repositories;
+using MinimalCleanArch.Security.Configuration;
+using MinimalCleanArch.Security.Encryption;
+using Microsoft.EntityFrameworkCore;
+using MinimalCleanArch.EntityFramework.Repositories;
+
+namespace MinimalCleanArch.Extensions.Extensions;
+
+/// <summary>
+/// Extension methods for <see cref="IServiceCollection"/>
+/// </summary>
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    /// Adds MinimalCleanArch extensions to the service collection
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <returns>The service collection</returns>
+    public static IServiceCollection AddMinimalCleanArchExtensions(this IServiceCollection services)
+    {
+        // Register validators
+        services.AddValidatorsFromAssemblyContaining<ServiceCollectionExtensionsMarker>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds validators from the specified assembly to the service collection
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="assembly">The assembly to scan for validators</param>
+    /// <returns>The service collection</returns>
+    public static IServiceCollection AddValidatorsFromAssembly(
+        this IServiceCollection services,
+        Assembly assembly)
+    {
+        // Register all validators in the assembly
+        var validatorType = typeof(IValidator<>);
+        var validatorTypes = assembly.GetTypes()
+            .Where(t => t.GetInterfaces().Any(i =>
+                i.IsGenericType &&
+                i.GetGenericTypeDefinition() == validatorType));
+
+        foreach (var validator in validatorTypes)
+        {
+            var interfaces = validator.GetInterfaces()
+                .Where(i => i.IsGenericType &&
+                          i.GetGenericTypeDefinition() == validatorType);
+
+            foreach (var @interface in interfaces)
+            {
+                services.AddScoped(@interface, validator);
+            }
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds all validators from the assembly containing the specified type to the service collection
+    /// </summary>
+    /// <typeparam name="T">The type whose assembly should be scanned for validators</typeparam>
+    /// <param name="services">The service collection</param>
+    /// <returns>The service collection</returns>
+    public static IServiceCollection AddValidatorsFromAssemblyContaining<T>(
+        this IServiceCollection services)
+    {
+        return services.AddValidatorsFromAssembly(typeof(T).Assembly);
+    }
+    
+    public static IServiceCollection AddMinimalCleanArch<TContext>(
+        this IServiceCollection services,
+        Action<DbContextOptionsBuilder> optionsAction) 
+        where TContext : DbContext
+    {
+        services.AddDbContext<TContext>(optionsAction);
+        services.AddScoped<DbContext>(provider => provider.GetService<TContext>()!);
+        
+        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        
+        return services;
+    }
+
+
+    /// <summary>
+    /// Adds the encryption.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    /// <param name="encryptionOptions">The encryption options.</param>
+    /// <returns></returns>
+    public static IServiceCollection AddEncryption(
+        this IServiceCollection services,
+        EncryptionOptions encryptionOptions)
+    {
+        services.AddSingleton(encryptionOptions);
+        services.AddSingleton<IEncryptionService, AesEncryptionService>();
+
+        return services;
+    }
+}
+
+/// <summary>
+/// Marker class for assembly scanning
+/// </summary>
+internal class ServiceCollectionExtensionsMarker
+{
+}
