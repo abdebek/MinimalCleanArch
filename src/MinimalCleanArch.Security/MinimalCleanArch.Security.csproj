@@ -1,18 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" />
-  </ItemGroup>
+	<PropertyGroup>
+		<Description>Security components for MinimalCleanArch</Description>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+	</ItemGroup>
 
-  <PropertyGroup>
-    <Description>Security components for MinimalCleanArch</Description>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+	</ItemGroup>
 
 </Project>

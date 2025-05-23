@@ -1,10 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Description>Core components for implementing Clean Architecture</Description>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<Description>Core components for implementing Clean Architecture</Description>
+	</PropertyGroup>
 
+	<!-- No external package dependencies for the core library -->
 </Project>
