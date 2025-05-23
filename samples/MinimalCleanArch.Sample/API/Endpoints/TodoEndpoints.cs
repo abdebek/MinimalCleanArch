@@ -3,7 +3,7 @@ using MinimalCleanArch.Repositories;
 using MinimalCleanArch.Sample.API.Models;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Specifications;
-using Microsoft.OpenApi.Models; 
+using Microsoft.OpenApi.Models;
 
 namespace MinimalCleanArch.Sample.API.Endpoints;
 
@@ -20,17 +20,17 @@ public static class TodoEndpoints
         // Get all todos
         todoApi.MapGet("/", GetTodos)
             .WithName("GetTodos")
-            .WithOpenApi(op => new OpenApiOperation(op) // Ensure OpenApiOperation is used correctly
+            .WithOpenApi(op => new OpenApiOperation(op)
             {
                 Summary = "Gets all todos with optional filtering",
                 Description = "Gets a list of todos with optional filtering and pagination"
             })
-            .WithStandardResponses<List<TodoResponse>>();
+            .WithStandardResponses<object>();
 
         // Get todo by ID
         todoApi.MapGet("/{id}", GetTodoById)
             .WithName("GetTodoById")
-            .WithOpenApi(op => new OpenApiOperation(op) // Ensure OpenApiOperation is used correctly
+            .WithOpenApi(op => new OpenApiOperation(op)
             {
                 Summary = "Gets a todo by ID",
                 Description = "Gets a todo by its ID"
@@ -41,7 +41,7 @@ public static class TodoEndpoints
         // Create todo
         todoApi.MapPost("/", CreateTodo)
             .WithName("CreateTodo")
-            .WithOpenApi(op => new OpenApiOperation(op) // Ensure OpenApiOperation is used correctly
+            .WithOpenApi(op => new OpenApiOperation(op)
             {
                 Summary = "Creates a new todo",
                 Description = "Creates a new todo"
@@ -53,7 +53,7 @@ public static class TodoEndpoints
         // Update todo
         todoApi.MapPut("/{id}", UpdateTodo)
             .WithName("UpdateTodo")
-            .WithOpenApi(op => new OpenApiOperation(op) // Ensure OpenApiOperation is used correctly
+            .WithOpenApi(op => new OpenApiOperation(op)
             {
                 Summary = "Updates a todo",
                 Description = "Updates a todo"
@@ -65,19 +65,18 @@ public static class TodoEndpoints
         // Delete todo
         todoApi.MapDelete("/{id}", DeleteTodo)
             .WithName("DeleteTodo")
-            .WithOpenApi(op => new OpenApiOperation(op) // Ensure OpenApiOperation is used correctly
+            .WithOpenApi(op => new OpenApiOperation(op)
             {
                 Summary = "Deletes a todo",
                 Description = "Deletes a todo"
             })
-            .WithStandardResponses<TodoResponse>()
+            .WithStandardResponses<object>()
             .WithErrorHandling();
 
         return app;
     }
 
-
-    // Handler implementations
+    // Handler implementations with UnitOfWork pattern
     private static async Task<IResult> GetTodos(
         IRepository<Todo> repository,
         [AsParameters] TodoQueryParameters parameters)
@@ -134,67 +133,92 @@ public static class TodoEndpoints
 
     private static async Task<IResult> CreateTodo(
         CreateTodoRequest request,
-        IRepository<Todo> repository)
+        IRepository<Todo> repository,
+        IUnitOfWork unitOfWork)
     {
-        var todo = new Todo(
-            request.Title,
-            request.Description,
-            request.Priority,
-            request.DueDate);
+        try
+        {
+            var todo = new Todo(
+                request.Title,
+                request.Description,
+                request.Priority,
+                request.DueDate);
 
-        await repository.AddAsync(todo);
+            await repository.AddAsync(todo);
+            await unitOfWork.SaveChangesAsync();
 
-        return Results.Created(
-            $"/api/todos/{todo.Id}",
-            MapToResponse(todo));
+            return Results.Created(
+                $"/api/todos/{todo.Id}",
+                MapToResponse(todo));
+        }
+        catch (Exception)
+        {
+            // The error handling middleware will catch and handle this
+            throw;
+        }
     }
 
     private static async Task<IResult> UpdateTodo(
         int id,
         UpdateTodoRequest request,
-        IRepository<Todo> repository)
+        IRepository<Todo> repository,
+        IUnitOfWork unitOfWork)
     {
-        var todo = await repository.GetByIdAsync(id);
-        if (todo == null)
+        return await unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            return Results.NotFound();
-        }
+            var todo = await repository.GetByIdAsync(id);
+            if (todo == null)
+            {
+                return Results.NotFound();
+            }
 
-        if(todo.IsCompleted)
-        {
-            return Results.Conflict("Cannot update a completed todo.");
-        }
+            if (todo.IsCompleted && !request.IsCompleted)
+            {
+                return Results.Conflict("Cannot mark a completed todo as not completed.");
+            }
 
-        if (request.IsCompleted)
-        {
-            todo.MarkAsCompleted();
-        }
-        else
-        {
-            todo.MarkAsNotCompleted();
-        }
+            // Update completion status
+            if (request.IsCompleted && !todo.IsCompleted)
+            {
+                todo.MarkAsCompleted();
+            }
+            else if (!request.IsCompleted && todo.IsCompleted)
+            {
+                todo.MarkAsNotCompleted();
+            }
 
-        todo.Update(
-            request.Title,
-            request.Description,
-            request.Priority,
-            request.DueDate);
+            // Update other properties
+            todo.Update(
+                request.Title,
+                request.Description,
+                request.Priority,
+                request.DueDate);
 
-        await repository.UpdateAsync(todo);
-        return Results.Ok(MapToResponse(todo));
+            await repository.UpdateAsync(todo);
+            await unitOfWork.SaveChangesAsync();
+
+            return Results.Ok(MapToResponse(todo));
+        });
     }
 
     private static async Task<IResult> DeleteTodo(
         int id,
-        IRepository<Todo> repository)
+        IRepository<Todo> repository,
+        IUnitOfWork unitOfWork)
     {
-        var todo = await repository.GetByIdAsync(id);
-        if (todo == null)
+        return await unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            return Results.NotFound();
-        }
-        await repository.DeleteAsync(todo);
-        return Results.NoContent();
+            var todo = await repository.GetByIdAsync(id);
+            if (todo == null)
+            {
+                return Results.NotFound();
+            }
+
+            await repository.DeleteAsync(todo);
+            await unitOfWork.SaveChangesAsync();
+
+            return Results.NoContent();
+        });
     }
 
     private static TodoResponse MapToResponse(Todo todo)

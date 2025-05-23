@@ -3,7 +3,7 @@
 /// <summary>
 /// Interface for encryption services
 /// </summary>
-public interface IEncryptionService
+public interface IEncryptionService : IDisposable
 {
     /// <summary>
     /// Encrypts the specified plaintext

@@ -1,4 +1,5 @@
-﻿using MinimalCleanArch.Repositories;
+﻿using MinimalCleanArch.Domain.Entities;
+using MinimalCleanArch.Repositories;
 
 //namespace MinimalCleanArch.EntityFramework.Extensions;
 namespace MinimalCleanArch.Extensions;

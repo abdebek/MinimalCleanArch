@@ -13,18 +13,22 @@ namespace MinimalCleanArch.Sample.Infrastructure.Data;
 public class ApplicationDbContext : DbContextBase
 {
     private readonly IEncryptionService _encryptionService;
+    private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApplicationDbContext"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
     /// <param name="encryptionService">The encryption service</param>
+    /// <param name="serviceProvider">The service provider for logging</param>
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
-        IEncryptionService encryptionService)
+        IEncryptionService encryptionService,
+        IServiceProvider serviceProvider)
         : base(options)
     {
         _encryptionService = encryptionService;
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -43,17 +47,18 @@ public class ApplicationDbContext : DbContextBase
         // Apply entity configurations
         modelBuilder.ApplyConfiguration(new TodoConfiguration());
 
-        // Apply encryption
-        modelBuilder.UseEncryption(_encryptionService);
+        // Apply encryption with enhanced logging
+        modelBuilder.UseEncryption(_encryptionService, _serviceProvider);
     }
 
     /// <summary>
-    /// Gets the current user ID
+    /// Gets the current user ID from the application context
     /// </summary>
     /// <returns>The current user ID</returns>
     protected override string? GetCurrentUserId()
     {
         // In a real application, this would get the user ID from the current user context
+        // For now, we'll use a simple system user
         return "system";
     }
 }
@@ -79,12 +84,15 @@ public class TodoConfiguration : IEntityTypeConfiguration<Todo>
 
         builder.Property(t => t.Description)
             .HasMaxLength(500);
+        // Note: Encryption is configured automatically via the [Encrypted] attribute
 
         builder.Property(t => t.IsCompleted)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValue(false);
 
         builder.Property(t => t.Priority)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValue(0);
 
         builder.Property(t => t.DueDate);
 
@@ -102,6 +110,16 @@ public class TodoConfiguration : IEntityTypeConfiguration<Todo>
 
         // Soft delete
         builder.Property(t => t.IsDeleted)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        // Indexes for better query performance
+        builder.HasIndex(t => t.IsCompleted);
+        builder.HasIndex(t => t.Priority);
+        builder.HasIndex(t => t.DueDate);
+        builder.HasIndex(t => t.IsDeleted);
+        
+        // Composite index for common queries
+        builder.HasIndex(t => new { t.IsCompleted, t.Priority, t.IsDeleted });
     }
 }
