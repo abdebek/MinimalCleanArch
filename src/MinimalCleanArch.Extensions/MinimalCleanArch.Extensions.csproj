@@ -1,35 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Description>Extensions for Minimal API endpoints, including validation filters, error handling, and standard response definitions.</Description>
-    <PackageTags>clean-architecture;minimal-api;validation;error-handling</PackageTags>
-    <!-- Disable CPM for this project -->
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Description>Extensions for Minimal API endpoints, including validation filters, error handling, and standard response definitions.</Description>
+		<PackageTags>clean-architecture;minimal-api;validation;error-handling</PackageTags>
+		<!-- Disable CPM for this project -->
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="FluentValidation" Version="12.0.0" />
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
-    <PackageReference Include="Microsoft.OpenApi" Version="1.6.13" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.5.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="MinVer" Version="4.3.0" PrivateAssets="All" />
-  </ItemGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="FluentValidation" Version="12.0.0" />
+		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.2" />
+		<PackageReference Include="Microsoft.OpenApi" Version="1.6.13" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.5.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="MinVer" Version="4.3.0" PrivateAssets="All" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\MinimalCleanArch.EntityFramework\MinimalCleanArch.EntityFramework.csproj" />
-    <ProjectReference Include="..\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
-    <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<!-- Only reference the core library - NO EntityFramework or Security references -->
+		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+	</ItemGroup>
 
 </Project>

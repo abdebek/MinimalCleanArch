@@ -79,7 +79,7 @@ namespace MinimalCleanArch.Repositories
             CancellationToken cancellationToken = default);
         
         /// <summary>
-        /// Adds an entity
+        /// Adds an entity (does not save to database until SaveChanges is called)
         /// </summary>
         /// <param name="entity">The entity to add</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
@@ -87,7 +87,15 @@ namespace MinimalCleanArch.Repositories
         Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
         
         /// <summary>
-        /// Updates an entity
+        /// Adds multiple entities (does not save to database until SaveChanges is called)
+        /// </summary>
+        /// <param name="entities">The entities to add</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        Task<IEnumerable<TEntity>> AddRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
+        
+        /// <summary>
+        /// Updates an entity (does not save to database until SaveChanges is called)
         /// </summary>
         /// <param name="entity">The entity to update</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
@@ -95,7 +103,15 @@ namespace MinimalCleanArch.Repositories
         Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
         
         /// <summary>
-        /// Deletes an entity
+        /// Updates multiple entities (does not save to database until SaveChanges is called)
+        /// </summary>
+        /// <param name="entities">The entities to update</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        Task<IEnumerable<TEntity>> UpdateRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
+        
+        /// <summary>
+        /// Deletes an entity (does not save to database until SaveChanges is called)
         /// </summary>
         /// <param name="entity">The entity to delete</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
@@ -103,12 +119,20 @@ namespace MinimalCleanArch.Repositories
         Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default);
         
         /// <summary>
-        /// Deletes an entity by its key
+        /// Deletes an entity by its key (does not save to database until SaveChanges is called)
         /// </summary>
         /// <param name="id">The entity's key</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
         /// <returns>A task that represents the asynchronous operation</returns>
         Task DeleteAsync(TKey id, CancellationToken cancellationToken = default);
+        
+        /// <summary>
+        /// Deletes multiple entities (does not save to database until SaveChanges is called)
+        /// </summary>
+        /// <param name="entities">The entities to delete</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
     }
 
     /// <summary>

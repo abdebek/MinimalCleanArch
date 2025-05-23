@@ -125,53 +125,80 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     }
 
     /// <summary>
-    /// Adds an entity
+    /// Adds an entity to the context (does not save to database)
     /// </summary>
     /// <param name="entity">The entity to add</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        await DbSet.AddAsync(entity, cancellationToken);
-        await DbContext.SaveChangesAsync(cancellationToken);
-        return entity;
+        var entityEntry = await DbSet.AddAsync(entity, cancellationToken);
+        return entityEntry.Entity;
     }
 
     /// <summary>
-    /// Updates an entity
+    /// Adds multiple entities to the context (does not save to database)
+    /// </summary>
+    /// <param name="entities">The entities to add</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    public virtual async Task<IEnumerable<TEntity>> AddRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    {
+        var entitiesList = entities.ToList();
+        await DbSet.AddRangeAsync(entitiesList, cancellationToken);
+        return entitiesList;
+    }
+
+    /// <summary>
+    /// Updates an entity in the context (does not save to database)
     /// </summary>
     /// <param name="entity">The entity to update</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
-    public virtual async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         DbContext.Entry(entity).State = EntityState.Modified;
-        await DbContext.SaveChangesAsync(cancellationToken);
-        return entity;
+        return Task.FromResult(entity);
     }
 
     /// <summary>
-    /// Deletes an entity
+    /// Updates multiple entities in the context (does not save to database)
+    /// </summary>
+    /// <param name="entities">The entities to update</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    public virtual Task<IEnumerable<TEntity>> UpdateRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    {
+        var entitiesList = entities.ToList();
+        foreach (var entity in entitiesList)
+        {
+            DbContext.Entry(entity).State = EntityState.Modified;
+        }
+        return Task.FromResult<IEnumerable<TEntity>>(entitiesList);
+    }
+
+    /// <summary>
+    /// Marks an entity for deletion (does not save to database)
     /// </summary>
     /// <param name="entity">The entity to delete</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
-    public virtual async Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         if (entity is ISoftDelete softDeleteEntity)
         {
             softDeleteEntity.IsDeleted = true;
-            await UpdateAsync(entity, cancellationToken);
+            DbContext.Entry(entity).State = EntityState.Modified;
         }
         else
         {
             DbSet.Remove(entity);
-            await DbContext.SaveChangesAsync(cancellationToken);
         }
+        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Deletes an entity by its key
+    /// Marks an entity for deletion by its key (does not save to database)
     /// </summary>
     /// <param name="id">The entity's key</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
@@ -183,6 +210,32 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         {
             await DeleteAsync(entity, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Marks multiple entities for deletion (does not save to database)
+    /// </summary>
+    /// <param name="entities">The entities to delete</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    public virtual Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    {
+        var entitiesList = entities.ToList();
+        
+        foreach (var entity in entitiesList)
+        {
+            if (entity is ISoftDelete softDeleteEntity)
+            {
+                softDeleteEntity.IsDeleted = true;
+                DbContext.Entry(entity).State = EntityState.Modified;
+            }
+            else
+            {
+                DbSet.Remove(entity);
+            }
+        }
+        
+        return Task.CompletedTask;
     }
 
     /// <summary>

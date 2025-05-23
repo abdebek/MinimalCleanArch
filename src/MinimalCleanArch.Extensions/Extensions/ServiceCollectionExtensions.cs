@@ -1,16 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using FluentValidation;
 using System.Reflection;
-using MinimalCleanArch.Repositories;
-using MinimalCleanArch.Security.Configuration;
-using MinimalCleanArch.Security.Encryption;
-using Microsoft.EntityFrameworkCore;
-using MinimalCleanArch.EntityFramework.Repositories;
 
 namespace MinimalCleanArch.Extensions.Extensions;
 
 /// <summary>
-/// Extension methods for <see cref="IServiceCollection"/>
+/// Extension methods for <see cref="IServiceCollection"/> for MinimalCleanArch Extensions
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -21,7 +16,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection</returns>
     public static IServiceCollection AddMinimalCleanArchExtensions(this IServiceCollection services)
     {
-        // Register validators
+        // Register validators from the Extensions assembly
         services.AddValidatorsFromAssemblyContaining<ServiceCollectionExtensionsMarker>();
 
         return services;
@@ -69,37 +64,6 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services)
     {
         return services.AddValidatorsFromAssembly(typeof(T).Assembly);
-    }
-    
-    public static IServiceCollection AddMinimalCleanArch<TContext>(
-        this IServiceCollection services,
-        Action<DbContextOptionsBuilder> optionsAction) 
-        where TContext : DbContext
-    {
-        services.AddDbContext<TContext>(optionsAction);
-        services.AddScoped<DbContext>(provider => provider.GetService<TContext>()!);
-        
-        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        
-        return services;
-    }
-
-
-    /// <summary>
-    /// Adds the encryption.
-    /// </summary>
-    /// <param name="services">The services.</param>
-    /// <param name="encryptionOptions">The encryption options.</param>
-    /// <returns></returns>
-    public static IServiceCollection AddEncryption(
-        this IServiceCollection services,
-        EncryptionOptions encryptionOptions)
-    {
-        services.AddSingleton(encryptionOptions);
-        services.AddSingleton<IEncryptionService, AesEncryptionService>();
-
-        return services;
     }
 }
 
