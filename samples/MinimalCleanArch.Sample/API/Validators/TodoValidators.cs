@@ -15,6 +15,7 @@ public class CreateTodoRequestValidator : AbstractValidator<CreateTodoRequest>
     {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required")
+            .NotNull().WithMessage("Title cannot be null")
             .MaximumLength(100).WithMessage("Title cannot be longer than 100 characters");
 
         RuleFor(x => x.Description)
@@ -46,6 +47,7 @@ public class UpdateTodoRequestValidator : AbstractValidator<UpdateTodoRequest>
     {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required")
+            .NotNull().WithMessage("Title cannot be null")
             .MaximumLength(100).WithMessage("Title cannot be longer than 100 characters");
 
         RuleFor(x => x.Description)

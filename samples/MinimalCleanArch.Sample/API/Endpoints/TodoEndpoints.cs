@@ -164,41 +164,44 @@ public static class TodoEndpoints
         IRepository<Todo> repository,
         IUnitOfWork unitOfWork)
     {
-        return await unitOfWork.ExecuteInTransactionAsync(async () =>
+        try
         {
-            var todo = await repository.GetByIdAsync(id);
-            if (todo == null)
+            return await unitOfWork.ExecuteInTransactionAsync(async () =>
             {
-                return Results.NotFound();
-            }
+                var todo = await repository.GetByIdAsync(id);
+                if (todo == null)
+                {
+                    return Results.NotFound();
+                }
 
-            if (todo.IsCompleted && !request.IsCompleted)
-            {
-                return Results.Conflict("Cannot mark a completed todo as not completed.");
-            }
+                // Update completion status first
+                if (request.IsCompleted && !todo.IsCompleted)
+                {
+                    todo.MarkAsCompleted();
+                }
+                else if (!request.IsCompleted && todo.IsCompleted)
+                {
+                    todo.MarkAsNotCompleted();
+                }
 
-            // Update completion status
-            if (request.IsCompleted && !todo.IsCompleted)
-            {
-                todo.MarkAsCompleted();
-            }
-            else if (!request.IsCompleted && todo.IsCompleted)
-            {
-                todo.MarkAsNotCompleted();
-            }
+                // Update other properties
+                todo.Update(
+                    request.Title,
+                    request.Description,
+                    request.Priority,
+                    request.DueDate);
 
-            // Update other properties
-            todo.Update(
-                request.Title,
-                request.Description,
-                request.Priority,
-                request.DueDate);
+                await repository.UpdateAsync(todo);
+                await unitOfWork.SaveChangesAsync();
 
-            await repository.UpdateAsync(todo);
-            await unitOfWork.SaveChangesAsync();
-
-            return Results.Ok(MapToResponse(todo));
-        });
+                return Results.Ok(MapToResponse(todo));
+            });
+        }
+        catch (Exception)
+        {
+            // Let the error handling middleware handle it
+            throw;
+        }
     }
 
     private static async Task<IResult> DeleteTodo(
@@ -206,19 +209,27 @@ public static class TodoEndpoints
         IRepository<Todo> repository,
         IUnitOfWork unitOfWork)
     {
-        return await unitOfWork.ExecuteInTransactionAsync(async () =>
+        try
         {
-            var todo = await repository.GetByIdAsync(id);
-            if (todo == null)
+            return await unitOfWork.ExecuteInTransactionAsync(async () =>
             {
-                return Results.NotFound();
-            }
+                var todo = await repository.GetByIdAsync(id);
+                if (todo == null)
+                {
+                    return Results.NotFound();
+                }
 
-            await repository.DeleteAsync(todo);
-            await unitOfWork.SaveChangesAsync();
+                await repository.DeleteAsync(todo);
+                await unitOfWork.SaveChangesAsync();
 
-            return Results.NoContent();
-        });
+                return Results.NoContent();
+            });
+        }
+        catch (Exception)
+        {
+            // Let the error handling middleware handle it
+            throw;
+        }
     }
 
     private static TodoResponse MapToResponse(Todo todo)

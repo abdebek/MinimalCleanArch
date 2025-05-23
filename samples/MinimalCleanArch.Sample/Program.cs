@@ -28,10 +28,21 @@ builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add encryption services
+var encryptionKey = builder.Configuration["Encryption:Key"];
+if (string.IsNullOrWhiteSpace(encryptionKey))
+{
+    // Generate a strong key for development if none provided
+    encryptionKey = EncryptionOptions.GenerateStrongKey(64);
+
+    //TODO: log
+    //app.Logger.LogWarning("No encryption key configured. Generated a temporary key for development. " +
+    //                     "Set Encryption:Key in configuration for production.");
+}
+
 var encryptionOptions = new EncryptionOptions
 {
-    Key = builder.Configuration["Encryption:Key"] ?? "your-strong-encryption-key-at-least-32-characters-long",
-    ValidateKeyStrength = true,
+    Key = encryptionKey,
+    ValidateKeyStrength = !builder.Environment.IsDevelopment(), // Skip validation in development
     EnableOperationLogging = builder.Environment.IsDevelopment()
 };
 
@@ -91,3 +102,6 @@ app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = Dat
     .WithOpenApi();
 
 app.Run();
+
+// Make the implicit Program class public so it can be referenced by tests
+public partial class Program { }
