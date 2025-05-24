@@ -2,7 +2,7 @@
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Specifications;
 
-namespace MinimalCleanArch.EntityFramework.Specifications;
+namespace MinimalCleanArch.DataAccess.Specifications;
 
 /// <summary>
 /// Evaluates specifications and applies them to IQueryable

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MinimalCleanArch.EntityFramework.Extensions;
+using MinimalCleanArch.DataAccess.Extensions;
 using MinimalCleanArch.Extensions.Extensions;
 using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Sample.API.Endpoints;

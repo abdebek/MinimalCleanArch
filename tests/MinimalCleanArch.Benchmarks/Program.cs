@@ -3,7 +3,7 @@ using BenchmarkDotNet.Running;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MinimalCleanArch.EntityFramework.Repositories;
+using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;

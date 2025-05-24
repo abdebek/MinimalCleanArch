@@ -22,8 +22,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.EntityFramework\MinimalCleanArch.EntityFramework.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />

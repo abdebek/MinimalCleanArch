@@ -12,8 +12,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
+		<ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.EntityFramework\MinimalCleanArch.EntityFramework.csproj" />
 	</ItemGroup>
 
 </Project>

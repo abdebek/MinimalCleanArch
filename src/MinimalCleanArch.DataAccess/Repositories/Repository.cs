@@ -1,11 +1,11 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.Domain.Entities;
-using MinimalCleanArch.EntityFramework.Specifications;
+using MinimalCleanArch.DataAccess.Specifications;
 using MinimalCleanArch.Repositories;
 using MinimalCleanArch.Specifications;
 
-namespace MinimalCleanArch.EntityFramework.Repositories;
+namespace MinimalCleanArch.DataAccess.Repositories;
 
 /// <summary>
 /// Generic repository implementation using Entity Framework Core

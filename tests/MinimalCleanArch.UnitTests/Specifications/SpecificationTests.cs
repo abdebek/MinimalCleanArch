@@ -8,7 +8,7 @@ using MinimalCleanArch.Sample.Infrastructure.Specifications;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Encryption;
 using FluentAssertions;
-using MinimalCleanArch.EntityFramework.Repositories;
+using MinimalCleanArch.DataAccess.Repositories;
 
 namespace MinimalCleanArch.UnitTests.Specifications;
 

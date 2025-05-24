@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using MinimalCleanArch.Repositories;
 
-namespace MinimalCleanArch.EntityFramework.Repositories;
+namespace MinimalCleanArch.DataAccess.Repositories;
 
 /// <summary>
 /// Unit of Work implementation using Entity Framework Core

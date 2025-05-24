@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MinimalCleanArch.Domain.Entities;
 
-namespace MinimalCleanArch.EntityFramework;
+namespace MinimalCleanArch.DataAccess;
 
 /// <summary>
 /// Base DbContext with support for auditing and soft delete

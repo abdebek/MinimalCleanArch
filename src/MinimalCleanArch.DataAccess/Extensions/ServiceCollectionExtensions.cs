@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using MinimalCleanArch.EntityFramework.Repositories;
+using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
 
-namespace MinimalCleanArch.EntityFramework.Extensions;
+namespace MinimalCleanArch.DataAccess.Extensions;
 
 /// <summary>
 /// Extension methods for IServiceCollection

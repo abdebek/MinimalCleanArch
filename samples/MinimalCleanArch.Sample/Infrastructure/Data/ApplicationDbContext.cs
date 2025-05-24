@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using MinimalCleanArch.EntityFramework;
+using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Security.Encryption;
 using MinimalCleanArch.Security.EntityFramework;

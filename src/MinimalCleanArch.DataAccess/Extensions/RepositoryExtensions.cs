@@ -1,8 +1,8 @@
 ﻿using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Repositories;
 
-//namespace MinimalCleanArch.EntityFramework.Extensions;
-namespace MinimalCleanArch.Extensions;
+//namespace MinimalCleanArch.DataAccess.Extensions;
+namespace MinimalCleanArch.DataAccess.Extensions;
 
 /// <summary>
 /// Extension methods for repositories to provide backward compatibility with immediate save behavior
