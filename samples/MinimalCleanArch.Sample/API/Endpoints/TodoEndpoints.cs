@@ -28,7 +28,7 @@ public static class TodoEndpoints
             .WithStandardResponses<object>();
 
         // Get todo by ID
-        todoApi.MapGet("/{id}", GetTodoById)
+        todoApi.MapGet("/{id:int}", GetTodoById)
             .WithName("GetTodoById")
             .WithOpenApi(op => new OpenApiOperation(op)
             {
@@ -51,7 +51,7 @@ public static class TodoEndpoints
             .WithErrorHandling();
 
         // Update todo
-        todoApi.MapPut("/{id}", UpdateTodo)
+        todoApi.MapPut("/{id:int}", UpdateTodo)
             .WithName("UpdateTodo")
             .WithOpenApi(op => new OpenApiOperation(op)
             {
@@ -63,7 +63,7 @@ public static class TodoEndpoints
             .WithErrorHandling();
 
         // Delete todo
-        todoApi.MapDelete("/{id}", DeleteTodo)
+        todoApi.MapDelete("/{id:int}", DeleteTodo)
             .WithName("DeleteTodo")
             .WithOpenApi(op => new OpenApiOperation(op)
             {
@@ -79,56 +79,104 @@ public static class TodoEndpoints
     // Handler implementations with UnitOfWork pattern
     private static async Task<IResult> GetTodos(
         IRepository<Todo> repository,
-        [AsParameters] TodoQueryParameters parameters)
+        string? searchTerm = null,
+        bool? isCompleted = null,
+        DateTime? dueBefore = null,
+        DateTime? dueAfter = null,
+        int? priority = null,
+        int pageSize = 10,
+        int pageIndex = 1)
     {
-        var filterSpec = new TodoFilterSpecification(
-            parameters.SearchTerm,
-            parameters.IsCompleted,
-            parameters.DueBefore,
-            parameters.DueAfter,
-            parameters.Priority);
-
-        // Get total count
-        var totalCount = await repository.CountAsync(filterSpec.Criteria);
-
-        // Get paginated results
-        var paginatedSpec = new TodoPaginatedSpecification(
-            parameters.PageSize,
-            parameters.PageIndex,
-            filterSpec);
-
-        var todos = await repository.GetAsync(paginatedSpec);
-
-        // Map to response
-        var todoResponses = todos.Select(MapToResponse).ToList();
-
-        // Create pagination header
-        var paginationHeader = new
+        try
         {
-            TotalCount = totalCount,
-            PageSize = parameters.PageSize,
-            CurrentPage = parameters.PageIndex,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize)
-        };
+            // Validate parameters
+            if (pageSize <= 0 || pageIndex <= 0)
+            {
+                return Results.BadRequest("Invalid pagination parameters");
+            }
 
-        return Results.Ok(new
+            // Ensure page size doesn't exceed maximum
+            const int maxPageSize = 50;
+            pageSize = Math.Min(maxPageSize, Math.Max(1, pageSize));
+
+            var filterSpec = new TodoFilterSpecification(
+                searchTerm,
+                isCompleted,
+                dueBefore,
+                dueAfter,
+                priority);
+
+            // Get total count
+            var totalCount = await repository.CountAsync(filterSpec.Criteria);
+
+            // Get paginated results
+            var paginatedSpec = new TodoPaginatedSpecification(
+                pageSize,
+                pageIndex,
+                filterSpec);
+
+            var todos = await repository.GetAsync(paginatedSpec);
+
+            // Map to response
+            var todoResponses = todos.Select(MapToResponse).ToList();
+
+            // Create pagination header
+            var paginationHeader = new
+            {
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = pageIndex,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Results.Ok(new
+            {
+                Items = todoResponses,
+                Pagination = paginationHeader
+            });
+        }
+        catch (ArgumentException ex)
         {
-            Items = todoResponses,
-            Pagination = paginationHeader
-        });
+            return Results.BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            // Log the exception here in a real application
+            return Results.Problem(
+                title: "Internal Server Error",
+                detail: $"An error occurred while retrieving todos: {ex.Message}",
+                statusCode: 500);
+        }
     }
 
     private static async Task<IResult> GetTodoById(
         int id,
         IRepository<Todo> repository)
     {
-        var todo = await repository.GetByIdAsync(id);
-        if (todo == null)
+        try
         {
-            return Results.NotFound();
-        }
+            // Validate ID
+            if (id <= 0)
+            {
+                return Results.BadRequest("Invalid todo ID");
+            }
 
-        return Results.Ok(MapToResponse(todo));
+            var todo = await repository.GetByIdAsync(id);
+            if (todo == null)
+            {
+                return Results.NotFound($"Todo with ID {id} was not found");
+            }
+
+            return Results.Ok(MapToResponse(todo));
+        }
+        catch (Exception)
+        {
+            // Log the exception here in a real application
+            return Results.Problem(
+                title: "Internal Server Error",
+                detail: "An error occurred while retrieving the todo",
+                statusCode: 500);
+        }
     }
 
     private static async Task<IResult> CreateTodo(
@@ -138,6 +186,7 @@ public static class TodoEndpoints
     {
         try
         {
+            // Validation is handled by the WithValidation filter
             var todo = new Todo(
                 request.Title,
                 request.Description,
@@ -151,10 +200,17 @@ public static class TodoEndpoints
                 $"/api/todos/{todo.Id}",
                 MapToResponse(todo));
         }
+        catch (MinimalCleanArch.Domain.Exceptions.DomainException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
         catch (Exception)
         {
-            // The error handling middleware will catch and handle this
-            throw;
+            // Log the exception here in a real application
+            return Results.Problem(
+                title: "Internal Server Error",
+                detail: "An error occurred while creating the todo",
+                statusCode: 500);
         }
     }
 
@@ -166,41 +222,51 @@ public static class TodoEndpoints
     {
         try
         {
-            return await unitOfWork.ExecuteInTransactionAsync(async () =>
+            // Validate ID
+            if (id <= 0)
             {
-                var todo = await repository.GetByIdAsync(id);
-                if (todo == null)
-                {
-                    return Results.NotFound();
-                }
+                return Results.BadRequest("Invalid todo ID");
+            }
 
-                // Update completion status first
-                if (request.IsCompleted && !todo.IsCompleted)
-                {
-                    todo.MarkAsCompleted();
-                }
-                else if (!request.IsCompleted && todo.IsCompleted)
-                {
-                    todo.MarkAsNotCompleted();
-                }
+            var todo = await repository.GetByIdAsync(id);
+            if (todo == null)
+            {
+                return Results.NotFound($"Todo with ID {id} was not found");
+            }
 
-                // Update other properties
-                todo.Update(
-                    request.Title,
-                    request.Description,
-                    request.Priority,
-                    request.DueDate);
+            // Update completion status first
+            if (request.IsCompleted && !todo.IsCompleted)
+            {
+                todo.MarkAsCompleted();
+            }
+            else if (!request.IsCompleted && todo.IsCompleted)
+            {
+                todo.MarkAsNotCompleted();
+            }
 
-                await repository.UpdateAsync(todo);
-                await unitOfWork.SaveChangesAsync();
+            // Update other properties
+            todo.Update(
+                request.Title,
+                request.Description,
+                request.Priority,
+                request.DueDate);
 
-                return Results.Ok(MapToResponse(todo));
-            });
+            await repository.UpdateAsync(todo);
+            await unitOfWork.SaveChangesAsync();
+
+            return Results.Ok(MapToResponse(todo));
+        }
+        catch (MinimalCleanArch.Domain.Exceptions.DomainException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
         }
         catch (Exception)
         {
-            // Let the error handling middleware handle it
-            throw;
+            // Log the exception here in a real application
+            return Results.Problem(
+                title: "Internal Server Error",
+                detail: "An error occurred while updating the todo",
+                statusCode: 500);
         }
     }
 
@@ -211,24 +277,30 @@ public static class TodoEndpoints
     {
         try
         {
-            return await unitOfWork.ExecuteInTransactionAsync(async () =>
+            // Validate ID
+            if (id <= 0)
             {
-                var todo = await repository.GetByIdAsync(id);
-                if (todo == null)
-                {
-                    return Results.NotFound();
-                }
+                return Results.BadRequest("Invalid todo ID");
+            }
 
-                await repository.DeleteAsync(todo);
-                await unitOfWork.SaveChangesAsync();
+            var todo = await repository.GetByIdAsync(id);
+            if (todo == null)
+            {
+                return Results.NotFound($"Todo with ID {id} was not found");
+            }
 
-                return Results.NoContent();
-            });
+            await repository.DeleteAsync(todo);
+            await unitOfWork.SaveChangesAsync();
+
+            return Results.NoContent();
         }
         catch (Exception)
         {
-            // Let the error handling middleware handle it
-            throw;
+            // Log the exception here in a real application
+            return Results.Problem( 
+                title: "Internal Server Error",
+                detail: "An error occurred while deleting the todo",
+                statusCode: 500);
         }
     }
 
@@ -248,52 +320,4 @@ public static class TodoEndpoints
             LastModifiedBy = todo.LastModifiedBy
         };
     }
-}
-
-/// <summary>
-/// Parameters for querying todos
-/// </summary>
-public class TodoQueryParameters
-{
-    private const int MaxPageSize = 50;
-    private int _pageSize = 10;
-
-    /// <summary>
-    /// Gets or sets the page index
-    /// </summary>
-    public int PageIndex { get; set; } = 1;
-
-    /// <summary>
-    /// Gets or sets the page size
-    /// </summary>
-    public int PageSize
-    {
-        get => _pageSize;
-        set => _pageSize = Math.Min(MaxPageSize, Math.Max(1, value));
-    }
-
-    /// <summary>
-    /// Gets or sets the search term
-    /// </summary>
-    public string? SearchTerm { get; set; }
-
-    /// <summary>
-    /// Gets or sets the completion status filter
-    /// </summary>
-    public bool? IsCompleted { get; set; }
-
-    /// <summary>
-    /// Gets or sets the due before filter
-    /// </summary>
-    public DateTime? DueBefore { get; set; }
-
-    /// <summary>
-    /// Gets or sets the due after filter
-    /// </summary>
-    public DateTime? DueAfter { get; set; }
-
-    /// <summary>
-    /// Gets or sets the priority filter
-    /// </summary>
-    public int? Priority { get; set; }
 }

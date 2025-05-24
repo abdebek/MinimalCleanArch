@@ -80,7 +80,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <returns>A task that represents the asynchronous operation</returns>
     public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
-        return await DbSet.FindAsync(new object[] { id }, cancellationToken);
+        return await DbSet.FirstOrDefaultAsync(e => e.Id.Equals(id), cancellationToken);
     }
 
     /// <summary>

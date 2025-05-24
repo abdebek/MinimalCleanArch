@@ -41,34 +41,39 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
                     services.Remove(contextDescriptor);
                 }
 
-                // Add test encryption service
-                var encryptionOptions = new EncryptionOptions
-                {
-                    Key = EncryptionOptions.GenerateStrongKey(64), // Use the strong key generator
-                    ValidateKeyStrength = false, // Disable validation for tests
-                    EnableOperationLogging = false
-                };
-                
+                // Remove existing encryption services to avoid conflicts
                 services.RemoveAll<EncryptionOptions>();
                 services.RemoveAll<IEncryptionService>();
+
+                // Add test encryption service with a secure key
+                var encryptionOptions = new EncryptionOptions
+                {
+                    Key = EncryptionOptions.GenerateStrongKey(64),
+                    ValidateKeyStrength = false, // Disable validation for tests
+                    EnableOperationLogging = false,
+                    AllowEnvironmentVariables = false // Don't load from environment in tests
+                };
+                
                 services.AddSingleton(encryptionOptions);
                 services.AddSingleton<IEncryptionService, AesEncryptionService>();
                 
-                // Add test database
+                // Add test database with unique SQLite file per test run
+                var databaseName = $"test_todos_{Guid.NewGuid()}.db";
                 services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
                 {
-                    options.UseInMemoryDatabase($"IntegrationTestDb_{Guid.NewGuid()}");
+                    options.UseSqlite($"Data Source={databaseName}");
+                    options.EnableServiceProviderCaching(false);
+                    options.EnableSensitiveDataLogging();
                 }, ServiceLifetime.Scoped);
-                
-                // Ensure the test database is created
-                var serviceProvider = services.BuildServiceProvider();
-                using var scope = serviceProvider.CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                dbContext.Database.EnsureCreated();
             });
         });
         
         _client = _factory.CreateClient();
+        
+        // Ensure database is created for each test class
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.EnsureCreated();
     }
 
     [Fact]
@@ -149,7 +154,10 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         };
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        createdTodo.Should().NotBeNull();
 
         // Act
         var getResponse = await _client.GetAsync($"/api/todos/{createdTodo!.Id}");
@@ -185,7 +193,10 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         };
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        createdTodo.Should().NotBeNull();
 
         var updateRequest = new UpdateTodoRequest
         {
@@ -240,7 +251,10 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         };
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        createdTodo.Should().NotBeNull();
 
         // Act
         var deleteResponse = await _client.DeleteAsync($"/api/todos/{createdTodo!.Id}");
@@ -280,7 +294,8 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
 
         foreach (var todo in todos)
         {
-            await _client.PostAsJsonAsync("/api/todos", todo);
+            var createResponse = await _client.PostAsJsonAsync("/api/todos", todo);
+            createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         }
 
         // Act
@@ -312,8 +327,11 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
             Priority = 1
         };
 
-        await _client.PostAsJsonAsync("/api/todos", highPriorityTodo);
-        await _client.PostAsJsonAsync("/api/todos", lowPriorityTodo);
+        var highResponse = await _client.PostAsJsonAsync("/api/todos", highPriorityTodo);
+        highResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        
+        var lowResponse = await _client.PostAsJsonAsync("/api/todos", lowPriorityTodo);
+        lowResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // Act
         var response = await _client.GetAsync("/api/todos?priority=5");
@@ -350,37 +368,91 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         };
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        createdTodo.Should().NotBeNull();
+        createdTodo!.Id.Should().BeGreaterThan(0);
 
         // Act - Update
         var updateRequest = new UpdateTodoRequest
         {
-            Title = createdTodo!.Title,
+            Title = createdTodo.Title,
             Description = "Updated description",
             Priority = 4,
             IsCompleted = true
         };
 
         var updateResponse = await _client.PutAsJsonAsync($"/api/todos/{createdTodo.Id}", updateRequest);
+        
+        // Debug information if update fails
+        if (updateResponse.StatusCode != HttpStatusCode.OK)
+        {
+            var errorContent = await updateResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Update failed with status {updateResponse.StatusCode}: {errorContent}");
+        }
+        
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updatedTodo = await updateResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        updatedTodo.Should().NotBeNull();
 
-        // Act - Get
+        // Act - Get (verify the update worked)
         var getResponse = await _client.GetAsync($"/api/todos/{createdTodo.Id}");
+        
+        // Debug information if get fails
+        if (getResponse.StatusCode != HttpStatusCode.OK)
+        {
+            var errorContent = await getResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Get failed with status {getResponse.StatusCode}: {errorContent}");
+        }
+        
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var retrievedTodo = await getResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        retrievedTodo.Should().NotBeNull();
+
+        // Assert update worked correctly
+        retrievedTodo!.IsCompleted.Should().BeTrue();
+        retrievedTodo.Priority.Should().Be(4);
+        retrievedTodo.Description.Should().Be("Updated description");
+        retrievedTodo.Title.Should().Be(createdTodo.Title);
 
         // Act - Delete
         var deleteResponse = await _client.DeleteAsync($"/api/todos/{createdTodo.Id}");
-
-        // Assert
-        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        updatedTodo!.IsCompleted.Should().BeTrue();
-        updatedTodo.Priority.Should().Be(4);
+        // Verify deletion worked (should return 404 now)
+        var deletedGetResponse = await _client.GetAsync($"/api/todos/{createdTodo.Id}");
+        deletedGetResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task EncryptedFields_ShouldBeHandledCorrectly()
+    {
+        // Arrange
+        var sensitiveDescription = "This is sensitive information that should be encrypted";
+        var createRequest = new CreateTodoRequest
+        {
+            Title = "Encryption Test Todo",
+            Description = sensitiveDescription,
+            Priority = 1
+        };
+
+        // Act - Create
+        var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         
-        retrievedTodo!.IsCompleted.Should().BeTrue();
-        retrievedTodo.Description.Should().Be("Updated description");
+        var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
+        createdTodo.Should().NotBeNull();
+
+        // Act - Retrieve
+        var getResponse = await _client.GetAsync($"/api/todos/{createdTodo!.Id}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var retrievedTodo = await getResponse.Content.ReadFromJsonAsync<TodoResponse>();
+
+        // Assert
+        retrievedTodo.Should().NotBeNull();
+        retrievedTodo!.Description.Should().Be(sensitiveDescription);
+        retrievedTodo.Title.Should().Be("Encryption Test Todo");
     }
 }

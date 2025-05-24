@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MinimalCleanArch.EntityFramework.Specifications;
 using MinimalCleanArch.Repositories;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
@@ -13,6 +12,28 @@ using MinimalCleanArch.EntityFramework.Repositories;
 
 namespace MinimalCleanArch.UnitTests.Specifications;
 
+/// <summary>
+/// Test-specific encryption service that doesn't dispose to avoid ObjectDisposedException
+/// </summary>
+public class TestEncryptionService : IEncryptionService
+{
+    private readonly AesEncryptionService _innerService;
+
+    public TestEncryptionService(EncryptionOptions options)
+    {
+        _innerService = new AesEncryptionService(options);
+    }
+
+    public string Encrypt(string plainText) => _innerService.Encrypt(plainText);
+    public string Decrypt(string cipherText) => _innerService.Decrypt(cipherText);
+    
+    // Don't dispose in tests to avoid ObjectDisposedException
+    public void Dispose()
+    {
+        // Intentionally empty - don't dispose the inner service during tests
+    }
+}
+
 public class SpecificationTests : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
@@ -20,27 +41,35 @@ public class SpecificationTests : IDisposable
     private readonly ApplicationDbContext _dbContext;
     private readonly IRepository<Todo> _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly string _databasePath;
 
     public SpecificationTests()
     {
+        _databasePath = $"test_specifications_{Guid.NewGuid()}.db";
+        
         // Setup dependency injection for tests
         var services = new ServiceCollection();
         
         // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         
-        // Add encryption service
+        // Add encryption service with proper test configuration
         var encryptionOptions = new EncryptionOptions
         {
-            Key = "test-encryption-key-for-specification-tests-32",
-            ValidateKeyStrength = false
+            Key = EncryptionOptions.GenerateStrongKey(64),
+            ValidateKeyStrength = false, // Disable validation for tests
+            EnableOperationLogging = false,
+            AllowEnvironmentVariables = false // Don't load from environment in tests
         };
         services.AddSingleton(encryptionOptions);
-        services.AddSingleton<IEncryptionService, AesEncryptionService>();
         
-        // Add DbContext with unique in-memory database
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseInMemoryDatabase($"SpecTestDb_{Guid.NewGuid()}"));
+        // Use test-specific encryption service that doesn't dispose
+        services.AddSingleton<IEncryptionService>(provider => 
+            new TestEncryptionService(provider.GetRequiredService<EncryptionOptions>()));
+        
+        // Add DbContext with SQLite for better reliability
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+            options.UseSqlite($"Data Source={_databasePath}"));
         
         // Add repositories and unit of work
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
@@ -68,7 +97,7 @@ public class SpecificationTests : IDisposable
             new("High Priority Task", "Important work to be done", 5, DateTime.Now.AddDays(1)),
             new("Medium Priority Task", "Regular work", 3, DateTime.Now.AddDays(7)),
             new("Low Priority Task", "Nice to have", 1, DateTime.Now.AddDays(30)),
-            new("Completed Task", "Already finished", 2) { },
+            new("Completed Task", "Already finished", 2),
             new("Overdue Task", "Should have been done", 4, DateTime.Now.AddDays(-5))
         };
 
@@ -131,7 +160,7 @@ public class SpecificationTests : IDisposable
     public async Task TodoFilterSpecification_FiltersByDueDate()
     {
         // Arrange
-        var tomorrow = DateTime.Now.AddDays(1);
+        var tomorrow = DateTime.Now.AddDays(1).Date; // Use date only for comparison
         var dueBeforeSpec = new TodoFilterSpecification(dueBefore: tomorrow);
         var dueAfterSpec = new TodoFilterSpecification(dueAfter: tomorrow);
 
@@ -140,8 +169,21 @@ public class SpecificationTests : IDisposable
         var dueAfter = await _repository.GetAsync(dueAfterSpec);
 
         // Assert
-        dueBefore.Should().HaveCount(2); // High Priority (due in 1 day) and Overdue (past due)
-        dueAfter.Should().HaveCount(2);  // Medium Priority (due in 7 days) and Low Priority (due in 30 days)
+        // dueBefore should include: High Priority (due tomorrow), Overdue (past due)
+        dueBefore.Should().HaveCount(2, "Should include todos due on or before tomorrow");
+        
+        // dueAfter should include: High Priority (due tomorrow), Medium Priority (7 days), Low Priority (30 days)
+        dueAfter.Should().HaveCount(3, "Should include todos due on or after tomorrow");
+        
+        // Verify specific todos in results
+        var dueBeforeTitles = dueBefore.Select(t => t.Title).ToList();
+        dueBeforeTitles.Should().Contain("High Priority Task");
+        dueBeforeTitles.Should().Contain("Overdue Task");
+        
+        var dueAfterTitles = dueAfter.Select(t => t.Title).ToList();
+        dueAfterTitles.Should().Contain("High Priority Task");
+        dueAfterTitles.Should().Contain("Medium Priority Task");
+        dueAfterTitles.Should().Contain("Low Priority Task");
     }
 
     [Fact]
@@ -280,5 +322,18 @@ public class SpecificationTests : IDisposable
     {
         _scope?.Dispose();
         _serviceProvider?.Dispose();
+        
+        // Clean up test database file
+        try
+        {
+            if (File.Exists(_databasePath))
+            {
+                File.Delete(_databasePath);
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
     }
 }

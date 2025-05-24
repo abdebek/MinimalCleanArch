@@ -12,6 +12,28 @@ using FluentAssertions;
 
 namespace MinimalCleanArch.UnitTests.Repositories;
 
+/// <summary>
+/// Test-specific encryption service that doesn't dispose to avoid ObjectDisposedException
+/// </summary>
+public class TestEncryptionService : IEncryptionService
+{
+    private readonly AesEncryptionService _innerService;
+
+    public TestEncryptionService(EncryptionOptions options)
+    {
+        _innerService = new AesEncryptionService(options);
+    }
+
+    public string Encrypt(string plainText) => _innerService.Encrypt(plainText);
+    public string Decrypt(string cipherText) => _innerService.Decrypt(cipherText);
+    
+    // Don't dispose in tests to avoid ObjectDisposedException
+    public void Dispose()
+    {
+        // Intentionally empty - don't dispose the inner service during tests
+    }
+}
+
 public class RepositoryTests : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
@@ -19,27 +41,35 @@ public class RepositoryTests : IDisposable
     private readonly ApplicationDbContext _dbContext;
     private readonly IRepository<Todo> _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly string _databasePath;
 
     public RepositoryTests()
     {
+        _databasePath = $"test_repository_{Guid.NewGuid()}.db";
+        
         // Setup dependency injection for tests
         var services = new ServiceCollection();
         
         // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
         
-        // Add encryption service
+        // Add encryption service with proper test configuration
         var encryptionOptions = new EncryptionOptions
         {
-            Key = "test-encryption-key-for-unit-tests-32-characters",
-            ValidateKeyStrength = false
+            Key = EncryptionOptions.GenerateStrongKey(64),
+            ValidateKeyStrength = false, // Disable validation for tests
+            EnableOperationLogging = false,
+            AllowEnvironmentVariables = false // Don't load from environment in tests
         };
         services.AddSingleton(encryptionOptions);
-        services.AddSingleton<IEncryptionService, AesEncryptionService>();
         
-        // Add DbContext with unique in-memory database
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
+        // Use test-specific encryption service that doesn't dispose
+        services.AddSingleton<IEncryptionService>(provider => 
+            new TestEncryptionService(provider.GetRequiredService<EncryptionOptions>()));
+        
+        // Add DbContext with SQLite instead of InMemory for better reliability
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+            options.UseSqlite($"Data Source={_databasePath}"));
         
         // Add repositories and unit of work
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
@@ -303,16 +333,41 @@ public class RepositoryTests : IDisposable
         retrievedTodo.Should().NotBeNull();
         retrievedTodo!.Description.Should().Be(sensitiveDescription);
 
-        // Verify the description is actually encrypted in the database
-        var rawSql = _dbContext.Database.SqlQueryRaw<string>(
-            "SELECT Description FROM Todos WHERE Id = {0}", todo.Id);
+        // Verify the description was actually encrypted in the database by checking raw SQL
+        // Note: This is SQLite specific - adjust for other databases
+        var connection = _dbContext.Database.GetDbConnection();
+        await connection.OpenAsync();
         
-        // Note: This test is database-specific and might need adjustment for different providers
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT Description FROM Todos WHERE Id = @id";
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "@id";
+        parameter.Value = todo.Id;
+        command.Parameters.Add(parameter);
+        
+        var encryptedValue = await command.ExecuteScalarAsync() as string;
+        
+        // The encrypted value should be different from the original
+        encryptedValue.Should().NotBe(sensitiveDescription);
+        encryptedValue.Should().NotBeNullOrEmpty();
     }
 
     public void Dispose()
     {
         _scope?.Dispose();
         _serviceProvider?.Dispose();
+        
+        // Clean up test database file
+        try
+        {
+            if (File.Exists(_databasePath))
+            {
+                File.Delete(_databasePath);
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
     }
 }

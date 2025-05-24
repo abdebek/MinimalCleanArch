@@ -26,9 +26,9 @@ public class TodoFilterSpecification : BaseSpecification<Todo>
         // Apply filter for search term
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            searchTerm = searchTerm.ToLower();
-            AddCriteria(t => t.Title.ToLower().Contains(searchTerm) ||
-                           t.Description.ToLower().Contains(searchTerm));
+            var lowerSearchTerm = searchTerm.ToLower().Trim();
+            AddCriteria(t => t.Title.ToLower().Contains(lowerSearchTerm) ||
+                           t.Description.ToLower().Contains(lowerSearchTerm));
         }
 
         // Apply filter for completion status
@@ -37,15 +37,16 @@ public class TodoFilterSpecification : BaseSpecification<Todo>
             AddCriteria(t => t.IsCompleted == isCompleted.Value);
         }
 
-        // Apply filter for due date
+        // Apply filter for due date (before)
         if (dueBefore.HasValue)
         {
-            AddCriteria(t => t.DueDate.HasValue && t.DueDate.Value <= dueBefore.Value);
+            AddCriteria(t => t.DueDate.HasValue && t.DueDate.Value.Date <= dueBefore.Value.Date);
         }
 
+        // Apply filter for due date (after)
         if (dueAfter.HasValue)
         {
-            AddCriteria(t => t.DueDate.HasValue && t.DueDate.Value >= dueAfter.Value);
+            AddCriteria(t => t.DueDate.HasValue && t.DueDate.Value.Date >= dueAfter.Value.Date);
         }
 
         // Apply filter for priority
@@ -54,7 +55,7 @@ public class TodoFilterSpecification : BaseSpecification<Todo>
             AddCriteria(t => t.Priority == priority.Value);
         }
 
-        // Apply default ordering
+        // Apply default ordering - priority ascending, then by due date descending (nulls last)
         ApplyOrderBy(t => t.Priority);
         ApplyThenByDescending(t => t.DueDate ?? DateTime.MaxValue);
     }
@@ -88,14 +89,23 @@ public class TodoPaginatedSpecification : BaseSpecification<Todo>
     /// <param name="filter">The filter specification</param>
     public TodoPaginatedSpecification(int pageSize, int pageIndex, TodoFilterSpecification filter)
     {
+        // Validate pagination parameters
+        if (pageSize <= 0)
+            throw new ArgumentException("Page size must be greater than 0", nameof(pageSize));
+        if (pageIndex <= 0)
+            throw new ArgumentException("Page index must be greater than 0", nameof(pageIndex));
+
+        // Copy criteria from filter specification
         if (filter.Criteria != null)
         {
             AddCriteria(filter.Criteria);
         }
 
-        ApplyPaging((pageIndex - 1) * pageSize, pageSize);
+        // Apply pagination
+        var skip = (pageIndex - 1) * pageSize;
+        ApplyPaging(skip, pageSize);
         
-        // Apply ordering from filter
+        // Apply ordering from filter specification
         if (filter.OrderBy != null)
         {
             ApplyOrderBy(filter.OrderBy);
@@ -106,15 +116,16 @@ public class TodoPaginatedSpecification : BaseSpecification<Todo>
             ApplyOrderByDescending(filter.OrderByDescending);
         }
 
-        foreach (var thenBy in filter.ThenBys)
+        // Apply additional ordering (ThenBy)
+        foreach (var (keySelector, descending) in filter.ThenBys)
         {
-            if (thenBy.Descending)
+            if (descending)
             {
-                ApplyThenByDescending(thenBy.KeySelector);
+                ApplyThenByDescending(keySelector);
             }
             else
             {
-                ApplyThenBy(thenBy.KeySelector);
+                ApplyThenBy(keySelector);
             }
         }
     }
