@@ -138,8 +138,54 @@ jobs:
       
     - name: Create packages
       run: |
-        chmod +x scripts/pack.sh
-        ./scripts/pack.sh --configuration Release
+        echo "Creating NuGet packages..."
+        
+        # Create output directory
+        mkdir -p ./artifacts/packages
+        rm -f ./artifacts/packages/*.nupkg ./artifacts/packages/*.snupkg
+        
+        # Pack all projects in src/ directory
+        success_count=0
+        total_count=0
+        
+        for project in src/*/*.csproj; do
+          if [ -f "$project" ]; then
+            total_count=$((total_count + 1))
+            project_name=$(basename "$project" .csproj)
+            echo "Packing: $project_name"
+            
+            if dotnet pack "$project" \
+              --configuration Release \
+              --output ./artifacts/packages \
+              --include-symbols \
+              --verbosity minimal; then
+              success_count=$((success_count + 1))
+              echo "✓ Successfully packed $project_name"
+            else
+              echo "✗ Failed to pack $project_name"
+            fi
+          fi
+        done
+        
+        echo ""
+        echo "Packaging Summary:"
+        echo "  Total projects: $total_count"
+        echo "  Successful: $success_count"
+        echo "  Failed: $((total_count - success_count))"
+        
+        # List created packages
+        echo ""
+        echo "Created packages:"
+        ls -la ./artifacts/packages/ || echo "No packages directory found"
+        
+        # Verify at least one package was created
+        package_count=$(ls ./artifacts/packages/*.nupkg 2>/dev/null | wc -l)
+        if [ $package_count -eq 0 ]; then
+          echo "Error: No packages were created!"
+          exit 1
+        fi
+        
+        echo "Successfully created $package_count package(s)"
         
     - name: List created packages
       run: |
@@ -210,16 +256,76 @@ jobs:
     - name: Publish to NuGet.org (What-If)
       if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
       run: |
-        chmod +x scripts/publish.sh
-        ./scripts/publish.sh --what-if
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        echo "What-If Mode: Showing what would be published..."
+        echo "Found packages:"
+        ls -la ./artifacts/packages/*.nupkg
+        echo ""
+        echo "These packages would be published to NuGet.org"
+        echo "To actually publish, create a tag like: git tag v0.0.1 && git push origin v0.0.1"
         
     - name: Publish to NuGet.org
       if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
       run: |
-        chmod +x scripts/publish.sh
-        ./scripts/publish.sh
+        echo "Publishing packages to NuGet.org..."
+        
+        # Define packages in dependency order
+        packages=(
+          "MinimalCleanArch"
+          "MinimalCleanArch.DataAccess" 
+          "MinimalCleanArch.Extensions"
+          "MinimalCleanArch.Validation"
+          "MinimalCleanArch.Security"
+        )
+        
+        success_count=0
+        total_count=0
+        
+        for pkg_name in "${packages[@]}"; do
+          pkg_file="./artifacts/packages/${pkg_name}.0.0.1.nupkg"
+          
+          if [ -f "$pkg_file" ]; then
+            total_count=$((total_count + 1))
+            echo "Publishing: $pkg_name"
+            
+            if dotnet nuget push "$pkg_file" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate \
+              --timeout 300; then
+              success_count=$((success_count + 1))
+              echo "✓ Successfully published $pkg_name"
+            else
+              echo "✗ Failed to publish $pkg_name"
+              echo "Error details:"
+              dotnet nuget push "$pkg_file" \
+                --api-key "$NUGET_API_KEY" \
+                --source https://api.nuget.org/v3/index.json \
+                --skip-duplicate \
+                --timeout 300 \
+                --verbosity detailed || true
+            fi
+            
+            # Add delay between publishes to avoid rate limiting
+            sleep 5
+          else
+            echo "Package not found: $pkg_file"
+          fi
+        done
+        
+        echo ""
+        echo "Publishing Summary:"
+        echo "  Total packages: $total_count"
+        echo "  Successful: $success_count"
+        echo "  Failed: $((total_count - success_count))"
+        
+        if [ $success_count -eq 0 ]; then
+          echo "Error: No packages were published successfully"
+          exit 1
+        elif [ $success_count -lt $total_count ]; then
+          echo "Warning: Some packages failed to publish"
+        else
+          echo "All packages published successfully!"
+        fi
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         

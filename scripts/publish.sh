@@ -106,11 +106,38 @@ if [ ! -d "$PACKAGES_PATH" ]; then
     exit 1
 fi
 
-# Find packages (exclude symbol packages for main publishing)
+# Find packages in dependency order (core first, then dependent packages)
+package_order=(
+    "MinimalCleanArch.0.0.1.nupkg"
+    "MinimalCleanArch.DataAccess.0.0.1.nupkg" 
+    "MinimalCleanArch.Extensions.0.0.1.nupkg"
+    "MinimalCleanArch.Validation.0.0.1.nupkg"
+    "MinimalCleanArch.Security.0.0.1.nupkg"
+)
+
+# Find actual packages and order them properly
 packages=()
+for pkg_name in "${package_order[@]}"; do
+    pkg_path="$PACKAGES_PATH/$pkg_name"
+    if [ -f "$pkg_path" ]; then
+        packages+=("$pkg_path")
+    fi
+done
+
+# Add any packages not in the predefined order
 while IFS= read -r -d '' file; do
     if [[ $(basename "$file") != *.symbols.nupkg ]]; then
-        packages+=("$file")
+        # Check if this package is already in our ordered list
+        found=false
+        for existing in "${packages[@]}"; do
+            if [ "$file" = "$existing" ]; then
+                found=true
+                break
+            fi
+        done
+        if [ "$found" = false ]; then
+            packages+=("$file")
+        fi
     fi
 done < <(find "$PACKAGES_PATH" -name "*.nupkg" -print0 2>/dev/null)
 
@@ -198,6 +225,7 @@ print_color $CYAN "  Total: ${#packages[@]}"
 echo ""
 if [ "$WHAT_IF" = true ]; then
     print_color $YELLOW "What-If mode completed - no packages were actually published"
+    print_color $GRAY "Run without --what-if to actually publish packages"
 elif [ $error_count -eq 0 ]; then
     print_color $GREEN "All packages published successfully!"
     print_color $GRAY "Visit https://www.nuget.org/profiles/[YourProfile] to view your packages"
@@ -206,4 +234,9 @@ else
     if [ "$SKIP_DUPLICATE" = false ]; then
         exit 1
     fi
+fi
+
+# Exit successfully in What-If mode or if we have any successful publishes
+if [ "$WHAT_IF" = true ] || [ $success_count -gt 0 ]; then
+    exit 0
 fi
