@@ -27,6 +27,13 @@ on:
         default: ''
         type: string
 
+# Add permissions at the workflow level
+permissions:
+  contents: write    # Required for creating releases
+  packages: write    # Required for publishing packages
+  actions: read      # Required for downloading artifacts
+  checks: write      # Required for test reporting
+
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: true
@@ -233,6 +240,11 @@ jobs:
     environment: 
       name: nuget-publishing
       url: https://www.nuget.org/packages?q=MinimalCleanArch
+    
+    # Add specific permissions for this job
+    permissions:
+      contents: write
+      packages: write
     
     steps:
     - name: Checkout code
