@@ -6,7 +6,13 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<IsPackable>false</IsPackable>
+		<IsPublishable>false</IsPublishable>
 		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+
+	<!-- Exclude from CI builds -->
+	<PropertyGroup Condition="'$(CI)' == 'true'">
+		<ExcludeFromBuild>true</ExcludeFromBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
