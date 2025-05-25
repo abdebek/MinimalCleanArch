@@ -17,7 +17,7 @@ A comprehensive library for implementing Clean Architecture with Minimal API in 
 | Package | Description |
 |---------|-------------|
 | **MinimalCleanArch** | Core interfaces and base classes |
-| **MinimalCleanArch.EntityFramework** | EF Core implementation |
+| **MinimalCleanArch.DataAccess** | EF Core implementation |
 | **MinimalCleanArch.Extensions** | Minimal API extensions and validation |
 | **MinimalCleanArch.Validation** | FluentValidation integration |
 | **MinimalCleanArch.Security** | Data encryption and security features |
@@ -27,7 +27,8 @@ A comprehensive library for implementing Clean Architecture with Minimal API in 
 ### 1. Install Packages
 
 ```bash
-dotnet add package MinimalCleanArch.EntityFramework
+dotnet add package MinimalCleanArch
+dotnet add package MinimalCleanArch.DataAccess
 dotnet add package MinimalCleanArch.Extensions
 dotnet add package MinimalCleanArch.Validation
 dotnet add package MinimalCleanArch.Security
