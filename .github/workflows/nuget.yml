@@ -42,16 +42,19 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Setup .NET
+    - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '9.0.x'
+        
+    - name: Verify .NET version
+      run: dotnet --version
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/global.json') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
           
@@ -94,16 +97,19 @@ jobs:
       with:
         fetch-depth: 0
         
-    - name: Setup .NET
+    - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '9.0.x'
+        
+    - name: Verify .NET version
+      run: dotnet --version
         
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/global.json') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
           
@@ -144,13 +150,20 @@ jobs:
         mkdir -p ./artifacts/packages
         rm -f ./artifacts/packages/*.nupkg ./artifacts/packages/*.snupkg
         
-        # Pack all projects in src/ directory
-        success_count=0
-        total_count=0
+        # Pack projects in dependency order
+        projects=(
+          "src/MinimalCleanArch/MinimalCleanArch.csproj"
+          "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj"
+          "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
+          "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
+          "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+        )
         
-        for project in src/*/*.csproj; do
+        success_count=0
+        total_count=${#projects[@]}
+        
+        for project in "${projects[@]}"; do
           if [ -f "$project" ]; then
-            total_count=$((total_count + 1))
             project_name=$(basename "$project" .csproj)
             echo "Packing: $project_name"
             
@@ -158,12 +171,15 @@ jobs:
               --configuration Release \
               --output ./artifacts/packages \
               --include-symbols \
-              --verbosity minimal; then
+              --verbosity minimal \
+              --no-restore; then
               success_count=$((success_count + 1))
               echo "✓ Successfully packed $project_name"
             else
               echo "✗ Failed to pack $project_name"
             fi
+          else
+            echo "Project file not found: $project"
           fi
         done
         
@@ -222,10 +238,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup .NET
+    - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '9.0.x'
         
     - name: Download packages artifact
       uses: actions/download-artifact@v4
@@ -268,47 +284,28 @@ jobs:
       run: |
         echo "Publishing packages to NuGet.org..."
         
-        # Define packages in dependency order
-        packages=(
-          "MinimalCleanArch"
-          "MinimalCleanArch.DataAccess" 
-          "MinimalCleanArch.Extensions"
-          "MinimalCleanArch.Validation"
-          "MinimalCleanArch.Security"
-        )
-        
         success_count=0
         total_count=0
         
-        for pkg_name in "${packages[@]}"; do
-          pkg_file="./artifacts/packages/${pkg_name}.0.0.1.nupkg"
-          
-          if [ -f "$pkg_file" ]; then
+        for package in ./artifacts/packages/*.nupkg; do
+          if [ -f "$package" ]; then
             total_count=$((total_count + 1))
-            echo "Publishing: $pkg_name"
+            package_name=$(basename "$package")
+            echo "Publishing: $package_name"
             
-            if dotnet nuget push "$pkg_file" \
+            if dotnet nuget push "$package" \
               --api-key "$NUGET_API_KEY" \
               --source https://api.nuget.org/v3/index.json \
               --skip-duplicate \
               --timeout 300; then
               success_count=$((success_count + 1))
-              echo "✓ Successfully published $pkg_name"
+              echo "✓ Successfully published $package_name"
             else
-              echo "✗ Failed to publish $pkg_name"
-              echo "Error details:"
-              dotnet nuget push "$pkg_file" \
-                --api-key "$NUGET_API_KEY" \
-                --source https://api.nuget.org/v3/index.json \
-                --skip-duplicate \
-                --timeout 300 \
-                --verbosity detailed || true
+              echo "✗ Failed to publish $package_name"
             fi
             
             # Add delay between publishes to avoid rate limiting
             sleep 5
-          else
-            echo "Package not found: $pkg_file"
           fi
         done
         
@@ -345,7 +342,7 @@ jobs:
           ## MinimalCleanArch ${{ github.ref_name }}
           
           ### Packages Published
-          - MinimalCleanArch - Core components
+          - MinimalCleanArch - Core components (.NET 9.0)
           - MinimalCleanArch.DataAccess - Entity Framework Core implementation  
           - MinimalCleanArch.Extensions - Minimal API extensions
           - MinimalCleanArch.Validation - FluentValidation integration
@@ -357,6 +354,13 @@ jobs:
           dotnet add package MinimalCleanArch.DataAccess --version ${{ needs.pack.outputs.package-version }}
           dotnet add package MinimalCleanArch.Extensions --version ${{ needs.pack.outputs.package-version }}
           ```
+          
+          ### .NET 9.0 Features
+          This release targets .NET 9.0 and includes:
+          - Updated to Entity Framework Core 9.0.5
+          - FluentValidation 12.0.0 support
+          - Enhanced performance and security
+          - Native AOT compatibility improvements
           
           ### Usage
           ```csharp
@@ -380,10 +384,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup .NET
+    - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '9.0.x'
         
     - name: Restore dependencies
       run: dotnet restore MinimalCleanArch.CI.sln
