@@ -1,6 +1,6 @@
-﻿<Project>
+<Project>
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile Condition="'$(Configuration)' == 'Debug'">true</GenerateDocumentationFile>
@@ -13,7 +13,7 @@
 		<Authors>Abdullah D.</Authors>
 		<Company>Waanfeetan</Company>
 		<Product>MinimalCleanArch</Product>
-		<Copyright>Copyright Â© Waanfeetan 2025</Copyright>
+		<Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
 		<PackageProjectUrl>https://github.com/abdebek/MinimalCleanArch</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/abdebek/MinimalCleanArch</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
@@ -30,7 +30,7 @@
 
 	<!-- Include README and icon for all packages -->
 	<ItemGroup>
-		<None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
-		<None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+		<None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" />
+		<None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
 	</ItemGroup>
 </Project>

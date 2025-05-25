@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Description>Data Protection encryption services for MinimalCleanArch using Microsoft Data Protection API with file system and Azure Key Vault support</Description>
@@ -7,10 +7,10 @@
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.16" />
+		<PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.5" />
 		<PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.2.4" />
 		<PackageReference Include="Azure.Identity" Version="1.14.0" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
 	</ItemGroup>
 
 </Project>
