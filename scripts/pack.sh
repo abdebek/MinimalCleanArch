@@ -124,6 +124,7 @@ for project in "${projects[@]}"; do
         "--output" "$OUTPUT_PATH"
         "--verbosity" "minimal"
         "--nologo"
+        "-p:GenerateDocumentationFile=false"
     )
     
     if [ "$SKIP_BUILD" = true ]; then

@@ -60,7 +60,8 @@ foreach ($project in $projects) {
             "--configuration", $Configuration,
             "--output", $OutputPath,
             "--verbosity", "minimal",
-            "--nologo"
+            "--nologo",
+            "-p:GenerateDocumentationFile=false"
         )
         
         if ($SkipBuild) {

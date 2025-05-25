@@ -56,18 +56,18 @@ jobs:
           ${{ runner.os }}-nuget-
           
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore MinimalCleanArch.CI.sln
       
     - name: Build solution
-      run: dotnet build --configuration Release --no-restore --verbosity minimal
+      run: dotnet build MinimalCleanArch.CI.sln --configuration Release --no-restore --verbosity minimal
       
     - name: Run tests (if any exist)
       run: |
         if find . -name "*.Test*.csproj" -o -name "*Test.csproj" -o -name "*Tests.csproj" | grep -q .; then
           echo "Running tests..."
-          dotnet test --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
+          dotnet test MinimalCleanArch.CI.sln --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
         else
-          echo "No test projects found, skipping tests"
+          echo "No test projects found in CI solution, skipping tests"
         fi
       continue-on-error: true
       
@@ -78,6 +78,7 @@ jobs:
         name: test-results-${{ github.run_number }}
         path: TestResults*
         retention-days: 30
+        if-no-files-found: ignore
         
   pack:
     needs: build-and-test
@@ -107,7 +108,7 @@ jobs:
           ${{ runner.os }}-nuget-
           
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore MinimalCleanArch.CI.sln
       
     - name: Determine version
       id: get-version
@@ -238,18 +239,30 @@ jobs:
           ## MinimalCleanArch ${{ github.ref_name }}
           
           ### Packages Published
-          - MinimalCleanArch
-          - MinimalCleanArch.DataAccess  
-          - MinimalCleanArch.Extensions
-          - MinimalCleanArch.Validation
-          - MinimalCleanArch.Security
+          - MinimalCleanArch - Core components
+          - MinimalCleanArch.DataAccess - Entity Framework Core implementation  
+          - MinimalCleanArch.Extensions - Minimal API extensions
+          - MinimalCleanArch.Validation - FluentValidation integration
+          - MinimalCleanArch.Security - Data Protection encryption
           
           ### Installation
           ```bash
           dotnet add package MinimalCleanArch --version ${{ needs.pack.outputs.package-version }}
+          dotnet add package MinimalCleanArch.DataAccess --version ${{ needs.pack.outputs.package-version }}
+          dotnet add package MinimalCleanArch.Extensions --version ${{ needs.pack.outputs.package-version }}
           ```
           
-          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for usage instructions.
+          ### Usage
+          ```csharp
+          // Program.cs
+          builder.Services.AddMinimalCleanArch<MyDbContext>(options =>
+              options.UseSqlServer(connectionString));
+          
+          builder.Services.AddValidatorsFromAssemblyContaining<MyValidator>();
+          builder.Services.AddDataProtectionEncryptionForDevelopment();
+          ```
+          
+          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for complete usage instructions.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
@@ -267,11 +280,11 @@ jobs:
         dotnet-version: '8.0.x'
         
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore MinimalCleanArch.CI.sln
       
     - name: Run security scan
       run: |
-        dotnet list package --vulnerable --include-transitive 2>&1 | tee security-scan.txt
+        dotnet list MinimalCleanArch.CI.sln package --vulnerable --include-transitive 2>&1 | tee security-scan.txt
         if grep -q "has the following vulnerable packages" security-scan.txt; then
           echo "::warning::Vulnerable packages detected"
           cat security-scan.txt
