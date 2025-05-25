@@ -1,0 +1,281 @@
+﻿name: Build and Publish NuGet Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to NuGet.org'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      version:
+        description: 'Package version (optional - overrides default)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore --verbosity minimal
+      
+    - name: Run tests (if any exist)
+      run: |
+        if find . -name "*.Test*.csproj" -o -name "*Test.csproj" -o -name "*Tests.csproj" | grep -q .; then
+          echo "Running tests..."
+          dotnet test --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
+        else
+          echo "No test projects found, skipping tests"
+        fi
+      continue-on-error: true
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ github.run_number }}
+        path: TestResults*
+        retention-days: 30
+        
+  pack:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    outputs:
+      package-version: ${{ steps.get-version.outputs.version }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Determine version
+      id: get-version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ $GITHUB_REF == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          # Extract version from Directory.Build.props or use default
+          if [ -f "src/Directory.Build.props" ]; then
+            VERSION=$(grep -o '<PackageVersion>[^<]*</PackageVersion>' src/Directory.Build.props | sed 's/<[^>]*>//g')
+          else
+            VERSION="0.0.1-ci-${{ github.run_number }}"
+          fi
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+        
+    - name: Update version in Directory.Build.props
+      if: steps.get-version.outputs.version != ''
+      run: |
+        if [ -f "src/Directory.Build.props" ]; then
+          sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${{ steps.get-version.outputs.version }}<\/PackageVersion>/" src/Directory.Build.props
+          echo "Updated version to ${{ steps.get-version.outputs.version }}"
+        fi
+      
+    - name: Create packages
+      run: |
+        chmod +x scripts/pack.sh
+        ./scripts/pack.sh --configuration Release
+        
+    - name: List created packages
+      run: |
+        echo "Created packages:"
+        ls -la ./artifacts/packages/
+        
+    - name: Upload packages artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages-${{ github.run_number }}
+        path: ./artifacts/packages/*.nupkg
+        retention-days: 90
+        
+    - name: Upload symbols artifact  
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-symbols-${{ github.run_number }}
+        path: ./artifacts/packages/*.snupkg
+        retention-days: 90
+        if-no-files-found: ignore
+        
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    if: |
+      (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true') && 
+      github.repository_owner != 'dependabot[bot]' &&
+      !contains(github.event.head_commit.message, '[skip-publish]')
+    environment: 
+      name: nuget-publishing
+      url: https://www.nuget.org/packages?q=MinimalCleanArch
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Download packages artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-packages-${{ github.run_number }}
+        path: ./artifacts/packages
+        
+    - name: Download symbols artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-symbols-${{ github.run_number }}
+        path: ./artifacts/packages
+      continue-on-error: true
+        
+    - name: Validate packages
+      run: |
+        echo "Validating packages..."
+        package_count=$(find ./artifacts/packages -name "*.nupkg" | wc -l)
+        if [ $package_count -eq 0 ]; then
+          echo "Error: No packages found to publish!"
+          exit 1
+        fi
+        echo "Found $package_count packages to publish"
+        
+        # List packages with sizes
+        find ./artifacts/packages -name "*.nupkg" -exec ls -lh {} \;
+        
+    - name: Publish to NuGet.org (What-If)
+      if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
+      run: |
+        chmod +x scripts/publish.sh
+        ./scripts/publish.sh --what-if
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        
+    - name: Publish to NuGet.org
+      if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
+      run: |
+        chmod +x scripts/publish.sh
+        ./scripts/publish.sh
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/v') && success()
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ./artifacts/packages/*.nupkg
+          ./artifacts/packages/*.snupkg
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ contains(github.ref, '-') || contains(needs.pack.outputs.package-version, '-') }}
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          ## MinimalCleanArch ${{ github.ref_name }}
+          
+          ### Packages Published
+          - MinimalCleanArch
+          - MinimalCleanArch.DataAccess  
+          - MinimalCleanArch.Extensions
+          - MinimalCleanArch.Validation
+          - MinimalCleanArch.Security
+          
+          ### Installation
+          ```bash
+          dotnet add package MinimalCleanArch --version ${{ needs.pack.outputs.package-version }}
+          ```
+          
+          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for usage instructions.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+  security-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Run security scan
+      run: |
+        dotnet list package --vulnerable --include-transitive 2>&1 | tee security-scan.txt
+        if grep -q "has the following vulnerable packages" security-scan.txt; then
+          echo "::warning::Vulnerable packages detected"
+          cat security-scan.txt
+        else
+          echo "No vulnerable packages detected"
+        fi
+      continue-on-error: true
