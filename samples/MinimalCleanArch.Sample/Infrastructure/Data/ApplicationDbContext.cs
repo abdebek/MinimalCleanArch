@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Security.Encryption;
-using MinimalCleanArch.Security.EntityFramework;
+using MinimalCleanArch.Security.EntityEncryption;
 
 namespace MinimalCleanArch.Sample.Infrastructure.Data;
 

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using MinimalCleanArch.Security.Encryption;
 using System.Security.Cryptography;
 
-namespace MinimalCleanArch.Security.EntityFramework;
+namespace MinimalCleanArch.Security.EntityEncryption;
 
 /// <summary>
 /// Value converter for encrypted properties with enhanced security and proper null handling

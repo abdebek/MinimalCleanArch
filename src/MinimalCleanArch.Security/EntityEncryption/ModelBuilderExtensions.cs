@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MinimalCleanArch.Security.Encryption;
 
-namespace MinimalCleanArch.Security.EntityFramework;
+namespace MinimalCleanArch.Security.EntityEncryption;
 
 /// <summary>
 /// Extensions for <see cref="ModelBuilder"/> with enhanced security features
