@@ -9,18 +9,38 @@ using MinimalCleanArch.Sample.Domain.Entities;
 namespace MinimalCleanArch.Sample.API.Endpoints;
 
 /// <summary>
-/// User management endpoints
+/// User management endpoints with proper role-based authorization
 /// </summary>
 public static class UserEndpoints
 {
     public static WebApplication MapUserEndpoints(this WebApplication app)
     {
         var userApi = app.MapGroup("/api/users")
-            .WithTags("Users")
-            .RequireAuthorization(); // Require authentication for all user endpoints
+            .WithTags("Users");
+
+        // Public endpoints (no authentication required)
+        userApi.MapPost("/register", RegisterUser)
+            .WithName("RegisterUser")
+            .WithValidation<RegisterUserRequest>()
+            .WithErrorHandling()
+            .WithOpenApi(op => new Microsoft.OpenApi.Models.OpenApiOperation(op)
+            {
+                Summary = "Register a new user",
+                Description = "Creates a new user account"
+            });
+
+        userApi.MapPost("/login", LoginUser)
+            .WithName("LoginUser")
+            .WithValidation<LoginUserRequest>()
+            .WithErrorHandling()
+            .WithOpenApi();
+
+        // Authenticated user endpoints
+        var authUserApi = userApi.MapGroup("")
+            .RequireAuthorization(); // Require authentication for these endpoints
 
         // Get current user profile
-        userApi.MapGet("/profile", GetCurrentUserProfile)
+        authUserApi.MapGet("/profile", GetCurrentUserProfile)
             .WithName("GetCurrentUserProfile")
             .WithOpenApi(op => new Microsoft.OpenApi.Models.OpenApiOperation(op)
             {
@@ -29,14 +49,14 @@ public static class UserEndpoints
             });
 
         // Update current user profile
-        userApi.MapPut("/profile", UpdateCurrentUserProfile)
+        authUserApi.MapPut("/profile", UpdateCurrentUserProfile)
             .WithName("UpdateCurrentUserProfile")
             .WithValidation<UpdateUserProfileRequest>()
             .WithErrorHandling()
             .WithOpenApi();
 
         // Get user's todos (example of user-specific data)
-        userApi.MapGet("/todos", GetCurrentUserTodos)
+        authUserApi.MapGet("/todos", GetCurrentUserTodos)
             .WithName("GetCurrentUserTodos")
             .WithOpenApi();
 
@@ -54,39 +74,149 @@ public static class UserEndpoints
             .WithErrorHandling()
             .WithOpenApi();
 
+        adminApi.MapPost("/{userId}/roles/{roleName}", AssignRole)
+            .WithName("AssignRole")
+            .WithErrorHandling()
+            .WithOpenApi();
+
+        adminApi.MapDelete("/{userId}/roles/{roleName}", RemoveRole)
+            .WithName("RemoveRole")
+            .WithErrorHandling()
+            .WithOpenApi();
+
         return app;
     }
 
+    private static async Task<IResult> RegisterUser(
+        RegisterUserRequest request,
+        UserManager<User> userManager)
+    {
+        try
+        {
+            var user = new User
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                FullName = request.FullName,
+                DateOfBirth = request.DateOfBirth
+            };
 
+            var result = await userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                return Results.BadRequest(new { 
+                    Message = "Registration failed", 
+                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                });
+            }
+
+            // Assign default User role
+            await userManager.AddToRoleAsync(user, "User");
+
+            return Results.Ok(new { 
+                Message = "User registered successfully", 
+                UserId = user.Id 
+            });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "Registration Error",
+                detail: $"An error occurred during registration: {ex.Message}",
+                statusCode: 500);
+        }
+    }
+
+    private static async Task<IResult> LoginUser(
+        LoginUserRequest request,
+        UserManager<User> userManager,
+        SignInManager<User> signInManager)
+    {
+        try
+        {
+            var user = await userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return Results.BadRequest(new { Message = "Invalid email or password" });
+            }
+
+            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (!result.Succeeded)
+            {
+                if (result.IsLockedOut)
+                {
+                    return Results.BadRequest(new { Message = "Account is locked out" });
+                }
+                if (result.IsNotAllowed)
+                {
+                    return Results.BadRequest(new { Message = "Account is not allowed to sign in" });
+                }
+                return Results.BadRequest(new { Message = "Invalid email or password" });
+            }
+
+            // Get user roles
+            var userRoles = await userManager.GetRolesAsync(user);
+
+            return Results.Ok(new
+            {
+                Message = "Login successful",
+                User = new
+                {
+                    user.Id,
+                    user.UserName,
+                    user.Email,
+                    user.FullName,
+                    Roles = userRoles
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "Login Error",
+                detail: $"An error occurred during login: {ex.Message}",
+                statusCode: 500);
+        }
+    }
 
     private static async Task<IResult> GetCurrentUserProfile(
         ClaimsPrincipal user,
         UserManager<User> userManager)
     {
-        var currentUser = await userManager.GetUserAsync(user);
-        if (currentUser == null)
+        try
         {
-            return Results.NotFound("User not found");
+            var currentUser = await userManager.GetUserAsync(user);
+            if (currentUser == null)
+            {
+                return Results.NotFound("User not found");
+            }
+
+            // Get user roles
+            var userRoles = await userManager.GetRolesAsync(currentUser);
+
+            var profile = new UserProfileResponse
+            {
+                Id = currentUser.Id,
+                UserName = currentUser.UserName!,
+                Email = currentUser.Email!,
+                FullName = currentUser.FullName,
+                DateOfBirth = currentUser.DateOfBirth,
+                EmailConfirmed = currentUser.EmailConfirmed,
+                PhoneNumber = currentUser.PhoneNumber,
+                Roles = userRoles.ToList(),
+                CreatedAt = currentUser.CreatedAt,
+                LastModifiedAt = currentUser.LastModifiedAt
+            };
+
+            return Results.Ok(profile);
         }
-
-        // Get user roles
-        var userRoles = await userManager.GetRolesAsync(currentUser);
-
-        var profile = new UserProfileResponse
+        catch (Exception ex)
         {
-            Id = currentUser.Id,
-            UserName = currentUser.UserName!,
-            Email = currentUser.Email!,
-            FullName = currentUser.FullName,
-            DateOfBirth = currentUser.DateOfBirth,
-            EmailConfirmed = currentUser.EmailConfirmed,
-            PhoneNumber = currentUser.PhoneNumber,
-            Roles = userRoles.ToList(),
-            CreatedAt = currentUser.CreatedAt,
-            LastModifiedAt = currentUser.LastModifiedAt
-        };
-
-        return Results.Ok(profile);
+            return Results.Problem(
+                title: "Profile Error",
+                detail: $"An error occurred while retrieving profile: {ex.Message}",
+                statusCode: 500);
+        }
     }
 
     private static async Task<IResult> UpdateCurrentUserProfile(
@@ -94,55 +224,78 @@ public static class UserEndpoints
         ClaimsPrincipal user,
         UserManager<User> userManager)
     {
-        var currentUser = await userManager.GetUserAsync(user);
-        if (currentUser == null)
+        try
         {
-            return Results.NotFound("User not found");
+            var currentUser = await userManager.GetUserAsync(user);
+            if (currentUser == null)
+            {
+                return Results.NotFound("User not found");
+            }
+
+            // Update allowed fields
+            currentUser.FullName = request.FullName;
+            currentUser.DateOfBirth = request.DateOfBirth;
+            currentUser.PhoneNumber = request.PhoneNumber;
+            currentUser.PersonalNotes = request.PersonalNotes; // This will be encrypted
+
+            var result = await userManager.UpdateAsync(currentUser);
+            if (!result.Succeeded)
+            {
+                return Results.BadRequest(new { 
+                    Message = "Update failed", 
+                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                });
+            }
+
+            return Results.Ok(new { Message = "Profile updated successfully" });
         }
-
-        // Update allowed fields
-        currentUser.FullName = request.FullName;
-        currentUser.DateOfBirth = request.DateOfBirth;
-        currentUser.PhoneNumber = request.PhoneNumber;
-        currentUser.PersonalNotes = request.PersonalNotes; // This will be encrypted
-
-        var result = await userManager.UpdateAsync(currentUser);
-        if (!result.Succeeded)
+        catch (Exception ex)
         {
-            return Results.BadRequest(result.Errors);
+            return Results.Problem(
+                title: "Update Error",
+                detail: $"An error occurred while updating profile: {ex.Message}",
+                statusCode: 500);
         }
-
-        return Results.Ok(new { Message = "Profile updated successfully" });
     }
 
     private static async Task<IResult> GetCurrentUserTodos(
         ClaimsPrincipal user,
         ApplicationDbContext dbContext)
     {
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
+        try
         {
-            return Results.Unauthorized();
-        }
-
-        // Get todos created by the current user
-        var todos = await dbContext.Todos
-            .Where(t => t.CreatedBy == userId)
-            .OrderByDescending(t => t.CreatedAt)
-            .Select(t => new TodoResponse
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
-                Id = t.Id,
-                Title = t.Title,
-                Description = t.Description,
-                IsCompleted = t.IsCompleted,
-                Priority = t.Priority,
-                DueDate = t.DueDate,
-                CreatedAt = t.CreatedAt,
-                LastModifiedAt = t.LastModifiedAt
-            })
-            .ToListAsync();
+                return Results.Unauthorized();
+            }
 
-        return Results.Ok(todos);
+            // Get todos created by the current user
+            var todos = await dbContext.Todos
+                .Where(t => t.CreatedBy == userId)
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t => new TodoResponse
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Description = t.Description,
+                    IsCompleted = t.IsCompleted,
+                    Priority = t.Priority,
+                    DueDate = t.DueDate,
+                    CreatedAt = t.CreatedAt,
+                    LastModifiedAt = t.LastModifiedAt
+                })
+                .ToListAsync();
+
+            return Results.Ok(todos);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "Todos Error",
+                detail: $"An error occurred while retrieving todos: {ex.Message}",
+                statusCode: 500);
+        }
     }
 
     private static async Task<IResult> GetAllUsers(
@@ -150,33 +303,42 @@ public static class UserEndpoints
         int page = 1,
         int pageSize = 20)
     {
-
-        var users = await userManager.Users
-            .Where(u => !u.IsDeleted) // Use soft delete filter
-            .OrderBy(u => u.Email)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(u => new UserSummaryResponse
-            {
-                Id = u.Id,
-                UserName = u.UserName!,
-                Email = u.Email!,
-                FullName = u.FullName,
-                EmailConfirmed = u.EmailConfirmed,
-                CreatedAt = u.CreatedAt
-            })
-            .ToListAsync();
-
-        var totalCount = await userManager.Users.Where(u => !u.IsDeleted).CountAsync();
-
-        return Results.Ok(new
+        try
         {
-            Users = users,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-        });
+            var users = await userManager.Users
+                .Where(u => !u.IsDeleted) // Use soft delete filter
+                .OrderBy(u => u.Email)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserSummaryResponse
+                {
+                    Id = u.Id,
+                    UserName = u.UserName!,
+                    Email = u.Email!,
+                    FullName = u.FullName,
+                    EmailConfirmed = u.EmailConfirmed,
+                    CreatedAt = u.CreatedAt
+                })
+                .ToListAsync();
+
+            var totalCount = await userManager.Users.Where(u => !u.IsDeleted).CountAsync();
+
+            return Results.Ok(new
+            {
+                Users = users,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "Users Error",
+                detail: $"An error occurred while retrieving users: {ex.Message}",
+                statusCode: 500);
+        }
     }
 
     private static async Task<IResult> DeleteUser(
@@ -184,28 +346,123 @@ public static class UserEndpoints
         UserManager<User> userManager,
         ClaimsPrincipal currentUser)
     {
-        // Prevent self-deletion
-        var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userId == currentUserId)
+        try
         {
-            return Results.BadRequest("Cannot delete your own account");
-        }
+            // Prevent self-deletion
+            var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == currentUserId)
+            {
+                return Results.BadRequest("Cannot delete your own account");
+            }
 
-        var user = await userManager.FindByIdAsync(userId);
-        if (user == null)
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Results.NotFound("User not found");
+            }
+
+            // Soft delete the user
+            user.IsDeleted = true;
+            var result = await userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                return Results.BadRequest(new { 
+                    Message = "Delete failed", 
+                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                });
+            }
+
+            return Results.NoContent();
+        }
+        catch (Exception ex)
         {
-            return Results.NotFound("User not found");
+            return Results.Problem(
+                title: "Delete Error",
+                detail: $"An error occurred while deleting user: {ex.Message}",
+                statusCode: 500);
         }
+    }
 
-        // Soft delete the user
-        user.IsDeleted = true;
-        var result = await userManager.UpdateAsync(user);
-
-        if (!result.Succeeded)
+    private static async Task<IResult> AssignRole(
+        string userId,
+        string roleName,
+        UserManager<User> userManager,
+        RoleManager<IdentityRole> roleManager)
+    {
+        try
         {
-            return Results.BadRequest(result.Errors);
-        }
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Results.NotFound("User not found");
+            }
 
-        return Results.NoContent();
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                return Results.BadRequest($"Role '{roleName}' does not exist");
+            }
+
+            if (await userManager.IsInRoleAsync(user, roleName))
+            {
+                return Results.BadRequest($"User already has role '{roleName}'");
+            }
+
+            var result = await userManager.AddToRoleAsync(user, roleName);
+            if (!result.Succeeded)
+            {
+                return Results.BadRequest(new { 
+                    Message = "Role assignment failed", 
+                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                });
+            }
+
+            return Results.Ok(new { Message = $"Role '{roleName}' assigned successfully" });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "Role Assignment Error",
+                detail: $"An error occurred while assigning role: {ex.Message}",
+                statusCode: 500);
+        }
+    }
+
+    private static async Task<IResult> RemoveRole(
+        string userId,
+        string roleName,
+        UserManager<User> userManager)
+    {
+        try
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Results.NotFound("User not found");
+            }
+
+            if (!await userManager.IsInRoleAsync(user, roleName))
+            {
+                return Results.BadRequest($"User does not have role '{roleName}'");
+            }
+
+            var result = await userManager.RemoveFromRoleAsync(user, roleName);
+            if (!result.Succeeded)
+            {
+                return Results.BadRequest(new { 
+                    Message = "Role removal failed", 
+                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                });
+            }
+
+            return Results.Ok(new { Message = $"Role '{roleName}' removed successfully" });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "Role Removal Error",
+                detail: $"An error occurred while removing role: {ex.Message}",
+                statusCode: 500);
+        }
     }
 }

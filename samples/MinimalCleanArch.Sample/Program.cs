@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Extensions;
@@ -41,15 +40,37 @@ builder.Services.AddEncryption(encryptionOptions);
 builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Add Identity API endpoints with roles support - this is the modern approach
+builder.Services.AddIdentityApiEndpoints<User>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequiredUniqueChars = 1;
 
-// Use Identity API endpoints (simpler, includes MapIdentityApi)
-builder.Services.AddIdentityApiEndpoints<User>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
 
-// Add role management manually for AddIdentityApiEndpoints
-builder.Services.AddScoped<RoleManager<IdentityRole>>();
-builder.Services.AddScoped<IRoleStore<IdentityRole>, RoleStore<IdentityRole, ApplicationDbContext>>();
+    // User settings
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    options.User.RequireUniqueEmail = true;
 
+    // Sign in settings
+    options.SignIn.RequireConfirmedEmail = false;
+    options.SignIn.RequireConfirmedPhoneNumber = false;
+})
+.AddRoles<IdentityRole>() // Add roles support
+.AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Add authorization policies
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("Admin", policy => policy.RequireRole("Admin"))
+    .AddPolicy("User", policy => policy.RequireRole("User"));
 
 // Add email services
 if (!builder.Environment.IsDevelopment()) 
@@ -65,11 +86,6 @@ builder.Services.AddValidatorsFromAssemblyContaining<Todo>();
 
 // Add MinimalCleanArch extensions
 builder.Services.AddMinimalCleanArchExtensions();
-
-// Add authorization policies
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy("Admin", policy => policy.RequireRole("Admin"))
-    .AddPolicy("User", policy => policy.RequireRole("User"));
 
 var app = builder.Build();
 
@@ -104,7 +120,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map Identity endpoints
+// Map Identity API endpoints - provides /register, /login, etc.
 app.MapIdentityApi<User>();
 
 // Map your application endpoints
@@ -133,8 +149,16 @@ static async Task SeedDataAsync(IServiceProvider serviceProvider)
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
-                await roleManager.CreateAsync(new IdentityRole(role));
-                logger.LogInformation($"Created role: {role}");
+                var result = await roleManager.CreateAsync(new IdentityRole(role));
+                if (result.Succeeded)
+                {
+                    logger.LogInformation("Created role: {Role}", role);
+                }
+                else
+                {
+                    logger.LogError("Failed to create role {Role}: {Errors}", role,
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
             }
         }
         
@@ -149,14 +173,23 @@ static async Task SeedDataAsync(IServiceProvider serviceProvider)
                 UserName = adminEmail,
                 Email = adminEmail,
                 EmailConfirmed = true,
-                FullName = "System Administrator"
+                FullName = "System Administrator",
+                PersonalNotes = "Initial admin user created during setup"
             };
             
             var result = await userManager.CreateAsync(adminUser, "Admin123!");
             if (result.Succeeded)
             {
-                await userManager.AddToRoleAsync(adminUser, "Admin");
-                logger.LogInformation("Admin user created and assigned to Admin role");
+                var roleResult = await userManager.AddToRoleAsync(adminUser, "Admin");
+                if (roleResult.Succeeded)
+                {
+                    logger.LogInformation("Admin user created and assigned to Admin role");
+                }
+                else
+                {
+                    logger.LogError("Failed to assign Admin role: {Errors}",
+                        string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                }
             }
             else
             {
@@ -169,14 +202,59 @@ static async Task SeedDataAsync(IServiceProvider serviceProvider)
             // Ensure admin user has Admin role
             if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
             {
-                await userManager.AddToRoleAsync(adminUser, "Admin");
-                logger.LogInformation("Added Admin role to existing admin user");
+                var roleResult = await userManager.AddToRoleAsync(adminUser, "Admin");
+                if (roleResult.Succeeded)
+                {
+                    logger.LogInformation("Added Admin role to existing admin user");
+                }
+                else
+                {
+                    logger.LogError("Failed to add Admin role to existing user: {Errors}",
+                        string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                }
+            }
+        }
+
+        // Create a regular user for testing
+        var userEmail = "user@example.com";
+        var regularUser = await userManager.FindByEmailAsync(userEmail);
+        
+        if (regularUser == null)
+        {
+            regularUser = new User
+            {
+                UserName = userEmail,
+                Email = userEmail,
+                EmailConfirmed = true,
+                FullName = "Test User",
+                PersonalNotes = "Regular user for testing purposes"
+            };
+            
+            var result = await userManager.CreateAsync(regularUser, "User123!");
+            if (result.Succeeded)
+            {
+                var roleResult = await userManager.AddToRoleAsync(regularUser, "User");
+                if (roleResult.Succeeded)
+                {
+                    logger.LogInformation("Regular user created and assigned to User role");
+                }
+                else
+                {
+                    logger.LogError("Failed to assign User role: {Errors}",
+                        string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                }
+            }
+            else
+            {
+                logger.LogError("Failed to create regular user: {Errors}", 
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
             }
         }
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred while seeding data");
+        throw;
     }
 }
 

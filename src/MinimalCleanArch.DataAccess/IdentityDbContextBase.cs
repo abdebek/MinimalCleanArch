@@ -8,7 +8,8 @@ using MinimalCleanArch.Domain.Entities;
 namespace MinimalCleanArch.DataAccess;
 
 /// <summary>
-/// Base Identity DbContext with support for auditing and soft delete
+/// Base Identity DbContext with support for auditing and soft delete (User only, no roles)
+/// Use this for simple scenarios where you don't need role-based authorization
 /// </summary>
 /// <typeparam name="TUser">The type of the user entity</typeparam>
 public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser> 
@@ -159,7 +160,8 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
 }
 
 /// <summary>
-/// Extended version that supports roles and additional Identity entities
+/// Extended version that supports roles and additional Identity entities with custom key types
+/// Use this when you need custom role entities or non-string keys
 /// </summary>
 /// <typeparam name="TUser">The type of the user entity</typeparam>
 /// <typeparam name="TRole">The type of the role entity</typeparam>
@@ -187,6 +189,21 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
         base.OnModelCreating(modelBuilder);
 
         // Apply global query filter for soft delete
+        ApplySoftDeleteQueryFilters(modelBuilder);
+
+        // Configure Identity entities if they implement our interfaces
+        ConfigureIdentityEntitiesIfNeeded(modelBuilder);
+        
+        // Configure Identity tables with optimized indexes
+        ConfigureIdentityTablesOptimized(modelBuilder);
+    }
+
+    /// <summary>
+    /// Applies soft delete query filters to all entities that implement ISoftDelete
+    /// </summary>
+    /// <param name="modelBuilder">The model builder</param>
+    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
+    {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
@@ -199,9 +216,6 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }
         }
-
-        // Configure Identity entities if they implement our interfaces
-        ConfigureIdentityEntitiesIfNeeded(modelBuilder);
     }
 
     /// <summary>
@@ -219,6 +233,10 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
                 entity.Property("CreatedBy").HasMaxLength(450);
                 entity.Property("LastModifiedAt");
                 entity.Property("LastModifiedBy").HasMaxLength(450);
+                
+                // Add indexes for audit queries
+                entity.HasIndex("CreatedAt");
+                entity.HasIndex("CreatedBy");
             });
         }
 
@@ -240,6 +258,10 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
                 entity.Property("CreatedBy").HasMaxLength(450);
                 entity.Property("LastModifiedAt");
                 entity.Property("LastModifiedBy").HasMaxLength(450);
+                
+                // Add indexes for audit queries
+                entity.HasIndex("CreatedAt");
+                entity.HasIndex("CreatedBy");
             });
         }
 
@@ -251,6 +273,58 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
                 entity.HasIndex("IsDeleted");
             });
         }
+    }
+
+    /// <summary>
+    /// Configures Identity tables with performance optimizations
+    /// </summary>
+    /// <param name="modelBuilder">The model builder</param>
+    private static void ConfigureIdentityTablesOptimized(ModelBuilder modelBuilder)
+    {
+        // Configure additional indexes for performance
+        modelBuilder.Entity<TUser>(entity =>
+        {
+            entity.HasIndex(e => e.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
+            entity.HasIndex(e => e.UserName).IsUnique().HasFilter("[UserName] IS NOT NULL");
+            entity.HasIndex(e => e.NormalizedEmail).HasFilter("[NormalizedEmail] IS NOT NULL");
+            entity.HasIndex(e => e.NormalizedUserName).IsUnique().HasFilter("[NormalizedUserName] IS NOT NULL");
+        });
+
+        modelBuilder.Entity<TRole>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedName).IsUnique().HasFilter("[NormalizedName] IS NOT NULL");
+        });
+
+        // Configure relationship tables with indexes
+        modelBuilder.Entity<IdentityUserRole<TKey>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.RoleId);
+        });
+
+        modelBuilder.Entity<IdentityUserClaim<TKey>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.ClaimType });
+            entity.HasIndex(e => new { e.ClaimType, e.ClaimValue });
+        });
+
+        modelBuilder.Entity<IdentityUserLogin<TKey>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<IdentityUserToken<TKey>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<IdentityRoleClaim<TKey>>(entity =>
+        {
+            entity.HasIndex(e => e.RoleId);
+            entity.HasIndex(e => new { e.RoleId, e.ClaimType });
+            entity.HasIndex(e => new { e.ClaimType, e.ClaimValue });
+        });
     }
 
     /// <summary>

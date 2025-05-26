@@ -1,18 +1,20 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Security.Encryption;
 using MinimalCleanArch.Security.EntityEncryption;
 using System.Security.Claims;
+using System.Linq.Expressions;
+using MinimalCleanArch.Domain.Entities;
 
 namespace MinimalCleanArch.Sample.Infrastructure.Data;
 
 /// <summary>
-/// Application DbContext with Identity and MinimalCleanArch features
+/// Application DbContext with Identity API endpoints and MinimalCleanArch features
 /// </summary>
-public class ApplicationDbContext : IdentityDbContextBase<User>
+public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string>
 {
     private readonly IEncryptionService _encryptionService;
     private readonly IServiceProvider _serviceProvider;
@@ -43,7 +45,10 @@ public class ApplicationDbContext : IdentityDbContextBase<User>
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Identity entities
+        // Apply soft delete query filters
+        ApplySoftDeleteQueryFilters(modelBuilder);
+
+        // Configure Identity entities with custom table names
         ConfigureIdentityEntities(modelBuilder);
 
         // Configure application entities
@@ -51,6 +56,25 @@ public class ApplicationDbContext : IdentityDbContextBase<User>
 
         // Apply encryption with enhanced logging
         modelBuilder.UseEncryption(_encryptionService, _serviceProvider);
+    }
+
+    /// <summary>
+    /// Applies soft delete query filters to all entities that implement ISoftDelete
+    /// </summary>
+    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
+            {
+                var parameter = Expression.Parameter(entityType.ClrType, "p");
+                var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
+                var condition = Expression.Equal(property, Expression.Constant(false));
+                var lambda = Expression.Lambda(condition, parameter);
+
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
+            }
+        }
     }
 
     private void ConfigureIdentityEntities(ModelBuilder modelBuilder)
@@ -62,11 +86,10 @@ public class ApplicationDbContext : IdentityDbContextBase<User>
             entity.Property(e => e.FullName).HasMaxLength(200);
             entity.Property(e => e.DateOfBirth);
             entity.Property(e => e.PersonalNotes).HasMaxLength(1000);
-            // Note: PersonalNotes encryption is configured automatically via [Encrypted] attribute
             
             // Audit fields (inherited from IAuditableEntity)
             entity.Property(e => e.CreatedAt).IsRequired();
-            entity.Property(e => e.CreatedBy).HasMaxLength(450); // Identity ID length
+            entity.Property(e => e.CreatedBy).HasMaxLength(450);
             entity.Property(e => e.LastModifiedAt);
             entity.Property(e => e.LastModifiedBy).HasMaxLength(450);
             
@@ -77,36 +100,117 @@ public class ApplicationDbContext : IdentityDbContextBase<User>
             // Additional indexes for performance
             entity.HasIndex(e => e.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
             entity.HasIndex(e => e.UserName).IsUnique().HasFilter("[UserName] IS NOT NULL");
+            entity.HasIndex(e => new { e.IsDeleted, e.EmailConfirmed });
         });
 
-        // 🔥 FIXED: Only configure tables that exist with AddIdentityApiEndpoints
-        // Remove role-related table configurations since we're not using full Identity
-        
-        // Customize core Identity table names (optional)
+        // Configure Identity tables with custom names
         modelBuilder.Entity<User>().ToTable("Users");
+        modelBuilder.Entity<IdentityRole>().ToTable("Roles");
+        modelBuilder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
         modelBuilder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
         modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
         modelBuilder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
-        
-        // 🚫 REMOVED: These tables don't exist with AddIdentityApiEndpoints
-        // modelBuilder.Entity<IdentityRole>().ToTable("Roles");
-        // modelBuilder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
-        // modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
+        modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
+
+        // Configure additional indexes
+        modelBuilder.Entity<IdentityRole>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedName).IsUnique().HasFilter("[NormalizedName] IS NOT NULL");
+        });
+
+        modelBuilder.Entity<IdentityUserRole<string>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.RoleId);
+        });
+
+        modelBuilder.Entity<IdentityUserClaim<string>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<IdentityUserLogin<string>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<IdentityUserToken<string>>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<IdentityRoleClaim<string>>(entity =>
+        {
+            entity.HasIndex(e => e.RoleId);
+        });
+    }
+
+    /// <summary>
+    /// Saves all changes made in this context to the database with audit information
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditInfo();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Saves all changes made in this context to the database with audit information
+    /// </summary>
+    public override int SaveChanges()
+    {
+        ApplyAuditInfo();
+        return base.SaveChanges();
+    }
+
+    /// <summary>
+    /// Applies audit information to entities that implement IAuditableEntity
+    /// </summary>
+    private void ApplyAuditInfo()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.Entity is IAuditableEntity && 
+                       (e.State == EntityState.Added || e.State == EntityState.Modified))
+            .ToList();
+
+        if (!entries.Any())
+            return;
+
+        string? userId = GetCurrentUserId();
+        DateTime now = DateTime.UtcNow;
+
+        foreach (var entityEntry in entries)
+        {
+            if (entityEntry.Entity is IAuditableEntity auditableEntity)
+            {
+                if (entityEntry.State == EntityState.Added)
+                {
+                    auditableEntity.CreatedAt = now;
+                    auditableEntity.CreatedBy = userId;
+                }
+                else if (entityEntry.State == EntityState.Modified)
+                {
+                    Entry(auditableEntity).Property(x => x.CreatedAt).IsModified = false;
+                    Entry(auditableEntity).Property(x => x.CreatedBy).IsModified = false;
+                }
+
+                auditableEntity.LastModifiedAt = now;
+                auditableEntity.LastModifiedBy = userId;
+            }
+        }
     }
 
     /// <summary>
     /// Gets the current user ID from the HTTP context
     /// </summary>
-    protected override string? GetCurrentUserId()
+    private string? GetCurrentUserId()
     {
-        // Get user ID from the current HTTP context
         var user = _httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated == true)
         {
             return user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
         
-        // Fallback for system operations
         return "system";
     }
 }
@@ -132,7 +236,6 @@ public class TodoConfiguration : IEntityTypeConfiguration<Todo>
 
         builder.Property(t => t.Description)
             .HasMaxLength(500);
-        // Note: Encryption is configured automatically via the [Encrypted] attribute
 
         builder.Property(t => t.IsCompleted)
             .IsRequired()
@@ -145,16 +248,10 @@ public class TodoConfiguration : IEntityTypeConfiguration<Todo>
         builder.Property(t => t.DueDate);
 
         // Audit fields
-        builder.Property(t => t.CreatedAt)
-            .IsRequired();
-
-        builder.Property(t => t.CreatedBy)
-            .HasMaxLength(450); // Match Identity ID length
-
+        builder.Property(t => t.CreatedAt).IsRequired();
+        builder.Property(t => t.CreatedBy).HasMaxLength(450);
         builder.Property(t => t.LastModifiedAt);
-
-        builder.Property(t => t.LastModifiedBy)
-            .HasMaxLength(450); // Match Identity ID length
+        builder.Property(t => t.LastModifiedBy).HasMaxLength(450);
 
         // Soft delete
         builder.Property(t => t.IsDeleted)
@@ -166,11 +263,8 @@ public class TodoConfiguration : IEntityTypeConfiguration<Todo>
         builder.HasIndex(t => t.Priority);
         builder.HasIndex(t => t.DueDate);
         builder.HasIndex(t => t.IsDeleted);
-        
-        // Composite index for common queries
         builder.HasIndex(t => new { t.IsCompleted, t.Priority, t.IsDeleted });
-        
-        // Index for user-specific queries
         builder.HasIndex(t => t.CreatedBy);
+        builder.HasIndex(t => t.CreatedAt);
     }
 }
