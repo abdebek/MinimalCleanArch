@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Extensions;
 using MinimalCleanArch.Extensions.Extensions;
@@ -7,6 +8,7 @@ using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Sample.API.Endpoints;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
+using MinimalCleanArch.Sample.Infrastructure.Services;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
 
@@ -19,32 +21,11 @@ builder.Services.AddSwaggerGen();
 // Add HTTP context accessor for user tracking
 builder.Services.AddHttpContextAccessor();
 
-// Add MinimalCleanArch services with Entity Framework
-builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Register the DbContext as base class for repositories
-builder.Services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-
-// Add Identity services
-builder.Services.AddIdentityApiEndpoints<User>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
-
-// Add MinimalCleanArch repositories (using the ApplicationDbContext)
-builder.Services.AddMinimalCleanArchRepositories();
-
-
-// Add encryption services
+// Add encryption services FIRST (before DbContext)
 var encryptionKey = builder.Configuration["Encryption:Key"];
 if (string.IsNullOrWhiteSpace(encryptionKey))
 {
-    // Generate a strong key for development
     encryptionKey = EncryptionOptions.GenerateStrongKey(64);
-    builder.Services.AddLogging();
-
-    //TODO: log
-    //var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>();
-    //logger?.LogWarning("No encryption key configured. Generated a temporary key for development.");
 }
 
 var encryptionOptions = new EncryptionOptions
@@ -56,14 +37,39 @@ var encryptionOptions = new EncryptionOptions
 
 builder.Services.AddEncryption(encryptionOptions);
 
+// Add MinimalCleanArch services with Entity Framework
+builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+// Use Identity API endpoints (simpler, includes MapIdentityApi)
+builder.Services.AddIdentityApiEndpoints<User>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Add role management manually for AddIdentityApiEndpoints
+builder.Services.AddScoped<RoleManager<IdentityRole>>();
+builder.Services.AddScoped<IRoleStore<IdentityRole>, RoleStore<IdentityRole, ApplicationDbContext>>();
+
+
+// Add email services
+if (!builder.Environment.IsDevelopment()) 
+{ 
+    var emailSettings = new EmailSettings();
+    builder.Configuration.GetSection("EmailSettings").Bind(emailSettings);
+    builder.Services.AddSingleton(emailSettings);
+    builder.Services.AddScoped<IEmailSender, EmailSender>();
+}
+
 // Add validation services
 builder.Services.AddValidatorsFromAssemblyContaining<Todo>();
 
 // Add MinimalCleanArch extensions
 builder.Services.AddMinimalCleanArchExtensions();
 
-
-builder.Services.AddAuthorizationBuilder();
+// Add authorization policies
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("Admin", policy => policy.RequireRole("Admin"))
+    .AddPolicy("User", policy => policy.RequireRole("User"));
 
 var app = builder.Build();
 
@@ -76,7 +82,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     
-    // 🔥 ONLY create if database doesn't exist
+    // Only create if database doesn't exist
     if (!await dbContext.Database.CanConnectAsync())
     {
         await dbContext.Database.EnsureCreatedAsync();
@@ -112,26 +118,65 @@ app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = Dat
 
 app.Run();
 
-// Seed initial data
+// Seed initial data with roles
 static async Task SeedDataAsync(IServiceProvider serviceProvider)
 {
     var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
+    var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
     
-    // Create admin user
-    var adminEmail = "admin@example.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    
-    if (adminUser == null)
+    try
     {
-        adminUser = new User
+        // Create roles
+        var roles = new[] { "Admin", "User" };
+        foreach (var role in roles)
         {
-            UserName = adminEmail,
-            Email = adminEmail,
-            EmailConfirmed = true,
-            FullName = "System Administrator"
-        };
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+                logger.LogInformation($"Created role: {role}");
+            }
+        }
         
-        await userManager.CreateAsync(adminUser, "Admin123!");
+        // Create admin user
+        var adminEmail = "admin@example.com";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        
+        if (adminUser == null)
+        {
+            adminUser = new User
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true,
+                FullName = "System Administrator"
+            };
+            
+            var result = await userManager.CreateAsync(adminUser, "Admin123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                logger.LogInformation("Admin user created and assigned to Admin role");
+            }
+            else
+            {
+                logger.LogError("Failed to create admin user: {Errors}", 
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+        }
+        else
+        {
+            // Ensure admin user has Admin role
+            if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                logger.LogInformation("Added Admin role to existing admin user");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding data");
     }
 }
 
