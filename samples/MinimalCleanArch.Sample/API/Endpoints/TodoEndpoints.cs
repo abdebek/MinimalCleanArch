@@ -1,9 +1,9 @@
-﻿using MinimalCleanArch.Extensions.Extensions;
-using MinimalCleanArch.Repositories;
+﻿using MinimalCleanArch.Repositories;
 using MinimalCleanArch.Sample.API.Models;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Specifications;
 using Microsoft.OpenApi.Models;
+using MinimalCleanArch.Extensions.Extensions;
 
 namespace MinimalCleanArch.Sample.API.Endpoints;
 

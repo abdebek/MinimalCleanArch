@@ -1,65 +1,69 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Extensions;
 using MinimalCleanArch.Extensions.Extensions;
 using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Sample.API.Endpoints;
-using MinimalCleanArch.Sample.API.Validators;
+using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure logging
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-
-// Add API documentation
+// Add services to the container
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new() { Title = "MinimalCleanArch Sample API", Version = "v1" });
-    options.EnableAnnotations();
-});
+builder.Services.AddSwaggerGen();
+
+// Add HTTP context accessor for user tracking
+builder.Services.AddHttpContextAccessor();
 
 // Add MinimalCleanArch services with Entity Framework
 builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register the DbContext as base class for repositories
+builder.Services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
+// Add Identity services
+builder.Services.AddIdentityApiEndpoints<User>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Add MinimalCleanArch repositories (using the ApplicationDbContext)
+builder.Services.AddMinimalCleanArchRepositories();
+
+
 // Add encryption services
 var encryptionKey = builder.Configuration["Encryption:Key"];
 if (string.IsNullOrWhiteSpace(encryptionKey))
 {
-    // Generate a strong key for development if none provided
+    // Generate a strong key for development
     encryptionKey = EncryptionOptions.GenerateStrongKey(64);
+    builder.Services.AddLogging();
 
     //TODO: log
-    //app.Logger.LogWarning("No encryption key configured. Generated a temporary key for development. " +
-    //                     "Set Encryption:Key in configuration for production.");
+    //var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>();
+    //logger?.LogWarning("No encryption key configured. Generated a temporary key for development.");
 }
 
 var encryptionOptions = new EncryptionOptions
 {
     Key = encryptionKey,
-    ValidateKeyStrength = !builder.Environment.IsDevelopment(), // Skip validation in development
+    ValidateKeyStrength = !builder.Environment.IsDevelopment(),
     EnableOperationLogging = builder.Environment.IsDevelopment()
 };
-
-// Validate encryption options
-var validationResult = encryptionOptions.Validate();
-if (validationResult != System.ComponentModel.DataAnnotations.ValidationResult.Success)
-{
-    throw new InvalidOperationException($"Invalid encryption configuration: {validationResult.ErrorMessage}");
-}
 
 builder.Services.AddEncryption(encryptionOptions);
 
 // Add validation services
-builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<Todo>();
 
 // Add MinimalCleanArch extensions
 builder.Services.AddMinimalCleanArchExtensions();
+
+
+builder.Services.AddAuthorizationBuilder();
 
 var app = builder.Build();
 
@@ -67,24 +71,21 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MinimalCleanArch Sample API v1");
-        c.RoutePrefix = "swagger";
-    });
-
-    // Ensure database is created in development
+    app.UseSwaggerUI();
+    
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    try
+    
+    // 🔥 ONLY create if database doesn't exist
+    if (!await dbContext.Database.CanConnectAsync())
     {
-        dbContext.Database.EnsureCreated();
-        app.Logger.LogInformation("Database initialized successfully");
+        await dbContext.Database.EnsureCreatedAsync();
+        await SeedDataAsync(scope.ServiceProvider);
     }
-    catch (Exception ex)
+    else
     {
-        app.Logger.LogError(ex, "Failed to initialize database");
-        throw;
+        // Database exists, just seed if needed
+        await SeedDataAsync(scope.ServiceProvider);
     }
 }
 
@@ -93,15 +94,46 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
-// Map API endpoints
-app.MapTodoEndpoints();
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Add a health check endpoint
+// Map Identity endpoints
+app.MapIdentityApi<User>();
+
+// Map your application endpoints
+app.MapTodoEndpoints();
+app.MapUserEndpoints();
+
+// Health check
 app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow }))
     .WithName("HealthCheck")
     .WithOpenApi();
 
 app.Run();
 
-// Make the implicit Program class public so it can be referenced by tests
+// Seed initial data
+static async Task SeedDataAsync(IServiceProvider serviceProvider)
+{
+    var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
+    
+    // Create admin user
+    var adminEmail = "admin@example.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    
+    if (adminUser == null)
+    {
+        adminUser = new User
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true,
+            FullName = "System Administrator"
+        };
+        
+        await userManager.CreateAsync(adminUser, "Admin123!");
+    }
+}
+
+// Make Program class accessible for tests
 public partial class Program { }
