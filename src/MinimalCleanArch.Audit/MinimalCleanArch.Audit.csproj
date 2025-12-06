@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Description>Optional audit logging package for MinimalCleanArch. Provides audit log tables, change history tracking, and audit query services. Opt-in feature - only adds overhead when explicitly enabled.</Description>
+		<PackageTags>clean-architecture;audit;audit-log;change-tracking;compliance</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+	</ItemGroup>
+
+</Project>
