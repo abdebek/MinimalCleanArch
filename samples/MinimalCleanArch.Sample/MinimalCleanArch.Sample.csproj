@@ -28,6 +28,8 @@
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
+		<!-- Optional: Audit logging (opt-in) -->
+		<ProjectReference Include="..\..\src\MinimalCleanArch.Audit\MinimalCleanArch.Audit.csproj" />
 	</ItemGroup>
 
 </Project>

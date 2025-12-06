@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,6 +8,9 @@ using MinimalCleanArch.Security.EntityEncryption;
 using System.Security.Claims;
 using System.Linq.Expressions;
 using MinimalCleanArch.Domain.Entities;
+using MinimalCleanArch.Audit.Configuration;
+using MinimalCleanArch.Audit.Entities;
+using MinimalCleanArch.Audit.Extensions;
 
 namespace MinimalCleanArch.Sample.Infrastructure.Data;
 
@@ -19,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
     private readonly IEncryptionService _encryptionService;
     private readonly IServiceProvider _serviceProvider;
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly AuditOptions? _auditOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApplicationDbContext"/> class
@@ -27,16 +31,21 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
         DbContextOptions<ApplicationDbContext> options,
         IEncryptionService encryptionService,
         IServiceProvider serviceProvider,
-        IHttpContextAccessor? httpContextAccessor = null)
+        IHttpContextAccessor? httpContextAccessor = null,
+        AuditOptions? auditOptions = null)
         : base(options)
     {
         _encryptionService = encryptionService;
         _serviceProvider = serviceProvider;
         _httpContextAccessor = httpContextAccessor;
+        _auditOptions = auditOptions;
     }
 
     // Application entities
     public DbSet<Todo> Todos => Set<Todo>();
+
+    // Audit logs (opt-in via AddAuditLogging)
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     /// <summary>
     /// Configures the model
@@ -56,6 +65,12 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
 
         // Apply encryption with enhanced logging
         modelBuilder.UseEncryption(_encryptionService, _serviceProvider);
+
+        // Configure audit log table (only if audit logging is enabled)
+        if (_auditOptions != null)
+        {
+            modelBuilder.UseAuditLog(_auditOptions);
+        }
     }
 
     /// <summary>

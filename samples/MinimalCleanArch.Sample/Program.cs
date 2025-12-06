@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using MinimalCleanArch.Audit.Extensions;
 using MinimalCleanArch.DataAccess.Extensions;
 using MinimalCleanArch.Extensions.Configuration;
 using MinimalCleanArch.Extensions.Extensions;
@@ -73,12 +74,42 @@ try
 
     builder.Services.AddEncryption(encryptionOptions);
 
+    // OPT-IN: Add audit logging with change history tracking
+    // This is optional - remove to disable audit logging
+    var enableAuditLogging = builder.Configuration.GetValue<bool>("Features:AuditLogging", true);
+    if (enableAuditLogging)
+    {
+        builder.Services.AddAuditLogging(options =>
+        {
+            options.CaptureOldValues = true;
+            options.CaptureNewValues = true;
+            options.TrackChangedProperties = true;
+            options.CaptureClientIp = true;
+            // Exclude sensitive properties from audit logs
+            options.ExcludeProperty("PasswordHash");
+            options.ExcludeProperty("SecurityStamp");
+        });
+
+        // Add audit log query service
+        builder.Services.AddAuditLogService<ApplicationDbContext>();
+
+        Log.Information("Audit logging enabled with change history tracking");
+    }
+
     // Add MinimalCleanArch services with Entity Framework
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? "Data Source=minimalcleanarch.db";
 
-    builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
-        options.UseSqlite(connectionString));
+    builder.Services.AddMinimalCleanArch<ApplicationDbContext>((sp, options) =>
+    {
+        options.UseSqlite(connectionString);
+
+        // Add audit interceptor if enabled
+        if (enableAuditLogging)
+        {
+            options.UseAuditInterceptor(sp);
+        }
+    });
 
     // Add Identity API endpoints with roles support
     builder.Services.AddIdentityApiEndpoints<User>(options =>

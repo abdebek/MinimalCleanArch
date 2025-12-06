@@ -39,6 +39,35 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds MinimalCleanArch services with access to IServiceProvider for advanced configuration.
+    /// Use this overload when you need to add interceptors or other services that require DI.
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="optionsAction">The DbContext options action with IServiceProvider access</param>
+    /// <typeparam name="TContext">The type of the DbContext</typeparam>
+    /// <returns>The service collection</returns>
+    public static IServiceCollection AddMinimalCleanArch<TContext>(
+        this IServiceCollection services,
+        Action<IServiceProvider, DbContextOptionsBuilder> optionsAction)
+        where TContext : DbContext
+    {
+        // Register DbContext with service provider access
+        services.AddDbContext<TContext>((sp, options) => optionsAction(sp, options));
+
+        // Register DbContext as base class for DI
+        services.AddScoped<DbContext>(provider => provider.GetRequiredService<TContext>());
+
+        // Register Unit of Work
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Register Repository implementations
+        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+        return services;
+    }
+
+    /// <summary>
     /// Adds MinimalCleanArch services with a specific DbContext instance
     /// </summary>
     /// <param name="services">The service collection</param>
@@ -47,7 +76,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection</returns>
     public static IServiceCollection AddMinimalCleanArch<TContext>(
         this IServiceCollection services,
-        Func<IServiceProvider, TContext> dbContextFactory) 
+        Func<IServiceProvider, TContext> dbContextFactory)
         where TContext : DbContext
     {
         // Register DbContext with factory

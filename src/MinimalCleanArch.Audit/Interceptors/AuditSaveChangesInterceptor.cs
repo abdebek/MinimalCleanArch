@@ -58,13 +58,7 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
             }
 
             // Store entries with temporary properties to be processed after save
-            if (auditEntries.Any(e => e.HasTemporaryProperties))
-            {
-                eventData.Context.ChangeTracker.Entries()
-                    .FirstOrDefault()?.Context
-                    .ChangeTracker.Context.ChangeTracker
-                    .CascadeDeleteTiming = CascadeTiming.OnSaveChanges;
-            }
+            // (Temporary properties like auto-generated IDs will be resolved after SaveChanges)
 
             eventData.Context.ChangeTracker.AutoDetectChangesEnabled = true;
         }
