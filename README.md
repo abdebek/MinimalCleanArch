@@ -1,446 +1,196 @@
 ﻿# MinimalCleanArch
 
-A comprehensive library for implementing Clean Architecture with Minimal API in .NET 8+.
+A comprehensive library for implementing Clean Architecture with Minimal API in .NET 9. It offers a solid foundation with built-in support for repositories, unit of work, specifications, domain-driven design patterns, security features like data encryption, and extensions for modern ASP.NET Core development.
 
-## 🚀 Features
+## 🚀 Core Features
 
-- **Clean Architecture Foundation**: Domain entities, repositories, specifications, and unit of work patterns
-- **Minimal API Extensions**: Fluent validation, error handling, and standardized responses
-- **Security & Encryption**: Column-level encryption with Microsoft Data Protection API
-- **Soft Delete & Auditing**: Automatic tracking of creation, modification, and deletion
-- **Specification Pattern**: Encapsulate complex queries in reusable, testable objects
-- **Result Pattern**: Type-safe error handling without exceptions
-- **Entity Framework Integration**: Complete EF Core implementation with best practices
+-   **Clean Architecture Foundation**: Robust base classes and interfaces for domain entities, repositories, specifications, and the unit of work pattern.
+-   **Minimal API Extensions**: Streamline your Minimal API development with integrated FluentValidation, standardized error handling, and OpenAPI response definitions.
+-   **Security & Encryption**: Protect sensitive data with column-level encryption using either the Microsoft Data Protection API (recommended) or AES. Includes helpers for key management and EF Core integration.
+-   **Soft Delete & Auditing**: Automatically manage `IsDeleted` flags and track `CreatedAt`, `CreatedBy`, `LastModifiedAt`, `LastModifiedBy` for entities.
+-   **Specification Pattern**: Encapsulate complex query logic into reusable and testable specification objects, promoting cleaner data access.
+-   **Result Pattern**: Enhance error handling with a type-safe `Result<T>` pattern, reducing reliance on exceptions for control flow.
+-   **Entity Framework Integration**: Provides EF Core implementations for repositories, unit of work, and automated handling of auditing, soft delete, and encryption.
 
 ## 📦 Packages
 
-| Package | Description |
-|---------|-------------|
-| **MinimalCleanArch** | Core interfaces and base classes |
-| **MinimalCleanArch.DataAccess** | EF Core implementation |
-| **MinimalCleanArch.Extensions** | Minimal API extensions and validation |
-| **MinimalCleanArch.Validation** | FluentValidation integration |
-| **MinimalCleanArch.Security** | Data encryption and security features |
+| Package                       | Description                                  |
+| :---------------------------- | :------------------------------------------- |
+| `MinimalCleanArch`              | Core interfaces and base classes (Entities, Repositories, Specifications, Result pattern). |
+| `MinimalCleanArch.DataAccess`   | Entity Framework Core implementation (DbContextBase, Repository, UnitOfWork, SpecificationEvaluator). |
+| `MinimalCleanArch.Extensions`   | Minimal API enhancements (validation filters, error handling, standard responses). |
+| `MinimalCleanArch.Validation`   | FluentValidation integration components (Note: often used via `MinimalCleanArch.Extensions`). |
+| `MinimalCleanArch.Security`     | Data encryption services (AES, Data Protection) and EF Core integration for encrypted properties. |
 
 ## 🔧 Quick Start
 
-### 1. Install Packages
+1.  **Install Packages**:
+    ```bash
+    dotnet add package MinimalCleanArch
+    dotnet add package MinimalCleanArch.DataAccess
+    dotnet add package MinimalCleanArch.Extensions
+    dotnet add package MinimalCleanArch.Security
+    ```
 
-```bash
-dotnet add package MinimalCleanArch
-dotnet add package MinimalCleanArch.DataAccess
-dotnet add package MinimalCleanArch.Extensions
-dotnet add package MinimalCleanArch.Validation
-dotnet add package MinimalCleanArch.Security
-```
+2.  **Define Domain Entity** (e.g., `Todo.cs`):
+    ```csharp
+    using MinimalCleanArch.Domain.Entities;
+    using MinimalCleanArch.Domain.Exceptions;
+    using MinimalCleanArch.Security.Encryption;
 
-### 2. Define Your Domain Entity
-
-```csharp
-public class Todo : BaseSoftDeleteEntity
-{
-    public string Title { get; private set; }
-    
-    [Encrypted] // Automatically encrypted in database
-    public string Description { get; private set; }
-    
-    public int Priority { get; private set; }
-    public DateTime? DueDate { get; private set; }
-    public bool IsCompleted { get; private set; }
-
-    public Todo(string title, string description, int priority = 0, DateTime? dueDate = null)
+    public class Todo : BaseSoftDeleteEntity // Includes Id, Auditing, SoftDelete
     {
-        if (string.IsNullOrWhiteSpace(title))
-            throw new DomainException("Title cannot be empty");
-        
-        if (priority < 0 || priority > 5)
-            throw new DomainException("Priority must be between 0 and 5");
+        public string Title { get; private set; }
+        [Encrypted] public string Description { get; private set; } // Will be encrypted
+        public int Priority { get; private set; }
+        public DateTime? DueDate { get; private set; }
+        public bool IsCompleted { get; private set; }
 
-        Title = title;
-        Description = description;
-        Priority = priority;
-        DueDate = dueDate;
-    }
-
-    public void Update(string title, string description, int priority, DateTime? dueDate)
-    {
-        if (string.IsNullOrWhiteSpace(title))
-            throw new DomainException("Title cannot be empty");
-            
-        Title = title;
-        Description = description;
-        Priority = priority;
-        DueDate = dueDate;
-    }
-
-    public void MarkAsCompleted() => IsCompleted = true;
-}
-```
-
-### 3. Create Your DbContext
-
-```csharp
-public class ApplicationDbContext : DbContextBase
-{
-    public DbSet<Todo> Todos => Set<Todo>();
-
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) 
-        : base(options) { }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // Configure entities
-        modelBuilder.Entity<Todo>(entity =>
+        private Todo() { /* Required for EF Core */ }
+        public Todo(string title, string description, int priority = 0, DateTime? dueDate = null)
         {
-            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.HasIndex(e => e.Priority);
-        });
-
-        base.OnModelCreating(modelBuilder);
-    }
-
-    protected override string? GetCurrentUserId()
-    {
-        // Return current user ID from your auth system
-        return "system"; // or get from HttpContext
-    }
-}
-```
-
-### 4. Configure Services
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-// Add database with encryption
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-// Add MinimalCleanArch services
-builder.Services.AddMinimalCleanArch<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-// Add encryption (choose one approach)
-// Option 1: File-based key storage (good for single server)
-builder.Services.AddDataProtectionEncryption("./keys", "MyApp");
-
-// Option 2: Azure Key Vault (recommended for production)
-// builder.Services.AddDataProtectionEncryptionWithAzureKeyVault(
-//     "https://myvault.vault.azure.net/", "my-key", "MyApp");
-
-// Add validation
-builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoValidator>();
-
-var app = builder.Build();
-
-// Add error handling middleware
-app.UseMiddleware<ErrorHandlingMiddleware>();
-```
-
-### 5. Create API Endpoints
-
-```csharp
-// Create Todo
-app.MapPost("/api/todos", async (
-    CreateTodoRequest request,
-    IRepository<Todo> repository,
-    IUnitOfWork unitOfWork) =>
-{
-    var todo = new Todo(request.Title, request.Description, request.Priority, request.DueDate);
-    
-    await repository.AddAsync(todo);
-    await unitOfWork.SaveChangesAsync();
-    
-    return Results.Created($"/api/todos/{todo.Id}", new TodoResponse(todo));
-})
-.WithValidation<CreateTodoRequest>()
-.WithErrorHandling()
-.WithStandardResponses<TodoResponse>();
-
-// Get Todo with specification
-app.MapGet("/api/todos", async (
-    int? priority,
-    bool? isCompleted,
-    string? searchTerm,
-    int pageIndex = 1,
-    int pageSize = 10,
-    IRepository<Todo> repository) =>
-{
-    var filterSpec = new TodoFilterSpecification(priority, isCompleted, searchTerm);
-    var paginatedSpec = new TodoPaginatedSpecification(pageSize, pageIndex, filterSpec);
-    
-    var todos = await repository.GetAsync(paginatedSpec);
-    var totalCount = await repository.CountAsync(filterSpec.Criteria);
-    
-    return Results.Ok(new
-    {
-        Items = todos.Select(t => new TodoResponse(t)),
-        Pagination = new
-        {
-            CurrentPage = pageIndex,
-            PageSize = pageSize,
-            TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            SetTitle(title);
+            Description = description ?? string.Empty;
+            SetPriority(priority);
+            DueDate = dueDate;
         }
-    });
-});
-
-// Update Todo
-app.MapPut("/api/todos/{id:int}", async (
-    int id,
-    UpdateTodoRequest request,
-    IRepository<Todo> repository,
-    IUnitOfWork unitOfWork) =>
-{
-    var todo = await repository.GetByIdAsync(id);
-    if (todo == null)
-        return Results.NotFound();
-    
-    todo.Update(request.Title, request.Description, request.Priority, request.DueDate);
-    
-    await repository.UpdateAsync(todo);
-    await unitOfWork.SaveChangesAsync();
-    
-    return Results.Ok(new TodoResponse(todo));
-})
-.WithValidation<UpdateTodoRequest>()
-.WithErrorHandling();
-
-// Soft Delete Todo
-app.MapDelete("/api/todos/{id:int}", async (
-    int id,
-    IRepository<Todo> repository,
-    IUnitOfWork unitOfWork) =>
-{
-    var todo = await repository.GetByIdAsync(id);
-    if (todo == null)
-        return Results.NotFound();
-    
-    await repository.DeleteAsync(todo); // Soft delete
-    await unitOfWork.SaveChangesAsync();
-    
-    return Results.NoContent();
-});
-```
-
-### 6. Create Specifications for Complex Queries
-
-```csharp
-public class TodoFilterSpecification : BaseSpecification<Todo>
-{
-    public TodoFilterSpecification(
-        int? priority = null,
-        bool? isCompleted = null,
-        string? searchTerm = null,
-        DateTime? dueBefore = null,
-        DateTime? dueAfter = null)
-    {
-        // Add filters
-        if (priority.HasValue)
-            AddCriteria(t => t.Priority == priority.Value);
-            
-        if (isCompleted.HasValue)
-            AddCriteria(t => t.IsCompleted == isCompleted.Value);
-            
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-            AddCriteria(t => t.Title.Contains(searchTerm) || t.Description.Contains(searchTerm));
-            
-        if (dueBefore.HasValue)
-            AddCriteria(t => t.DueDate != null && t.DueDate <= dueBefore.Value);
-            
-        if (dueAfter.HasValue)
-            AddCriteria(t => t.DueDate != null && t.DueDate >= dueAfter.Value);
-        
-        // Default ordering
-        ApplyOrderByDescending(t => t.Priority);
-        ApplyThenByDescending(t => t.CreatedAt);
-    }
-}
-
-public class TodoPaginatedSpecification : BaseSpecification<Todo>
-{
-    public TodoPaginatedSpecification(int pageSize, int pageIndex, TodoFilterSpecification filterSpec)
-    {
-        if (filterSpec.Criteria != null)
-            AddCriteria(filterSpec.Criteria);
-            
-        ApplyOrderByDescending(t => t.Priority);
-        ApplyThenByDescending(t => t.CreatedAt);
-        ApplyPaging((pageIndex - 1) * pageSize, pageSize);
-    }
-}
-```
-
-### 7. Add Validation
-
-```csharp
-public class CreateTodoValidator : AbstractValidator<CreateTodoRequest>
-{
-    public CreateTodoValidator()
-    {
-        RuleFor(x => x.Title)
-            .NotEmpty()
-            .MaximumLength(200);
-            
-        RuleFor(x => x.Description)
-            .MaximumLength(1000);
-            
-        RuleFor(x => x.Priority)
-            .InclusiveBetween(0, 5);
-            
-        RuleFor(x => x.DueDate)
-            .GreaterThan(DateTime.Now)
-            .When(x => x.DueDate.HasValue);
-    }
-}
-```
-
-## 🔐 Security & Encryption
-
-### Automatic Column Encryption
-
-```csharp
-public class User : BaseAuditableEntity
-{
-    public string Username { get; set; }
-    
-    [Encrypted] // Automatically encrypted/decrypted
-    public string Email { get; set; }
-    
-    [Encrypted]
-    public string? PhoneNumber { get; set; }
-}
-```
-
-### Configure Encryption in DbContext
-
-```csharp
-protected override void OnModelCreating(ModelBuilder modelBuilder)
-{
-    // Apply encryption to all [Encrypted] properties
-    modelBuilder.UseEncryption(_encryptionService);
-    
-    // Or configure specific properties
-    modelBuilder.UseEncryptionForProperty<User>(
-        u => u.Email, 
-        _encryptionService, 
-        allowNull: false);
-
-    base.OnModelCreating(modelBuilder);
-}
-```
-
-## 🎯 Result Pattern Usage
-
-```csharp
-public class TodoService
-{
-    public async Task<Result<TodoResponse>> CreateTodoAsync(CreateTodoRequest request)
-    {
-        try
-        {
-            var todo = new Todo(request.Title, request.Description, request.Priority);
-            await _repository.AddAsync(todo);
-            await _unitOfWork.SaveChangesAsync();
-            
-            return Result.Success(new TodoResponse(todo));
+        // Methods like Update, MarkAsCompleted, SetTitle, SetPriority...
+        public void SetTitle(string title) {
+            if (string.IsNullOrWhiteSpace(title)) throw new DomainException("Title is required.");
+            Title = title;
         }
-        catch (DomainException ex)
-        {
-            return Result.Failure<TodoResponse>(Error.Validation("INVALID_TODO", ex.Message));
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<TodoResponse>(Error.FromException(ex));
+        public void SetPriority(int priority) {
+            if (priority < 0 || priority > 5) throw new DomainException("Priority must be 0-5.");
+            Priority = priority;
         }
     }
-}
+    ```
 
-// Usage in endpoint
-app.MapPost("/api/todos", async (CreateTodoRequest request, TodoService service) =>
-{
-    var result = await service.CreateTodoAsync(request);
-    
-    return result.IsSuccess 
-        ? Results.Created($"/api/todos/{result.Value.Id}", result.Value)
-        : Results.BadRequest(result.Error);
-});
-```
+3.  **Create DbContext** (e.g., `ApplicationDbContext.cs`):
+    ```csharp
+    using Microsoft.EntityFrameworkCore;
+    using Microsoft.AspNetCore.Http; // For IHttpContextAccessor
+    using System.Security.Claims;     // For ClaimTypes
+    using MinimalCleanArch.DataAccess;
+    using MinimalCleanArch.Security.Encryption;
+    using MinimalCleanArch.Security.EntityEncryption; // For UseEncryption extension
+    // using YourProject.Domain.Entities;
 
-## 🧪 Testing
+    public class ApplicationDbContext : DbContextBase // Handles Auditing & Soft Delete
+    {
+        private readonly IEncryptionService _encryptionService;
+        private readonly IHttpContextAccessor? _httpContextAccessor;
 
-```csharp
-[Fact]
-public async Task Repository_ShouldSoftDelete_WhenEntityDeleted()
-{
-    // Arrange
-    var todo = new Todo("Test", "Description");
-    await _repository.AddAsync(todo);
-    await _unitOfWork.SaveChangesAsync();
+        public DbSet<Todo> Todos => Set<Todo>();
 
-    // Act
-    await _repository.DeleteAsync(todo);
-    await _unitOfWork.SaveChangesAsync();
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options,
+                                    IEncryptionService encryptionService,
+                                    IHttpContextAccessor? httpContextAccessor = null)
+            : base(options)
+        {
+            _encryptionService = encryptionService;
+            _httpContextAccessor = httpContextAccessor;
+        }
 
-    // Assert
-    var retrievedTodo = await _repository.GetByIdAsync(todo.Id);
-    retrievedTodo.Should().BeNull(); // Soft deleted, not returned by default queries
-    
-    // Verify it still exists with IsDeleted = true
-    var deletedTodo = await _dbContext.Todos
-        .IgnoreQueryFilters()
-        .FirstAsync(t => t.Id == todo.Id);
-    deletedTodo.IsDeleted.Should().BeTrue();
-}
-```
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Todo>(entity => { /* Configure Todo entity */ });
+            modelBuilder.UseEncryption(_encryptionService); // Apply [Encrypted] attribute handling
+            base.OnModelCreating(modelBuilder); // Applies soft delete filters
+        }
 
-## 🔄 Advanced Features
+        protected override string? GetCurrentUserId() =>
+            _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+    }
+    ```
 
-### Transactions
+4.  **Configure Services** (`Program.cs`):
+    ```csharp
+    using Microsoft.EntityFrameworkCore;
+    using MinimalCleanArch.DataAccess.Extensions;
+    using MinimalCleanArch.Security.Extensions;
+    using MinimalCleanArch.Extensions.Extensions;
+    using MinimalCleanArch.Extensions.Middlewares;
+    // using YourProject.Infrastructure.Data;
+    // using YourProject.Application.Validation; // For validator assembly scanning
 
-```csharp
-await _unitOfWork.ExecuteInTransactionAsync(async () =>
-{
-    var todo1 = new Todo("Task 1", "Description 1");
-    var todo2 = new Todo("Task 2", "Description 2");
-    
-    await _repository.AddRangeAsync(new[] { todo1, todo2 });
-    await _unitOfWork.SaveChangesAsync();
-    
-    // Both todos are saved together or rolled back on error
-});
-```
+    var builder = WebApplication.CreateBuilder(args);
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-### Bulk Operations with Extensions
+    // Encryption (Choose one, Data Protection recommended)
+    builder.Services.AddDataProtectionEncryptionForDevelopment("YourAppName"); //
+    // Or: builder.Services.AddEncryption(new EncryptionOptions { Key = "YOUR_SECURE_AES_KEY" });
 
-```csharp
-// Add and save in one operation
-var todo = await _repository.AddAndSaveAsync(_unitOfWork, newTodo);
+    builder.Services.AddHttpContextAccessor(); // For GetCurrentUserId in DbContext
 
-// Update and save in one operation  
-var updatedTodo = await _repository.UpdateAndSaveAsync(_unitOfWork, existingTodo);
-```
+    // MinimalCleanArch: DbContext, Repositories, UnitOfWork
+    builder.Services.AddMinimalCleanArch<ApplicationDbContext>(opt => opt.UseSqlServer(connString));
 
-### Health Checks
+    // Validation & API Extensions
+    builder.Services.AddValidatorsFromAssemblyContaining<Program>(); // Or a specific validator type
+    builder.Services.AddMinimalCleanArchExtensions();
 
-```csharp
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ApplicationDbContext>()
-    .AddCheck<EncryptionHealthCheck>("encryption");
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
 
-app.MapHealthChecks("/health");
-```
+    var app = builder.Build();
 
-## 📚 Documentation (coming soon)
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        // Seed DB or apply migrations
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.EnsureCreated(); // For sample; use migrations in production
+    }
+    app.UseMiddleware<ErrorHandlingMiddleware>(); // Global error handling
+    // Map endpoints...
+    app.Run();
+    ```
+
+5.  **Create API Endpoints** with validation and error handling:
+    ```csharp
+    // using YourProject.Domain.Entities;
+    // using YourProject.API.Models; // For CreateTodoRequest, TodoResponse DTOs
+    // using MinimalCleanArch.Repositories;
+    // using MinimalCleanArch.Extensions.Extensions;
+
+    public static IEndpointRouteBuilder MapMyEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapPost("/todos", async (CreateTodoRequest req, IRepository<Todo> repo, IUnitOfWork uow) =>
+        {
+            var todo = new Todo(req.Title, req.Description, req.Priority, req.DueDate);
+            await repo.AddAsync(todo);
+            await uow.SaveChangesAsync();
+            return Results.Created($"/todos/{todo.Id}", TodoResponse.FromEntity(todo));
+        })
+        .WithValidation<CreateTodoRequest>()
+        .WithErrorHandling()
+        .WithStandardResponses<TodoResponse>();
+        return app;
+    }
+    // Define CreateTodoRequest and TodoResponse DTOs
+    public record CreateTodoRequest(string Title, string Description, int Priority, DateTime? DueDate);
+    public record TodoResponse(int Id, string Title, string Description, bool IsCompleted, int Priority, DateTime? DueDate, DateTime CreatedAt)
+    {
+        public static TodoResponse FromEntity(Todo todo) =>
+            new(todo.Id, todo.Title, todo.Description, todo.IsCompleted, todo.Priority, todo.DueDate, todo.CreatedAt);
+    }
+    ```
+
+## 📖 Sample Application & Documentation
+
+-   **Sample Project**: A comprehensive sample application is available in the `/samples/MinimalCleanArch.Sample` directory.
+-   **Documentation**: Detailed documentation is generated using DocFX and can be found in the `/docs` directory (link to hosted docs coming soon).
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 

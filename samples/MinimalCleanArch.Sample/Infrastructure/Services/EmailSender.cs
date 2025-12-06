@@ -1,34 +1,45 @@
-﻿using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Mail;
 
 namespace MinimalCleanArch.Sample.Infrastructure.Services;
 
 /// <summary>
-/// Configuration for email settings
+/// Configuration for email settings with validation.
 /// </summary>
 public class EmailSettings
 {
+    [Required]
     public string SmtpServer { get; set; } = string.Empty;
+
+    [Range(1, 65535)]
     public int SmtpPort { get; set; } = 587;
+
     public string SmtpUsername { get; set; } = string.Empty;
+
     public string SmtpPassword { get; set; } = string.Empty;
+
     public bool EnableSsl { get; set; } = true;
+
+    [Required, EmailAddress]
     public string FromEmail { get; set; } = string.Empty;
+
     public string FromName { get; set; } = string.Empty;
 }
 
 /// <summary>
-/// Email sender implementation using SMTP
+/// Email sender implementation using SMTP.
 /// </summary>
 public class EmailSender : IEmailSender
 {
     private readonly EmailSettings _emailSettings;
     private readonly ILogger<EmailSender> _logger;
 
-    public EmailSender(EmailSettings emailSettings, ILogger<EmailSender> logger)
+    public EmailSender(IOptions<EmailSettings> emailSettings, ILogger<EmailSender> logger)
     {
-        _emailSettings = emailSettings;
+        _emailSettings = emailSettings.Value;
         _logger = logger;
     }
 

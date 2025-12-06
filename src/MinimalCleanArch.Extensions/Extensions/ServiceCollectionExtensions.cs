@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using FluentValidation;
 using System.Reflection;
+using MinimalCleanArch.Extensions.HealthChecks;
+using MinimalCleanArch.Extensions.Middlewares;
 
 namespace MinimalCleanArch.Extensions.Extensions;
 
@@ -10,7 +12,8 @@ namespace MinimalCleanArch.Extensions.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds MinimalCleanArch extensions to the service collection
+    /// Adds MinimalCleanArch extensions to the service collection.
+    /// Includes validators, correlation ID accessor, and startup health check.
     /// </summary>
     /// <param name="services">The service collection</param>
     /// <returns>The service collection</returns>
@@ -18,6 +21,13 @@ public static class ServiceCollectionExtensions
     {
         // Register validators from the Extensions assembly
         services.AddValidatorsFromAssemblyContaining<ServiceCollectionExtensionsMarker>();
+
+        // Register correlation ID accessor
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICorrelationIdAccessor, CorrelationIdAccessor>();
+
+        // Register startup health check as singleton so it can be marked complete
+        services.AddSingleton<StartupHealthCheck>();
 
         return services;
     }

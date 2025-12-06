@@ -18,6 +18,8 @@
 		<PackageReference Include="Microsoft.Extensions.Options" Version="9.0.5" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.5" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.5" />
+		<!-- Health check for Entity Framework -->
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.5" />
 	</ItemGroup>
 
 	<ItemGroup>
