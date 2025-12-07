@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.Audit.Extensions;
 using MinimalCleanArch.DataAccess.Extensions;
+using MinimalCleanArch.Extensions.Caching;
 using MinimalCleanArch.Extensions.Configuration;
 using MinimalCleanArch.Extensions.Extensions;
 using MinimalCleanArch.Extensions.HealthChecks;
@@ -10,6 +11,7 @@ using MinimalCleanArch.Extensions.Hosting;
 using MinimalCleanArch.Extensions.Logging;
 using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Extensions.RateLimiting;
+using MinimalCleanArch.Extensions.Telemetry;
 using MinimalCleanArch.Extensions.Versioning;
 using MinimalCleanArch.Sample.API.Endpoints;
 using MinimalCleanArch.Sample.Domain.Entities;
@@ -34,6 +36,20 @@ try
 
     // Add Serilog with structured logging
     builder.AddSerilogLogging();
+
+    // Add OpenTelemetry observability (tracing and metrics)
+    var enableTelemetry = builder.Configuration.GetValue<bool>("Features:Telemetry", true);
+    if (enableTelemetry)
+    {
+        builder.AddMinimalCleanArchTelemetry(options =>
+        {
+            options.ServiceName = "MinimalCleanArch.Sample";
+            options.EnableConsoleExporter = builder.Environment.IsDevelopment();
+            options.EnableOtlpExporter = !builder.Environment.IsDevelopment();
+        });
+
+        Log.Information("OpenTelemetry observability enabled");
+    }
 
     // Add services to the container
     builder.Services.AddEndpointsApiExplorer();
@@ -155,6 +171,13 @@ try
 
     // Add validation services
     builder.Services.AddValidatorsFromAssemblyContaining<Todo>();
+
+    // Add caching services (in-memory by default)
+    builder.Services.AddMinimalCleanArchCaching(options =>
+    {
+        options.KeyPrefix = "mca"; // Optional prefix for all cache keys
+        options.DefaultExpiration = TimeSpan.FromMinutes(15);
+    });
 
     // Add MinimalCleanArch extensions (includes correlation ID accessor)
     builder.Services.AddMinimalCleanArchExtensions();
