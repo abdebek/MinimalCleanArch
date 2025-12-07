@@ -11,7 +11,8 @@
     
     <!-- XML Documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <!-- CS1591/CS1573: Missing XML docs, NU1608: Package version constraint mismatch (Wolverine dependencies) -->
+    <NoWarn>$(NoWarn);CS1591;CS1573;NU1608</NoWarn>
   </PropertyGroup>
 
   <!-- NuGet package properties -->

@@ -78,11 +78,8 @@ public static class MessagingExtensions
             // Enable EF Core transaction integration
             opts.UseEntityFrameworkCoreTransactions();
 
-            // Configure durability
-            opts.Durability.Mode = options.EnableDurability
-                ? DurabilityMode.Balanced
-                : DurabilityMode.Solo;
-
+            // Durable mode for SQL Server - enables outbox pattern
+            opts.Durability.Mode = DurabilityMode.Balanced;
             opts.Durability.ScheduledJobPollingTime = options.DurabilityPollingInterval;
         });
 
@@ -151,12 +148,9 @@ public static class MessagingExtensions
             }
         }
 
-        // Configure local queue for domain events
-        if (options.UseLocalQueueForDomainEvents)
-        {
-            opts.LocalQueue("domain-events")
-                .MaximumParallelMessages(options.LocalQueueParallelism);
-        }
+        // Configure local queue for domain events with parallelism
+        opts.LocalQueue("domain-events")
+            .MaximumParallelMessages(options.LocalQueueParallelism);
 
         // Auto-apply transactions
         opts.Policies.AutoApplyTransactions();

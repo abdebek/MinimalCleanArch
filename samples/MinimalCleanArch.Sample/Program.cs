@@ -190,7 +190,6 @@ try
         builder.AddMinimalCleanArchMessaging(options =>
         {
             options.ServiceName = "MinimalCleanArch.Sample";
-            options.UseLocalQueueForDomainEvents = true;
         });
 
         Log.Information("Wolverine messaging enabled for domain events");

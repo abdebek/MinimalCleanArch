@@ -27,6 +27,7 @@
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
+		<ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
 		<ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
 	</ItemGroup>
 

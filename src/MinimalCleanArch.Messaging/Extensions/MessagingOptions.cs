@@ -1,7 +1,9 @@
+using System.Reflection;
+
 namespace MinimalCleanArch.Messaging.Extensions;
 
 /// <summary>
-/// Configuration options for MinimalCleanArch messaging.
+/// Configuration options for MinimalCleanArch messaging with Wolverine.
 /// </summary>
 public class MessagingOptions
 {
@@ -12,36 +14,17 @@ public class MessagingOptions
     public string? ServiceName { get; set; }
 
     /// <summary>
-    /// Gets or sets whether to enable the transactional outbox pattern.
-    /// When enabled, messages are stored in the database before being sent.
-    /// Default: true.
+    /// Gets or sets the database schema name for message persistence tables.
+    /// Only used with SQL Server persistence.
+    /// Default: "wolverine".
     /// </summary>
-    public bool EnableOutbox { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets whether to automatically publish domain events on SaveChanges.
-    /// Default: true.
-    /// </summary>
-    public bool AutoPublishDomainEvents { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets whether to use the local queue for domain events.
-    /// When true, events are processed in-memory. When false, uses the configured transport.
-    /// Default: true.
-    /// </summary>
-    public bool UseLocalQueueForDomainEvents { get; set; } = true;
+    public string SchemaName { get; set; } = "wolverine";
 
     /// <summary>
     /// Gets or sets the number of parallel listeners for the local queue.
     /// Default: Environment.ProcessorCount.
     /// </summary>
     public int LocalQueueParallelism { get; set; } = Environment.ProcessorCount;
-
-    /// <summary>
-    /// Gets or sets whether to enable message durability (persist to database).
-    /// Default: true when outbox is enabled.
-    /// </summary>
-    public bool EnableDurability { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the interval for polling durably stored messages.
@@ -53,11 +36,27 @@ public class MessagingOptions
     /// Gets or sets assemblies to scan for message handlers.
     /// If empty, scans the entry assembly.
     /// </summary>
-    public List<System.Reflection.Assembly> HandlerAssemblies { get; set; } = new();
+    public List<Assembly> HandlerAssemblies { get; } = new();
 
     /// <summary>
-    /// Gets or sets the database schema name for message persistence tables.
-    /// Default: "wolverine".
+    /// Adds an assembly to scan for message handlers.
     /// </summary>
-    public string SchemaName { get; set; } = "wolverine";
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <returns>This options instance for chaining.</returns>
+    public MessagingOptions IncludeAssembly(Assembly assembly)
+    {
+        HandlerAssemblies.Add(assembly);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the assembly containing the specified type to scan for message handlers.
+    /// </summary>
+    /// <typeparam name="T">A type from the assembly to scan.</typeparam>
+    /// <returns>This options instance for chaining.</returns>
+    public MessagingOptions IncludeAssemblyContaining<T>()
+    {
+        HandlerAssemblies.Add(typeof(T).Assembly);
+        return this;
+    }
 }
