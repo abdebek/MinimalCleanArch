@@ -30,6 +30,8 @@
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
 		<!-- Optional: Audit logging (opt-in) -->
 		<ProjectReference Include="..\..\src\MinimalCleanArch.Audit\MinimalCleanArch.Audit.csproj" />
+		<!-- Optional: Messaging with Wolverine (opt-in) -->
+		<ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
 	</ItemGroup>
 
 </Project>

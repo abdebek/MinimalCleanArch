@@ -13,6 +13,7 @@ using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Extensions.RateLimiting;
 using MinimalCleanArch.Extensions.Telemetry;
 using MinimalCleanArch.Extensions.Versioning;
+using MinimalCleanArch.Messaging.Extensions;
 using MinimalCleanArch.Sample.API.Endpoints;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
@@ -178,6 +179,22 @@ try
         options.KeyPrefix = "mca"; // Optional prefix for all cache keys
         options.DefaultExpiration = TimeSpan.FromMinutes(15);
     });
+
+    // OPT-IN: Add messaging with Wolverine for domain events
+    // This enables the mediator pattern and event-driven architecture
+    var enableMessaging = builder.Configuration.GetValue<bool>("Features:Messaging", true);
+    if (enableMessaging)
+    {
+        // Use in-memory mode for development (SQLite doesn't support Wolverine's outbox)
+        // For production with SQL Server, use AddMinimalCleanArchMessagingWithSqlServer()
+        builder.AddMinimalCleanArchMessaging(options =>
+        {
+            options.ServiceName = "MinimalCleanArch.Sample";
+            options.UseLocalQueueForDomainEvents = true;
+        });
+
+        Log.Information("Wolverine messaging enabled for domain events");
+    }
 
     // Add MinimalCleanArch extensions (includes correlation ID accessor)
     builder.Services.AddMinimalCleanArchExtensions();

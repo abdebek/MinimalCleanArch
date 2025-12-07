@@ -1,14 +1,23 @@
-﻿using MinimalCleanArch.Domain.Entities;
+using MinimalCleanArch.Domain.Entities;
+using MinimalCleanArch.Domain.Events;
 using MinimalCleanArch.Domain.Exceptions;
+using MinimalCleanArch.Sample.Domain.Events;
 using MinimalCleanArch.Security.Encryption;
 
 namespace MinimalCleanArch.Sample.Domain.Entities;
 
 /// <summary>
-/// Todo entity with business rules
+/// Todo entity with business rules and domain events.
 /// </summary>
-public class Todo : BaseSoftDeleteEntity
+public class Todo : BaseSoftDeleteEntity, IHasDomainEvents
 {
+    private readonly DomainEventCollection _domainEvents = new();
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.DomainEvents;
+
+    /// <inheritdoc />
+    public void ClearDomainEvents() => _domainEvents.ClearDomainEvents();
     /// <summary>
     /// Gets or sets the title
     /// </summary>
@@ -56,6 +65,14 @@ public class Todo : BaseSoftDeleteEntity
         SetPriority(priority);
         SetDueDate(dueDate);
         IsCompleted = false;
+
+        // Raise domain event
+        _domainEvents.RaiseDomainEvent(new TodoCreatedEvent
+        {
+            EntityId = Id,
+            Title = title,
+            Priority = priority
+        });
     }
 
     public void Update(string title, string description, int priority, DateTime? dueDate)
@@ -64,6 +81,14 @@ public class Todo : BaseSoftDeleteEntity
         SetDescription(description);
         SetPriority(priority);
         SetDueDate(dueDate);
+
+        // Raise domain event
+        _domainEvents.RaiseDomainEvent(new TodoUpdatedEvent
+        {
+            EntityId = Id,
+            Title = title,
+            Priority = priority
+        });
     }
 
     /// <summary>
@@ -125,6 +150,13 @@ public class Todo : BaseSoftDeleteEntity
     public void MarkAsCompleted()
     {
         IsCompleted = true;
+
+        // Raise domain event
+        _domainEvents.RaiseDomainEvent(new TodoCompletedEvent
+        {
+            EntityId = Id,
+            Title = Title
+        });
     }
 
     /// <summary>
