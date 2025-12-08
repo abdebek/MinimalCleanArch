@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "MinimalCleanArch",
+  "classifications": ["Web", "API", "Clean Architecture", "DDD"],
+  "identity": "MinimalCleanArch.WebApi",
+  "name": "MinimalCleanArch Web API",
+  "shortName": "mca",
+  "description": "A clean architecture Web API template with optional features like messaging, audit logging, caching, and more.",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "preferNameDirectory": true,
+  "sourceName": "MCA",
+  "defaultName": "MyApp",
+  "symbols": {
+    "recommended": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching)"
+    },
+    "all": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include all features"
+    },
+    "single-project": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Use single project instead of multi-project solution"
+    },
+    "tests": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include unit test project"
+    },
+    "docker": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include Docker support (Dockerfile and docker-compose.yml)"
+    },
+    "serilog": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include Serilog structured logging"
+    },
+    "healthchecks": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include health check endpoints"
+    },
+    "validation": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include FluentValidation integration"
+    },
+    "security": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include security features (encryption, security headers, CORS)"
+    },
+    "caching": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include caching abstractions"
+    },
+    "messaging": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include Wolverine messaging for domain events"
+    },
+    "audit": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include audit logging"
+    },
+    "opentelemetry": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include OpenTelemetry for distributed tracing"
+    },
+    "db": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "sqlite",
+      "choices": [
+        { "choice": "sqlite", "description": "SQLite (default, good for development)" },
+        { "choice": "sqlserver", "description": "SQL Server" },
+        { "choice": "postgres", "description": "PostgreSQL" }
+      ],
+      "description": "Database provider"
+    },
+
+    "UseSerilog": {
+      "type": "computed",
+      "value": "(serilog || recommended || all)"
+    },
+    "UseHealthChecks": {
+      "type": "computed",
+      "value": "(healthchecks || recommended || all)"
+    },
+    "UseValidation": {
+      "type": "computed",
+      "value": "(validation || recommended || all)"
+    },
+    "UseSecurity": {
+      "type": "computed",
+      "value": "(security || recommended || all)"
+    },
+    "UseCaching": {
+      "type": "computed",
+      "value": "(caching || recommended || all)"
+    },
+    "UseMessaging": {
+      "type": "computed",
+      "value": "(messaging || all)"
+    },
+    "UseAudit": {
+      "type": "computed",
+      "value": "(audit || all)"
+    },
+    "UseOpenTelemetry": {
+      "type": "computed",
+      "value": "(opentelemetry || all)"
+    },
+    "UseDocker": {
+      "type": "computed",
+      "value": "(docker || all)"
+    },
+    "UseTests": {
+      "type": "computed",
+      "value": "(tests || all)"
+    },
+    "UseSqlServer": {
+      "type": "computed",
+      "value": "(db == \"sqlserver\")"
+    },
+    "UsePostgres": {
+      "type": "computed",
+      "value": "(db == \"postgres\")"
+    },
+    "UseSqlite": {
+      "type": "computed",
+      "value": "(db == \"sqlite\")"
+    },
+    "UseDurableMessaging": {
+      "type": "computed",
+      "value": "(UseMessaging && (UseSqlServer || UsePostgres))"
+    },
+    "MultiProject": {
+      "type": "computed",
+      "value": "(!single-project)"
+    },
+    "SingleProject": {
+      "type": "computed",
+      "value": "(single-project)"
+    }
+  },
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "modifiers": [
+        { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
+        { "condition": "(!UseTests)", "exclude": ["tests/**"] },
+        { "exclude": ["single/**", "multi/**"] }
+      ]
+    },
+    {
+      "source": "multi",
+      "target": "./",
+      "condition": "(MultiProject)",
+      "modifiers": [
+        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
+        { "exclude": ["**/bin/**", "**/obj/**"] }
+      ]
+    },
+    {
+      "source": "single",
+      "target": "./",
+      "condition": "(SingleProject)",
+      "modifiers": [
+        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
+        { "exclude": ["**/bin/**", "**/obj/**"] }
+      ]
+    }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "condition": "(MultiProject)",
+      "description": "Restore NuGet packages",
+      "manualInstructions": [{ "text": "Run 'dotnet restore'" }],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    },
+    {
+      "id": "restore-single",
+      "condition": "(SingleProject)",
+      "description": "Restore NuGet packages",
+      "manualInstructions": [{ "text": "Run 'dotnet restore'" }],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    },
+    {
+      "condition": "(UseSqlite && UseMessaging)",
+      "description": "Warning: SQLite does not support durable messaging",
+      "manualInstructions": [
+        {
+          "text": "Wolverine messaging is configured in-memory. For durable messaging use --db sqlserver or --db postgres."
+        }
+      ],
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C"
+    }
+  ]
+}

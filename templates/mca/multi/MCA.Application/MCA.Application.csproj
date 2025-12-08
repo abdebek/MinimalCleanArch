@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinimalCleanArch" Version="1.0.0" />
+#if (UseValidation)
+    <PackageReference Include="MinimalCleanArch.Validation" Version="1.0.0" />
+#endif
+#if (UseMessaging)
+    <PackageReference Include="MinimalCleanArch.Messaging" Version="1.0.0" />
+#endif
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MCA.Domain\MCA.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

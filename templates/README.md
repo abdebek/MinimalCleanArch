@@ -1,0 +1,108 @@
+# MinimalCleanArch Templates
+
+Project templates for creating Clean Architecture applications with the MinimalCleanArch library.
+
+## Installation
+
+```bash
+dotnet new install MinimalCleanArch.Templates
+```
+
+## Usage
+
+### Basic Usage
+
+```bash
+# Create a new project with default settings (multi-project solution, SQLite)
+dotnet new mca -n MyApp
+
+# Create with recommended features (production-ready)
+dotnet new mca -n MyApp --recommended
+
+# Create with all features
+dotnet new mca -n MyApp --all
+```
+
+### Options
+
+#### Presets
+| Option | Description |
+|--------|-------------|
+| `--recommended` | Includes: serilog, healthchecks, validation, security, caching |
+| `--all` | Includes all features plus: messaging, audit, opentelemetry, docker, tests |
+
+#### Project Structure
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--single-project` | false | Single project instead of multi-project solution |
+| `--tests` | false | Include unit test project |
+| `--docker` | false | Include Dockerfile and docker-compose.yml |
+
+#### Features
+| Option | Description |
+|--------|-------------|
+| `--serilog` | Structured logging with Serilog |
+| `--healthchecks` | Health check endpoints |
+| `--validation` | FluentValidation integration |
+| `--security` | Encryption, security headers, CORS |
+| `--caching` | In-memory and Redis caching |
+| `--messaging` | Wolverine domain events |
+| `--audit` | Audit logging |
+| `--opentelemetry` | Distributed tracing |
+
+#### Database
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db sqlite` | Yes | SQLite (default) |
+| `--db sqlserver` | | SQL Server |
+| `--db postgres` | | PostgreSQL |
+
+### Examples
+
+```bash
+# Production-ready API with SQL Server
+dotnet new mca -n OrderService --recommended --db sqlserver --docker
+
+# Microservice with messaging and observability
+dotnet new mca -n NotificationService --messaging --opentelemetry --db postgres
+
+# Simple prototype
+dotnet new mca -n Prototype --single-project
+
+# Full-featured application
+dotnet new mca -n EnterpriseApp --all --db sqlserver
+```
+
+## Project Structure
+
+### Multi-Project Solution (Default)
+```
+MyApp/
+├── MyApp.sln
+├── src/
+│   ├── MyApp.Domain/         # Entities, Events, Interfaces
+│   ├── MyApp.Application/    # Services, DTOs, Handlers
+│   ├── MyApp.Infrastructure/ # DbContext, Repositories
+│   └── MyApp.Api/           # Endpoints, Program.cs
+├── tests/
+│   └── MyApp.UnitTests/
+├── Dockerfile
+└── docker-compose.yml
+```
+
+### Single Project (--single-project)
+```
+MyApp/
+├── MyApp.csproj
+├── Program.cs
+├── Domain/
+├── Application/
+├── Infrastructure/
+└── Endpoints/
+```
+
+## Uninstall
+
+```bash
+dotnet new uninstall MinimalCleanArch.Templates
+```

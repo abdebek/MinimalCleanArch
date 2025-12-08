@@ -1,0 +1,207 @@
+#if (UseSerilog)
+using Serilog;
+#endif
+using MCA.Application.Services;
+using MCA.Domain.Interfaces;
+using MCA.Infrastructure.Data;
+using MCA.Infrastructure.Repositories;
+using MCA.Infrastructure.Services;
+using MCA.Api.Endpoints;
+using Microsoft.EntityFrameworkCore;
+using MinimalCleanArch.DataAccess.Repositories;
+using MinimalCleanArch.Repositories;
+#if (UseHealthChecks)
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+#endif
+#if (UseSecurity)
+using MinimalCleanArch.Security.Extensions;
+#endif
+#if (UseCaching)
+using MinimalCleanArch.Extensions.Caching;
+#endif
+#if (UseMessaging)
+using MinimalCleanArch.Messaging.Extensions;
+#endif
+#if (UseAudit)
+using MinimalCleanArch.Audit.Extensions;
+#endif
+#if (UseOpenTelemetry)
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Metrics;
+#endif
+
+#if (UseSerilog)
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+try
+{
+    Log.Information("Starting MCA application");
+#endif
+
+var builder = WebApplication.CreateBuilder(args);
+
+#if (UseSerilog)
+// Configure Serilog
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
+#endif
+
+// Add services to the container
+
+#if (UseSqlite)
+// Database - SQLite
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Data Source=MCA.db";
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(connectionString));
+#endif
+#if (UseSqlServer)
+// Database - SQL Server
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+#endif
+#if (UsePostgres)
+// Database - PostgreSQL
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+#endif
+
+// Register DbContext for generic repository
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
+// Repositories
+builder.Services.AddScoped<ITodoRepository, TodoRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Services
+builder.Services.AddScoped<ITodoService, TodoService>();
+
+#if (UseSecurity)
+// Security - encryption, security headers
+builder.Services.AddMinimalCleanArchSecurity(builder.Configuration);
+#endif
+
+#if (UseCaching)
+// Caching
+builder.Services.AddMinimalCleanArchCaching(builder.Configuration);
+#endif
+
+#if (UseMessaging)
+// Messaging - Wolverine domain events
+#if (UseSqlServer)
+builder.AddMinimalCleanArchMessagingWithSqlServer(connectionString, options =>
+{
+    options.ServiceName = "MCA";
+});
+#elif (UsePostgres)
+// Note: PostgreSQL messaging requires WolverineFx.Postgresql package
+builder.AddMinimalCleanArchMessaging(options =>
+{
+    options.ServiceName = "MCA";
+});
+#else
+builder.AddMinimalCleanArchMessaging(options =>
+{
+    options.ServiceName = "MCA";
+});
+#endif
+#endif
+
+#if (UseAudit)
+// Audit logging
+builder.Services.AddMinimalCleanArchAudit(builder.Configuration);
+#endif
+
+#if (UseHealthChecks)
+// Health checks
+builder.Services.AddHealthChecks()
+#if (UseSqlite)
+    .AddSqlite(connectionString, name: "database");
+#endif
+#if (UseSqlServer)
+    .AddSqlServer(connectionString, name: "database");
+#endif
+#if (UsePostgres)
+    .AddNpgSql(connectionString, name: "database");
+#endif
+#endif
+
+#if (UseOpenTelemetry)
+// OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("MCA"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddConsoleExporter())
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddConsoleExporter());
+#endif
+
+// API Explorer for OpenAPI/Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+#if (UseSerilog)
+app.UseSerilogRequestLogging();
+#endif
+
+#if (UseSecurity)
+app.UseMinimalCleanArchSecurity();
+#endif
+
+app.UseHttpsRedirection();
+
+#if (UseHealthChecks)
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+#endif
+
+// Map endpoints
+app.MapTodoEndpoints();
+
+// Ensure database is created (development only)
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+}
+
+app.Run();
+
+#if (UseSerilog)
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+#endif

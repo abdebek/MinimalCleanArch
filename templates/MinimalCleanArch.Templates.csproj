@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageType>Template</PackageType>
+    <PackageId>MinimalCleanArch.Templates</PackageId>
+    <Title>MinimalCleanArch Templates</Title>
+    <Authors>MinimalCleanArch</Authors>
+    <Description>Project templates for creating Clean Architecture applications with MinimalCleanArch library. Includes domain events, CQRS, repository pattern, and more.</Description>
+    <PackageTags>dotnet-new;templates;clean-architecture;ddd;minimal-api;webapi</PackageTags>
+    <PackageProjectUrl>https://github.com/your-repo/MinimalCleanArch</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <TargetFramework>net8.0</TargetFramework>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <MinVerSkip>true</MinVerSkip>
+
+    <Version>0.0.1-preview</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="All" />
+    <Content Include="mca\**\*" Exclude="mca\**\bin\**;mca\**\obj\**" Pack="true" PackagePath="content/" />
+    <Compile Remove="**\*" />
+    <None Update="README.md" Pack="false" />
+  </ItemGroup>
+
+</Project>
