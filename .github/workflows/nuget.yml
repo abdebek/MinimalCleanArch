@@ -67,8 +67,8 @@ jobs:
 
     - name: Restore dependencies
       run: |
-        dotnet restore MinimalCleanArch.CI.sln
-        dotnet restore templates/MinimalCleanArch.Templates.csproj
+        dotnet restore MinimalCleanArch.sln
+        dotnet restore templates/MinimalCleanArch.Templates.csproj /p:PackageVersion=${{ steps.get-version.outputs.version }}
 
     - name: Build solution
       run: dotnet build MinimalCleanArch.CI.sln --configuration Release --no-restore --verbosity minimal
@@ -166,11 +166,15 @@ jobs:
           "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
           "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
           "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+          "src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj"
+          "src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj"
           "templates/MinimalCleanArch.Templates.csproj"
         )
 
+        set -e
         success_count=0
         total_count=${#projects[@]}
+        fail_count=0
 
         for project in "${projects[@]}"; do
           if [ -f "$project" ]; then
@@ -182,14 +186,16 @@ jobs:
               --output ./artifacts/packages \
               --include-symbols \
               --verbosity minimal \
-              --no-restore; then
+              /p:PackageVersion=${{ steps.get-version.outputs.version }}; then
               success_count=$((success_count + 1))
               echo "✓ Successfully packed $project_name"
             else
               echo "✗ Failed to pack $project_name"
+              fail_count=$((fail_count + 1))
             fi
           else
             echo "Project file not found: $project"
+            fail_count=$((fail_count + 1))
           fi
         done
 
@@ -197,8 +203,13 @@ jobs:
         echo "Packaging Summary:"
         echo "  Total projects: $total_count"
         echo "  Successful: $success_count"
-        echo "  Failed: $((total_count - success_count))"
-
+        echo "  Failed: $fail_count"
+        
+        if [ $fail_count -gt 0 ]; then
+          echo "Error: One or more packages failed to pack."
+          exit 1
+        fi
+        
         # List created packages
         echo ""
         echo "Created packages:"
@@ -358,10 +369,12 @@ jobs:
 
           ### Packages Published
           - MinimalCleanArch - Core components (.NET 9.0)
-          - MinimalCleanArch.DataAccess - Entity Framework Core implementation
+          - MinimalCleanArch.DataAccess - Entity Framework Core implementation  
           - MinimalCleanArch.Extensions - Minimal API extensions
           - MinimalCleanArch.Validation - FluentValidation integration
           - MinimalCleanArch.Security - Data Protection encryption
+          - MinimalCleanArch.Messaging - Domain events / Wolverine integration
+          - MinimalCleanArch.Audit - Audit logging components
           - MinimalCleanArch.Templates - dotnet new templates (web/api clean architecture)
 
           ### Installation
