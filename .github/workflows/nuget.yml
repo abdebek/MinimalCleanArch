@@ -66,7 +66,9 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
-      run: dotnet restore MinimalCleanArch.CI.sln
+      run: |
+        dotnet restore MinimalCleanArch.CI.sln
+        dotnet restore templates/MinimalCleanArch.Templates.csproj
 
     - name: Build solution
       run: dotnet build MinimalCleanArch.CI.sln --configuration Release --no-restore --verbosity minimal
