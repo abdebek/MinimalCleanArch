@@ -12,6 +12,13 @@ A comprehensive library for implementing Clean Architecture with Minimal API in 
 -   **Result Pattern**: Enhance error handling with a type-safe `Result<T>` pattern, reducing reliance on exceptions for control flow.
 -   **Entity Framework Integration**: Provides EF Core implementations for repositories, unit of work, and automated handling of auditing, soft delete, and encryption.
 
+## Version & Templates
+
+- Current package version: `0.1.6` (targets .NET 9).
+- Templates: install with `dotnet new install MinimalCleanArch.Templates` (or the local nupkg) and scaffold via `dotnet new mca -n MyApp` (multi-project default) or `--single-project`.
+- Template launch settings now default to Swagger and use randomized ports in the 5000–8000 range; adjust in `Properties/launchSettings.json` if you need fixed ports.
+- Using local nupkgs? Add a `nuget.config` with a `packageSources` entry pointing to your local folder (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.
+
 ## 📦 Packages
 
 | Package                       | Description                                  |
@@ -24,7 +31,7 @@ A comprehensive library for implementing Clean Architecture with Minimal API in 
 
 ## 🔧 Quick Start
 
-1.  **Install Packages**:
+1.  **Install Packages** (from NuGet or your local feed):
     ```bash
     dotnet add package MinimalCleanArch
     dotnet add package MinimalCleanArch.DataAccess

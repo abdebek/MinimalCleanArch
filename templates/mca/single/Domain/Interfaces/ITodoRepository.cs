@@ -5,5 +5,5 @@ namespace MCA.Domain.Interfaces;
 
 public interface ITodoRepository : IRepository<Todo, int>
 {
-    Task<IEnumerable<Todo>> GetByPriorityAsync(int priority, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Todo>> GetByPriorityAsync(int priority, CancellationToken cancellationToken = default);
 }

@@ -10,6 +10,9 @@ This package provides security features:
 - AES encryption implementation
 - Value converters for Entity Framework Core
 
+## Version
+- 0.1.6 (net9.0). Use with `MinimalCleanArch` 0.1.6.
+
 ## Key Components
 
 - EncryptedAttribute - Marks properties for encryption

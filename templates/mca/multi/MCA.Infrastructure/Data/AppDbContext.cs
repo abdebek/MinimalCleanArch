@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 #if (UseSecurity)
 using MinimalCleanArch.Security.Encryption;
 #endif
+using MinimalCleanArch.Domain.Entities;
 
 namespace MCA.Infrastructure.Data;
 
@@ -63,13 +64,13 @@ public class AppDbContext : DbContext
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is MinimalCleanArch.Domain.IHasTimestamps entity)
+            if (entry.Entity is IAuditableEntity entity)
             {
                 if (entry.State == EntityState.Added)
                 {
                     entity.CreatedAt = DateTime.UtcNow;
                 }
-                entity.UpdatedAt = DateTime.UtcNow;
+                entity.LastModifiedAt = DateTime.UtcNow;
             }
         }
     }

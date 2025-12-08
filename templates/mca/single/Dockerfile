@@ -7,13 +7,13 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 #if (MultiProject)
-COPY ["multi/MCA.Api/MCA.Api.csproj", "multi/MCA.Api/"]
-COPY ["multi/MCA.Application/MCA.Application.csproj", "multi/MCA.Application/"]
-COPY ["multi/MCA.Domain/MCA.Domain.csproj", "multi/MCA.Domain/"]
-COPY ["multi/MCA.Infrastructure/MCA.Infrastructure.csproj", "multi/MCA.Infrastructure/"]
-RUN dotnet restore "multi/MCA.Api/MCA.Api.csproj"
+COPY ["MCA.Api/MCA.Api.csproj", "MCA.Api/"]
+COPY ["MCA.Application/MCA.Application.csproj", "MCA.Application/"]
+COPY ["MCA.Domain/MCA.Domain.csproj", "MCA.Domain/"]
+COPY ["MCA.Infrastructure/MCA.Infrastructure.csproj", "MCA.Infrastructure/"]
+RUN dotnet restore "MCA.Api/MCA.Api.csproj"
 COPY . .
-WORKDIR "/src/multi/MCA.Api"
+WORKDIR "/src/MCA.Api"
 RUN dotnet build "MCA.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 #else
 COPY ["MCA.csproj", "."]

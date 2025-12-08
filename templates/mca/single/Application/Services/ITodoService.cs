@@ -1,5 +1,5 @@
 using MCA.Application.DTOs;
-using MinimalCleanArch.Results;
+using MinimalCleanArch.Domain.Common;
 
 namespace MCA.Application.Services;
 

@@ -1,94 +1,58 @@
-using MinimalCleanArch.Domain;
-#if (UseMessaging)
-using MinimalCleanArch.Domain.Events;
-using MCA.Domain.Events;
-#endif
+using MinimalCleanArch.Domain.Entities;
 
 namespace MCA.Domain.Entities;
 
 /// <summary>
-/// Sample Todo entity demonstrating domain-driven design patterns.
+/// Sample Todo aggregate using MinimalCleanArch base entities.
 /// </summary>
-#if (UseMessaging)
-public class Todo : Entity<int>, ISoftDelete, IHasDomainEvents
-#else
-public class Todo : Entity<int>, ISoftDelete
-#endif
+public class Todo : BaseSoftDeleteEntity
 {
-#if (UseMessaging)
-    private readonly List<IDomainEvent> _domainEvents = new();
-#endif
-
     public string Title { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public bool IsCompleted { get; private set; }
     public int Priority { get; private set; }
     public DateTime? DueDate { get; private set; }
-    public bool IsDeleted { get; private set; }
-    public DateTime? DeletedAt { get; private set; }
 
-#if (UseMessaging)
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-#endif
-
-    private Todo() { } // EF Core constructor
+    private Todo() { } // EF Core
 
     public Todo(string title, string? description = null, int priority = 0, DateTime? dueDate = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
-
         Title = title;
         Description = description;
         Priority = priority;
         DueDate = dueDate;
         IsCompleted = false;
-
-#if (UseMessaging)
-        _domainEvents.Add(new TodoCreatedEvent { EntityId = Id, Title = title });
-#endif
+        CreatedAt = DateTime.UtcNow;
+        LastModifiedAt = DateTime.UtcNow;
     }
 
     public void Update(string title, string? description, int priority, DateTime? dueDate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
-
         Title = title;
         Description = description;
         Priority = priority;
         DueDate = dueDate;
-
-#if (UseMessaging)
-        _domainEvents.Add(new TodoUpdatedEvent { EntityId = Id, Title = title });
-#endif
+        LastModifiedAt = DateTime.UtcNow;
     }
 
     public void MarkAsCompleted()
     {
         if (IsCompleted) return;
-
         IsCompleted = true;
-
-#if (UseMessaging)
-        _domainEvents.Add(new TodoCompletedEvent { EntityId = Id, Title = Title });
-#endif
+        LastModifiedAt = DateTime.UtcNow;
     }
 
     public void MarkAsIncomplete()
     {
         IsCompleted = false;
+        LastModifiedAt = DateTime.UtcNow;
     }
 
     public void Delete()
     {
         IsDeleted = true;
-        DeletedAt = DateTime.UtcNow;
-
-#if (UseMessaging)
-        _domainEvents.Add(new TodoDeletedEvent { EntityId = Id, Title = Title });
-#endif
+        LastModifiedAt = DateTime.UtcNow;
     }
-
-#if (UseMessaging)
-    public void ClearDomainEvents() => _domainEvents.Clear();
-#endif
 }

@@ -5,7 +5,11 @@ Project templates for creating Clean Architecture applications with the MinimalC
 ## Installation
 
 ```bash
+# From NuGet
 dotnet new install MinimalCleanArch.Templates
+
+# From a local build (e.g., artifacts/nuget)
+dotnet new install path/to/MinimalCleanArch.Templates.0.0.1-preview.nupkg --add-source path/to/local/feed
 ```
 
 ## Usage
@@ -78,27 +82,27 @@ dotnet new mca -n EnterpriseApp --all --db sqlserver
 ### Multi-Project Solution (Default)
 ```
 MyApp/
-├── MyApp.sln
-├── src/
-│   ├── MyApp.Domain/         # Entities, Events, Interfaces
-│   ├── MyApp.Application/    # Services, DTOs, Handlers
-│   ├── MyApp.Infrastructure/ # DbContext, Repositories
-│   └── MyApp.Api/           # Endpoints, Program.cs
-├── tests/
-│   └── MyApp.UnitTests/
-├── Dockerfile
-└── docker-compose.yml
+|- MyApp.sln
+|- src/
+|  |- MyApp.Domain/         (Entities, Events, Interfaces)
+|  |- MyApp.Application/    (Services, DTOs, Handlers)
+|  |- MyApp.Infrastructure/ (DbContext, Repositories)
+|  |- MyApp.Api/            (Endpoints, Program.cs)
+|- tests/
+|  |- MyApp.UnitTests/
+|- Dockerfile
+|- docker-compose.yml
 ```
 
 ### Single Project (--single-project)
 ```
 MyApp/
-├── MyApp.csproj
-├── Program.cs
-├── Domain/
-├── Application/
-├── Infrastructure/
-└── Endpoints/
+|- MyApp.csproj
+|- Program.cs
+|- Domain/
+|- Application/
+|- Infrastructure/
+|- Endpoints/
 ```
 
 ## Uninstall
@@ -106,3 +110,8 @@ MyApp/
 ```bash
 dotnet new uninstall MinimalCleanArch.Templates
 ```
+
+## Notes
+- Package version: `0.1.6` (targets .NET 9).
+- Launch settings default to Swagger and random ports between 5000–8000; adjust `Properties/launchSettings.json` if you need fixed ports.
+- When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.

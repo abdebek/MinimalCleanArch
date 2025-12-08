@@ -1,11 +1,8 @@
 using MCA.Application.DTOs;
-using MinimalCleanArch.Common;
+using MinimalCleanArch.Domain.Common;
 
 namespace MCA.Application.Services;
 
-/// <summary>
-/// Service interface for Todo operations.
-/// </summary>
 public interface ITodoService
 {
     Task<Result<TodoResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default);

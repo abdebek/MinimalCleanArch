@@ -42,21 +42,21 @@ env:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    
+
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        
+
     - name: Verify .NET version
       run: dotnet --version
-        
+
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
@@ -64,13 +64,13 @@ jobs:
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/global.json') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-          
+
     - name: Restore dependencies
       run: dotnet restore MinimalCleanArch.CI.sln
-      
+
     - name: Build solution
       run: dotnet build MinimalCleanArch.CI.sln --configuration Release --no-restore --verbosity minimal
-      
+
     - name: Run tests (if any exist)
       run: |
         if find . -name "*.Test*.csproj" -o -name "*Test.csproj" -o -name "*Tests.csproj" | grep -q .; then
@@ -80,7 +80,7 @@ jobs:
           echo "No test projects found in CI solution, skipping tests"
         fi
       continue-on-error: true
-      
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
@@ -89,29 +89,29 @@ jobs:
         path: TestResults*
         retention-days: 30
         if-no-files-found: ignore
-        
+
   pack:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    
+
     outputs:
       package-version: ${{ steps.get-version.outputs.version }}
-      
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        
+
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        
+
     - name: Verify .NET version
       run: dotnet --version
-        
+
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
@@ -119,10 +119,10 @@ jobs:
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/global.json') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-          
+
     - name: Restore dependencies
       run: dotnet restore MinimalCleanArch.CI.sln
-      
+
     - name: Determine version
       id: get-version
       run: |
@@ -140,7 +140,7 @@ jobs:
         fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Package version: $VERSION"
-        
+
     - name: Update version in Directory.Build.props
       if: steps.get-version.outputs.version != ''
       run: |
@@ -148,15 +148,15 @@ jobs:
           sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${{ steps.get-version.outputs.version }}<\/PackageVersion>/" src/Directory.Build.props
           echo "Updated version to ${{ steps.get-version.outputs.version }}"
         fi
-      
+
     - name: Create packages
       run: |
         echo "Creating NuGet packages..."
-        
+
         # Create output directory
         mkdir -p ./artifacts/packages
         rm -f ./artifacts/packages/*.nupkg ./artifacts/packages/*.snupkg
-        
+
         # Pack projects in dependency order
         projects=(
           "src/MinimalCleanArch/MinimalCleanArch.csproj"
@@ -164,16 +164,17 @@ jobs:
           "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
           "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
           "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+          "templates/MinimalCleanArch.Templates.csproj"
         )
-        
+
         success_count=0
         total_count=${#projects[@]}
-        
+
         for project in "${projects[@]}"; do
           if [ -f "$project" ]; then
             project_name=$(basename "$project" .csproj)
             echo "Packing: $project_name"
-            
+
             if dotnet pack "$project" \
               --configuration Release \
               --output ./artifacts/packages \
@@ -189,39 +190,39 @@ jobs:
             echo "Project file not found: $project"
           fi
         done
-        
+
         echo ""
         echo "Packaging Summary:"
         echo "  Total projects: $total_count"
         echo "  Successful: $success_count"
         echo "  Failed: $((total_count - success_count))"
-        
+
         # List created packages
         echo ""
         echo "Created packages:"
         ls -la ./artifacts/packages/ || echo "No packages directory found"
-        
+
         # Verify at least one package was created
         package_count=$(ls ./artifacts/packages/*.nupkg 2>/dev/null | wc -l)
         if [ $package_count -eq 0 ]; then
           echo "Error: No packages were created!"
           exit 1
         fi
-        
+
         echo "Successfully created $package_count package(s)"
-        
+
     - name: List created packages
       run: |
         echo "Created packages:"
         ls -la ./artifacts/packages/
-        
+
     - name: Upload packages artifact
       uses: actions/upload-artifact@v4
       with:
         name: nuget-packages-${{ github.run_number }}
         path: ./artifacts/packages/*.nupkg
         retention-days: 90
-        
+
     - name: Upload symbols artifact  
       uses: actions/upload-artifact@v4
       with:
@@ -229,7 +230,7 @@ jobs:
         path: ./artifacts/packages/*.snupkg
         retention-days: 90
         if-no-files-found: ignore
-        
+
   publish:
     needs: pack
     runs-on: ubuntu-latest
@@ -240,34 +241,34 @@ jobs:
     environment: 
       name: nuget-publishing
       url: https://www.nuget.org/packages?q=MinimalCleanArch
-    
+
     # Add specific permissions for this job
     permissions:
       contents: write
       packages: write
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        
+
     - name: Download packages artifact
       uses: actions/download-artifact@v4
       with:
         name: nuget-packages-${{ github.run_number }}
         path: ./artifacts/packages
-        
+
     - name: Download symbols artifact
       uses: actions/download-artifact@v4
       with:
         name: nuget-symbols-${{ github.run_number }}
         path: ./artifacts/packages
       continue-on-error: true
-        
+
     - name: Validate packages
       run: |
         echo "Validating packages..."
@@ -277,10 +278,10 @@ jobs:
           exit 1
         fi
         echo "Found $package_count packages to publish"
-        
+
         # List packages with sizes
         find ./artifacts/packages -name "*.nupkg" -exec ls -lh {} \;
-        
+
     - name: Publish to NuGet.org (What-If)
       if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
       run: |
@@ -290,21 +291,21 @@ jobs:
         echo ""
         echo "These packages would be published to NuGet.org"
         echo "To actually publish, create a tag like: git tag v0.0.1 && git push origin v0.0.1"
-        
+
     - name: Publish to NuGet.org
       if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
       run: |
         echo "Publishing packages to NuGet.org..."
-        
+
         success_count=0
         total_count=0
-        
+
         for package in ./artifacts/packages/*.nupkg; do
           if [ -f "$package" ]; then
             total_count=$((total_count + 1))
             package_name=$(basename "$package")
             echo "Publishing: $package_name"
-            
+
             if dotnet nuget push "$package" \
               --api-key "$NUGET_API_KEY" \
               --source https://api.nuget.org/v3/index.json \
@@ -315,18 +316,18 @@ jobs:
             else
               echo "✗ Failed to publish $package_name"
             fi
-            
+
             # Add delay between publishes to avoid rate limiting
             sleep 5
           fi
         done
-        
+
         echo ""
         echo "Publishing Summary:"
         echo "  Total packages: $total_count"
         echo "  Successful: $success_count"
         echo "  Failed: $((total_count - success_count))"
-        
+
         if [ $success_count -eq 0 ]; then
           echo "Error: No packages were published successfully"
           exit 1
@@ -337,7 +338,7 @@ jobs:
         fi
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        
+
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/v') && success()
       uses: softprops/action-gh-release@v2
@@ -352,58 +353,59 @@ jobs:
         name: Release ${{ github.ref_name }}
         body: |
           ## MinimalCleanArch ${{ github.ref_name }}
-          
+
           ### Packages Published
           - MinimalCleanArch - Core components (.NET 9.0)
-          - MinimalCleanArch.DataAccess - Entity Framework Core implementation  
+          - MinimalCleanArch.DataAccess - Entity Framework Core implementation
           - MinimalCleanArch.Extensions - Minimal API extensions
           - MinimalCleanArch.Validation - FluentValidation integration
           - MinimalCleanArch.Security - Data Protection encryption
-          
+          - MinimalCleanArch.Templates - dotnet new templates (web/api clean architecture)
+
           ### Installation
           ```bash
           dotnet add package MinimalCleanArch --version ${{ needs.pack.outputs.package-version }}
           dotnet add package MinimalCleanArch.DataAccess --version ${{ needs.pack.outputs.package-version }}
           dotnet add package MinimalCleanArch.Extensions --version ${{ needs.pack.outputs.package-version }}
           ```
-          
+
           ### .NET 9.0 Features
           This release targets .NET 9.0 and includes:
           - Updated to Entity Framework Core 9.0.5
           - FluentValidation 12.0.0 support
           - Enhanced performance and security
           - Native AOT compatibility improvements
-          
+
           ### Usage
           ```csharp
           // Program.cs
           builder.Services.AddMinimalCleanArch<MyDbContext>(options =>
               options.UseSqlServer(connectionString));
-          
+
           builder.Services.AddValidatorsFromAssemblyContaining<MyValidator>();
           builder.Services.AddDataProtectionEncryptionForDevelopment();
           ```
-          
+
           See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for complete usage instructions.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+
   security-scan:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        
+
     - name: Restore dependencies
       run: dotnet restore MinimalCleanArch.CI.sln
-      
+
     - name: Run security scan
       run: |
         dotnet list MinimalCleanArch.CI.sln package --vulnerable --include-transitive 2>&1 | tee security-scan.txt

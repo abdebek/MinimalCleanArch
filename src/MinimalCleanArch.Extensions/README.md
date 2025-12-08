@@ -11,6 +11,9 @@ This package provides extensions for Minimal API endpoints:
 - Path parameter validation
 - Standard response definitions
 
+## Version
+- 0.1.6 (net9.0). Use with `MinimalCleanArch` 0.1.6.
+
 ## Key Components
 
 - ValidationFilter - Validates request bodies

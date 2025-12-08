@@ -1,8 +1,5 @@
 using MCA.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-#if (UseSecurity)
-using MinimalCleanArch.Security.Encryption;
-#endif
 
 namespace MCA.Infrastructure.Data;
 
@@ -11,30 +8,17 @@ namespace MCA.Infrastructure.Data;
 /// </summary>
 public class AppDbContext : DbContext
 {
-#if (UseSecurity)
-    private readonly IEncryptionService? _encryptionService;
-#endif
-
     public DbSet<Todo> Todos => Set<Todo>();
 
-#if (UseSecurity)
-    public AppDbContext(DbContextOptions<AppDbContext> options, IEncryptionService? encryptionService = null)
-        : base(options)
-    {
-        _encryptionService = encryptionService;
-    }
-#else
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }
-#endif
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Todo entity
         modelBuilder.Entity<Todo>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -58,19 +42,16 @@ public class AppDbContext : DbContext
 
     private void UpdateTimestamps()
     {
-        var entries = ChangeTracker.Entries()
+        var entries = ChangeTracker.Entries<Todo>()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is MinimalCleanArch.Domain.IHasTimestamps entity)
+            if (entry.State == EntityState.Added)
             {
-                if (entry.State == EntityState.Added)
-                {
-                    entity.CreatedAt = DateTime.UtcNow;
-                }
-                entity.UpdatedAt = DateTime.UtcNow;
+                entry.Entity.CreatedAt = DateTime.UtcNow;
             }
+            entry.Entity.LastModifiedAt = DateTime.UtcNow;
         }
     }
 }

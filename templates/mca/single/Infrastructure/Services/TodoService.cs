@@ -2,8 +2,9 @@ using MCA.Application.DTOs;
 using MCA.Application.Services;
 using MCA.Domain.Entities;
 using MCA.Domain.Interfaces;
-using MinimalCleanArch.Results;
-using MinimalCleanArch.Results.Errors;
+using MCA.Domain;
+using MinimalCleanArch.DataAccess.Repositories;
+using MinimalCleanArch.Domain.Common;
 
 namespace MCA.Infrastructure.Services;
 
@@ -50,7 +51,7 @@ public class TodoService : ITodoService
         }
 
         todo.Update(request.Title, request.Description, request.Priority, request.DueDate);
-        _todoRepository.Update(todo);
+        await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success(MapToResponse(todo));
     }
@@ -64,7 +65,7 @@ public class TodoService : ITodoService
         }
 
         todo.Delete();
-        _todoRepository.Update(todo);
+        await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
@@ -78,7 +79,7 @@ public class TodoService : ITodoService
         }
 
         todo.MarkAsCompleted();
-        _todoRepository.Update(todo);
+        await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

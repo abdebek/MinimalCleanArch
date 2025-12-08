@@ -1,45 +1,22 @@
-﻿# MinimalCleanArch Core
+# MinimalCleanArch.DataAccess
 
-The core components of the MinimalCleanArch library for implementing Clean Architecture.
+Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
-## Overview
+## Version
+- 0.1.6 (net9.0). Works with `MinimalCleanArch` 0.1.6 and companion packages.
 
-This package contains the fundamental interfaces and base classes for implementing Clean Architecture:
+## What's included
+- `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
+- `Repository<TEntity,TKey>` and `UnitOfWork` implementations.
+- `SpecificationEvaluator` to translate specifications to EF queries.
+- DI extensions to register repositories/unit of work.
 
-- Domain Entities (IEntity, BaseEntity)
-- Domain Exceptions
-- Repository Interfaces
-- Specification Pattern Interfaces
+## Usage
+```csharp
+builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=app.db"));
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+```
 
-## Key Components
-
-- IEntity<TKey> - Base interface for all entities with a specific key type
-- BaseEntity<TKey> - Base implementation of IEntity<TKey>
-- BaseEntity - Convenience class for entities with int keys
-- IAuditableEntity - Interface for entities with audit fields
-- ISoftDelete - Interface for entities that support soft delete
-- DomainException - Exception for domain validation errors
-- ISpecification<T> - Interface for specifications
-- BaseSpecification<T> - Base implementation of ISpecification<T>
-"@ | Out-File -FilePath "src/MinimalCleanArch/README.md" -Encoding utf8
-
-# Create src/MinimalCleanArch.EntityFramework/README.md
-New-Item -ItemType Directory -Path "src/MinimalCleanArch.EntityFramework" -Force | Out-Null
-@"
-# MinimalCleanArch.EntityFramework
-
-Entity Framework Core implementation for MinimalCleanArch.
-
-## Overview
-
-This package provides Entity Framework Core implementations for the core interfaces:
-
-- DbContextBase with support for soft delete and auditing
-- Repository implementations
-- Specification evaluator
-
-## Key Components
-
-- DbContextBase - Base DbContext with soft delete and audit support
-- Repository<TEntity> - Implementation of IRepository<TEntity>
-- SpecificationEvaluator<T> - Translates specifications to LINQ queries
+When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.

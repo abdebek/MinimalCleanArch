@@ -6,16 +6,16 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
 
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Domain", "multi\MCA.Domain\MCA.Domain.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Domain", "MCA.Domain\MCA.Domain.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
 EndProject
 
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Application", "multi\MCA.Application\MCA.Application.csproj", "{C3D4E5F6-A7B8-9012-CDEF-123456789012}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Application", "MCA.Application\MCA.Application.csproj", "{C3D4E5F6-A7B8-9012-CDEF-123456789012}"
 EndProject
 
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Infrastructure", "multi\MCA.Infrastructure\MCA.Infrastructure.csproj", "{D4E5F6A7-B8C9-0123-DEF0-234567890123}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Infrastructure", "MCA.Infrastructure\MCA.Infrastructure.csproj", "{D4E5F6A7-B8C9-0123-DEF0-234567890123}"
 EndProject
 
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Api", "multi\MCA.Api\MCA.Api.csproj", "{E5F6A7B8-C9D0-1234-EF01-345678901234}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCA.Api", "MCA.Api\MCA.Api.csproj", "{E5F6A7B8-C9D0-1234-EF01-345678901234}"
 EndProject
 
 #if (UseTests)

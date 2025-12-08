@@ -167,6 +167,24 @@
     "SingleProject": {
       "type": "computed",
       "value": "(single-project)"
+    },
+    "HttpPort": {
+      "type": "generated",
+      "generator": "random",
+      "replaces": "__HTTP_PORT__",
+      "parameters": {
+        "low": 5000,
+        "high": 8000
+      }
+    },
+    "HttpsPort": {
+      "type": "generated",
+      "generator": "random",
+      "replaces": "__HTTPS_PORT__",
+      "parameters": {
+        "low": 5000,
+        "high": 8000
+      }
     }
   },
   "sources": [
@@ -176,6 +194,7 @@
       "modifiers": [
         { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
+        { "condition": "(SingleProject)", "exclude": ["MCA.sln", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**"] }
       ]
     },

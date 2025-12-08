@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "MCA.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:__HTTPS_PORT__;http://localhost:__HTTP_PORT__",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

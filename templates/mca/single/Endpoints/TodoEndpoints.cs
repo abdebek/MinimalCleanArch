@@ -44,7 +44,7 @@ public static class TodoEndpoints
         var result = await todoService.GetAllAsync(cancellationToken);
         return result.IsSuccess
             ? Results.Ok(result.Value)
-            : Results.Problem(result.Error.Description);
+            : Results.Problem(result.Error.Message);
     }
 
     private static async Task<IResult> GetTodoById(int id, ITodoService todoService, CancellationToken cancellationToken)
@@ -52,7 +52,7 @@ public static class TodoEndpoints
         var result = await todoService.GetByIdAsync(id, cancellationToken);
         return result.IsSuccess
             ? Results.Ok(result.Value)
-            : Results.NotFound(result.Error.Description);
+            : Results.NotFound(result.Error.Message);
     }
 
     private static async Task<IResult> CreateTodo(CreateTodoRequest request, ITodoService todoService, CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ public static class TodoEndpoints
         var result = await todoService.CreateAsync(request, cancellationToken);
         return result.IsSuccess
             ? Results.Created($"/api/todos/{result.Value.Id}", result.Value)
-            : Results.BadRequest(result.Error.Description);
+            : Results.BadRequest(result.Error.Message);
     }
 
     private static async Task<IResult> UpdateTodo(int id, UpdateTodoRequest request, ITodoService todoService, CancellationToken cancellationToken)
@@ -68,7 +68,7 @@ public static class TodoEndpoints
         var result = await todoService.UpdateAsync(id, request, cancellationToken);
         return result.IsSuccess
             ? Results.Ok(result.Value)
-            : Results.NotFound(result.Error.Description);
+            : Results.NotFound(result.Error.Message);
     }
 
     private static async Task<IResult> CompleteTodo(int id, ITodoService todoService, CancellationToken cancellationToken)
@@ -76,7 +76,7 @@ public static class TodoEndpoints
         var result = await todoService.CompleteAsync(id, cancellationToken);
         return result.IsSuccess
             ? Results.NoContent()
-            : Results.NotFound(result.Error.Description);
+            : Results.NotFound(result.Error.Message);
     }
 
     private static async Task<IResult> DeleteTodo(int id, ITodoService todoService, CancellationToken cancellationToken)
@@ -84,6 +84,6 @@ public static class TodoEndpoints
         var result = await todoService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess
             ? Results.NoContent()
-            : Results.NotFound(result.Error.Description);
+            : Results.NotFound(result.Error.Message);
     }
 }

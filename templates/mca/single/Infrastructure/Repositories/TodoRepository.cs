@@ -12,7 +12,7 @@ public class TodoRepository : Repository<Todo, int>, ITodoRepository
     {
     }
 
-    public async Task<IEnumerable<Todo>> GetByPriorityAsync(int priority, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Todo>> GetByPriorityAsync(int priority, CancellationToken cancellationToken = default)
     {
         return await DbSet
             .Where(t => t.Priority == priority)
