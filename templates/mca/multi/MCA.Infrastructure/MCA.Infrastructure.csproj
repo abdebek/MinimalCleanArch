@@ -7,19 +7,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinimalCleanArch" Version="0.1.6" />
-    <PackageReference Include="MinimalCleanArch.DataAccess" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch" Version="0.1.6-preview" />
+    <PackageReference Include="MinimalCleanArch.DataAccess" Version="0.1.6-preview" />
     <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.5" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <!--#endif-->
+    <!--#if (UseSecurity)-->
+    <PackageReference Include="MinimalCleanArch.Security" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseAudit)-->
-    <PackageReference Include="MinimalCleanArch.Audit" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Audit" Version="0.1.6-preview" />
     <!--#endif-->
   </ItemGroup>
 

@@ -92,8 +92,82 @@ jobs:
         retention-days: 30
         if-no-files-found: ignore
 
-  pack:
+  validate-templates:
     needs: build-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: multi-default
+            args: "-n McaDefault"
+            project: "McaDefault"
+            buildPath: "McaDefault.sln"
+            buildTests: "false"
+          - name: multi-all-sql
+            args: "-n McaAllSql --all --db sqlserver"
+            project: "McaAllSql"
+            buildPath: "McaAllSql.sln"
+            buildTests: "true"
+          - name: single-default
+            args: "-n McaSingle --single-project"
+            project: "McaSingle"
+            buildPath: "McaSingle.csproj"
+            buildTests: "false"
+          - name: single-all-pg
+            args: "-n McaSingleAllPg --single-project --all --db postgres"
+            project: "McaSingleAllPg"
+            buildPath: "McaSingleAllPg.csproj"
+            buildTests: "true"
+          - name: multi-tests-pg
+            args: "-n McaTestsPg --tests --db postgres"
+            project: "McaTestsPg"
+            buildPath: "McaTestsPg.sln"
+            buildTests: "true"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Install template from repo
+      run: dotnet new install templates/mca --force
+
+    - name: Scaffold and build ${{ matrix.name }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        ROOT="$(mktemp -d)"
+        SCENARIO_DIR="$ROOT/${{ matrix.name }}"
+        mkdir -p "$SCENARIO_DIR"
+        pushd "$SCENARIO_DIR"
+
+        echo "Scaffolding: dotnet new mca ${{ matrix.args }}"
+        dotnet new mca ${{ matrix.args }}
+
+        PROJECT_ROOT="$SCENARIO_DIR/${{ matrix.project }}"
+        pushd "$PROJECT_ROOT"
+
+        echo "Restoring..."
+        dotnet restore
+
+        echo "Building ${{ matrix.buildPath }}..."
+        dotnet build ${{ matrix.buildPath }} --configuration Release --nologo
+
+        if [ "${{ matrix.buildTests }}" = "true" ] && [ -d tests ]; then
+          echo "Building tests..."
+          find tests -name "*.csproj" -print0 | xargs -0 -I{} dotnet build "{}" --configuration Release --nologo
+        fi
+
+        popd
+        popd
+        echo "Artifacts at $SCENARIO_DIR"
+
+  pack:
+    needs: [build-and-test, validate-templates]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 

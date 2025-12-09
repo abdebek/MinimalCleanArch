@@ -1,5 +1,9 @@
 using MCA.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+#if (UseAudit)
+using MinimalCleanArch.Audit.Entities;
+using MinimalCleanArch.Audit.Extensions;
+#endif
 
 namespace MCA.Infrastructure.Data;
 
@@ -9,6 +13,9 @@ namespace MCA.Infrastructure.Data;
 public class AppDbContext : DbContext
 {
     public DbSet<Todo> Todos => Set<Todo>();
+#if (UseAudit)
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+#endif
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -26,6 +33,10 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
+
+#if (UseAudit)
+        modelBuilder.UseAuditLog();
+#endif
     }
 
     public override int SaveChanges()

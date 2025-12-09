@@ -15,6 +15,7 @@ using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 #endif
 #if (UseSecurity)
+using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
 #endif
 #if (UseCaching)
@@ -59,22 +60,49 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 // Database - SQLite
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Data Source=MCA.db";
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(connectionString));
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+{
+    options.UseSqlite(connectionString);
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAudit)
+    options.UseAuditInterceptor(sp);
+#endif
+#if (UseMessaging)
+    options.UseDomainEventPublishing(sp);
+#endif
+});
 #endif
 #if (UseSqlServer)
 // Database - SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+{
+    options.UseSqlServer(connectionString);
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAudit)
+    options.UseAuditInterceptor(sp);
+#endif
+#if (UseMessaging)
+    options.UseDomainEventPublishing(sp);
+#endif
+});
 #endif
 #if (UsePostgres)
 // Database - PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+{
+    options.UseNpgsql(connectionString);
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAudit)
+    options.UseAuditInterceptor(sp);
+#endif
+#if (UseMessaging)
+    options.UseDomainEventPublishing(sp);
+#endif
+});
 #endif
 
 // Register DbContext for generic repository
@@ -86,15 +114,18 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Services
 builder.Services.AddScoped<ITodoService, TodoService>();
+#if (UseAudit)
+builder.Services.AddHttpContextAccessor();
+#endif
 
 #if (UseSecurity)
-// Security - encryption, security headers
-builder.Services.AddMinimalCleanArchSecurity(builder.Configuration);
+// Security - encryption service (Data Protection for development)
+builder.Services.AddDataProtectionEncryptionForDevelopment(builder.Environment.ApplicationName ?? "MCA");
 #endif
 
 #if (UseCaching)
 // Caching
-builder.Services.AddMinimalCleanArchCaching(builder.Configuration);
+builder.Services.AddMinimalCleanArchCaching();
 #endif
 
 #if (UseMessaging)
@@ -120,7 +151,8 @@ builder.AddMinimalCleanArchMessaging(options =>
 
 #if (UseAudit)
 // Audit logging
-builder.Services.AddMinimalCleanArchAudit(builder.Configuration);
+builder.Services.AddAuditLogging();
+builder.Services.AddAuditLogService<AppDbContext>();
 #endif
 
 #if (UseHealthChecks)
@@ -168,9 +200,6 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 #endif
 
-#if (UseSecurity)
-app.UseMinimalCleanArchSecurity();
-#endif
 
 app.UseHttpsRedirection();
 

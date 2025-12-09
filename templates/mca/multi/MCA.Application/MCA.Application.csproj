@@ -7,12 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinimalCleanArch" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch" Version="0.1.6-preview" />
     <!--#if (UseValidation)-->
-    <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
-    <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.6-preview" />
     <!--#endif-->
   </ItemGroup>
 

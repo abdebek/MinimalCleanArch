@@ -1,36 +1,29 @@
 using MCA.Domain.Events;
-#if (UseMessaging)
-using MinimalCleanArch.Messaging;
-#endif
 
 namespace MCA.Application.Handlers;
 
 #if (UseMessaging)
-public class TodoEventHandlers :
-    IMessageHandler<TodoCreatedEvent>,
-    IMessageHandler<TodoUpdatedEvent>,
-    IMessageHandler<TodoCompletedEvent>,
-    IMessageHandler<TodoDeletedEvent>
+public class TodoEventHandlers
 {
-    public Task HandleAsync(TodoCreatedEvent message, CancellationToken cancellationToken)
+    public Task Handle(TodoCreatedEvent message, CancellationToken cancellationToken = default)
     {
         // Handle Todo created event (e.g., send notification, log)
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(TodoUpdatedEvent message, CancellationToken cancellationToken)
+    public Task Handle(TodoUpdatedEvent message, CancellationToken cancellationToken = default)
     {
         // Handle Todo updated event
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(TodoCompletedEvent message, CancellationToken cancellationToken)
+    public Task Handle(TodoCompletedEvent message, CancellationToken cancellationToken = default)
     {
         // Handle Todo completed event
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(TodoDeletedEvent message, CancellationToken cancellationToken)
+    public Task Handle(TodoDeletedEvent message, CancellationToken cancellationToken = default)
     {
         // Handle Todo deleted event
         return Task.CompletedTask;

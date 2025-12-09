@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.Security.Encryption;
 #endif
 using MinimalCleanArch.Domain.Entities;
+#if (UseAudit)
+using MinimalCleanArch.Audit.Entities;
+using MinimalCleanArch.Audit.Extensions;
+#endif
 
 namespace MCA.Infrastructure.Data;
 
@@ -17,6 +21,9 @@ public class AppDbContext : DbContext
 #endif
 
     public DbSet<Todo> Todos => Set<Todo>();
+#if (UseAudit)
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+#endif
 
 #if (UseSecurity)
     public AppDbContext(DbContextOptions<AppDbContext> options, IEncryptionService? encryptionService = null)
@@ -43,6 +50,10 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
+
+#if (UseAudit)
+        modelBuilder.UseAuditLog();
+#endif
     }
 
     public override int SaveChanges()

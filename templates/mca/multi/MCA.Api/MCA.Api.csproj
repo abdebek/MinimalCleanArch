@@ -7,13 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinimalCleanArch" Version="0.1.6" />
-    <PackageReference Include="MinimalCleanArch.DataAccess" Version="0.1.6" />
-    <PackageReference Include="MinimalCleanArch.Extensions" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch" Version="0.1.6-preview" />
+    <PackageReference Include="MinimalCleanArch.DataAccess" Version="0.1.6-preview" />
+    <PackageReference Include="MinimalCleanArch.Extensions" Version="0.1.6-preview" />
     <!--#if (UseSerilog)-->
-    <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
-    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <!--#endif-->
     <!--#if (UseHealthChecks)-->
     <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1" />
@@ -28,26 +28,26 @@
     <!--#endif-->
     <!--#endif-->
     <!--#if (UseValidation)-->
-    <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseSecurity)-->
-    <PackageReference Include="MinimalCleanArch.Security" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Security" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
-    <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseAudit)-->
-    <PackageReference Include="MinimalCleanArch.Audit" Version="0.1.6" />
+    <PackageReference Include="MinimalCleanArch.Audit" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseOpenTelemetry)-->
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.9.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
     <!--#endif-->
   </ItemGroup>
 

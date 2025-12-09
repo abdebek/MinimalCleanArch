@@ -3,6 +3,7 @@ using MCA.Application.Services;
 using MCA.Domain.Entities;
 using MCA.Domain.Interfaces;
 using MCA.Domain;
+using MCA.Infrastructure.Specifications;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Domain.Common;
 
@@ -19,16 +20,56 @@ public class TodoService : ITodoService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<TodoResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<TodoListResponse>> GetListAsync(
+        TodoListRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var todos = await _todoRepository.GetAllAsync(cancellationToken);
-        var response = todos.Select(MapToResponse);
+        const int maxPageSize = 100;
+
+        if (request.PageSize <= 0)
+        {
+            return Result.Failure<TodoListResponse>(DomainErrors.Pagination.InvalidPageSize(request.PageSize));
+        }
+
+        if (request.PageIndex <= 0)
+        {
+            return Result.Failure<TodoListResponse>(DomainErrors.Pagination.InvalidPageIndex(request.PageIndex));
+        }
+
+        if (request.PageSize > maxPageSize)
+        {
+            return Result.Failure<TodoListResponse>(DomainErrors.Pagination.PageSizeTooLarge(request.PageSize, maxPageSize));
+        }
+
+        var filterSpec = new TodoFilterSpecification(
+            request.SearchTerm,
+            request.IsCompleted,
+            request.DueBefore,
+            request.DueAfter,
+            request.Priority);
+
+        var totalCount = await _todoRepository.CountAsync(filterSpec.Criteria, cancellationToken);
+
+        var pagedSpec = new TodoPaginatedSpecification(
+            request.PageSize,
+            request.PageIndex,
+            filterSpec);
+
+        var todos = await _todoRepository.GetAsync(pagedSpec, cancellationToken);
+        var items = todos.Select(MapToResponse).ToList();
+
+        var response = new TodoListResponse(
+            items,
+            totalCount,
+            request.PageIndex,
+            request.PageSize);
+
         return Result.Success(response);
     }
 
     public async Task<Result<TodoResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var todo = await _todoRepository.GetByIdAsync(id, cancellationToken);
+        var todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(id), cancellationToken);
         return todo is null
             ? Result.Failure<TodoResponse>(DomainErrors.General.NotFound(nameof(Todo), id))
             : Result.Success(MapToResponse(todo));

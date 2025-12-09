@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageReference Include="xunit" Version="2.7.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--#if (SingleProject)-->
+    <ProjectReference Include="..\\..\\MCA.csproj" />
+    <!--#else-->
+    <ProjectReference Include="..\\..\\MCA.Domain\\MCA.Domain.csproj" />
+    <ProjectReference Include="..\\..\\MCA.Application\\MCA.Application.csproj" />
+    <ProjectReference Include="..\\..\\MCA.Infrastructure\\MCA.Infrastructure.csproj" />
+    <ProjectReference Include="..\\..\\MCA.Api\\MCA.Api.csproj" />
+    <!--#endif-->
+  </ItemGroup>
+</Project>

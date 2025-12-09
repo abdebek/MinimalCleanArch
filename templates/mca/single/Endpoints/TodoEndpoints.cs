@@ -1,5 +1,6 @@
 using MCA.Application.DTOs;
 using MCA.Application.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace MCA.Endpoints;
 
@@ -14,9 +15,9 @@ public static class TodoEndpoints
             .WithTags("Todos")
             .WithOpenApi();
 
-        group.MapGet("/", GetAllTodos)
-            .WithName("GetAllTodos")
-            .WithSummary("Get all todos");
+        group.MapGet("/", GetTodos)
+            .WithName("GetTodos")
+            .WithSummary("Get todos with filtering and pagination");
 
         group.MapGet("/{id:int}", GetTodoById)
             .WithName("GetTodoById")
@@ -39,12 +40,15 @@ public static class TodoEndpoints
             .WithSummary("Delete a todo");
     }
 
-    private static async Task<IResult> GetAllTodos(ITodoService todoService, CancellationToken cancellationToken)
+    private static async Task<IResult> GetTodos(
+        [AsParameters] TodoListRequest request,
+        ITodoService todoService,
+        CancellationToken cancellationToken)
     {
-        var result = await todoService.GetAllAsync(cancellationToken);
+        var result = await todoService.GetListAsync(request, cancellationToken);
         return result.IsSuccess
             ? Results.Ok(result.Value)
-            : Results.Problem(result.Error.Message);
+            : Results.BadRequest(result.Error.Message);
     }
 
     private static async Task<IResult> GetTodoById(int id, ITodoService todoService, CancellationToken cancellationToken)

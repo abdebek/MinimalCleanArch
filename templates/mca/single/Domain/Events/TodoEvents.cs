@@ -2,26 +2,22 @@ using MinimalCleanArch.Domain.Events;
 
 namespace MCA.Domain.Events;
 
-public class TodoCreatedEvent : DomainEvent
+public record TodoCreatedEvent : EntityDomainEvent<int>
 {
-    public int EntityId { get; set; }
-    public string Title { get; set; } = string.Empty;
+    public required string Title { get; init; }
 }
 
-public class TodoUpdatedEvent : DomainEvent
+public record TodoUpdatedEvent : EntityDomainEvent<int>
 {
-    public int EntityId { get; set; }
-    public string Title { get; set; } = string.Empty;
+    public required string Title { get; init; }
 }
 
-public class TodoCompletedEvent : DomainEvent
+public record TodoCompletedEvent : EntityDomainEvent<int>
 {
-    public int EntityId { get; set; }
-    public string Title { get; set; } = string.Empty;
+    public required string Title { get; init; }
 }
 
-public class TodoDeletedEvent : DomainEvent
+public record TodoDeletedEvent : EntityDomainEvent<int>
 {
-    public int EntityId { get; set; }
-    public string Title { get; set; } = string.Empty;
+    public required string Title { get; init; }
 }

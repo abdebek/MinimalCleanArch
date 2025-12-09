@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MCA.Domain.Entities;
+using Xunit;
 
 namespace MCA.UnitTests.Domain;
 

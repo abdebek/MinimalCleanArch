@@ -13,6 +13,10 @@
   "preferNameDirectory": true,
   "sourceName": "MCA",
   "defaultName": "MyApp",
+  "primaryOutputs": [
+    { "path": "MCA.sln", "condition": "(MultiProject)" },
+    { "path": "MCA.csproj", "condition": "(SingleProject)" }
+  ],
   "symbols": {
     "recommended": {
       "type": "parameter",

@@ -112,6 +112,7 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Package version: `0.1.6` (targets .NET 9).
+- Package version: `0.0.6` (targets .NET 9).
+- Templates reference MinimalCleanArch packages `0.1.6-preview` for optional features (security, messaging, audit, validation).
 - Launch settings default to Swagger and random ports between 5000–8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.
