@@ -27,6 +27,22 @@ public static class SpecificationEvaluator<T> where T : class
             query = query.IgnoreQueryFilters();
         }
 
+        // For count-only queries we only need criteria (and no-tracking if requested)
+        if (specification.IsCountOnly)
+        {
+            if (specification.Criteria != null)
+            {
+                query = query.Where(specification.Criteria);
+            }
+
+            if (specification.AsNoTracking)
+            {
+                query = query.AsNoTracking();
+            }
+
+            return query;
+        }
+
         // Apply criteria
         if (specification.Criteria != null)
         {
@@ -50,9 +66,12 @@ public static class SpecificationEvaluator<T> where T : class
         // Apply additional ordering
         foreach (var thenBy in specification.ThenBys)
         {
-            query = thenBy.Descending
-                ? ((IOrderedQueryable<T>)query).ThenByDescending(thenBy.KeySelector)
-                : ((IOrderedQueryable<T>)query).ThenBy(thenBy.KeySelector);
+            if (query is IOrderedQueryable<T> ordered)
+            {
+                query = thenBy.Descending
+                    ? ordered.ThenByDescending(thenBy.KeySelector)
+                    : ordered.ThenBy(thenBy.KeySelector);
+            }
         }
 
         // Apply paging

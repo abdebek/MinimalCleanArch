@@ -85,9 +85,19 @@ public abstract class BaseSpecification<T> : ISpecification<T>
     /// <param name="criteria">The filter expression</param>
     protected void AddCriteria(Expression<Func<T, bool>> criteria)
     {
-        Criteria = Criteria != null 
-            ? Criteria.AndAlso(criteria) 
+        Criteria = Criteria != null
+            ? Criteria.AndAlso(criteria)
             : criteria;
+    }
+
+    /// <summary>
+    /// Sets the filter expression, replacing any existing criteria.
+    /// Useful when composing multiple specifications with a different operator.
+    /// </summary>
+    /// <param name="criteria">The filter expression</param>
+    protected void SetCriteria(Expression<Func<T, bool>> criteria)
+    {
+        Criteria = criteria;
     }
 
     /// <summary>
@@ -196,6 +206,41 @@ internal static class ExpressionExtensions
         this Expression<Func<T, bool>> expr1,
         Expression<Func<T, bool>> expr2)
     {
+        return Combine(expr1, expr2, Expression.AndAlso);
+    }
+
+    /// <summary>
+    /// Combines two expressions with a logical OR operation
+    /// </summary>
+    /// <typeparam name="T">The type of the parameter in the expressions</typeparam>
+    /// <param name="expr1">The first expression</param>
+    /// <param name="expr2">The second expression</param>
+    /// <returns>A new expression that combines the original expressions with a logical OR</returns>
+    public static Expression<Func<T, bool>> OrElse<T>(
+        this Expression<Func<T, bool>> expr1,
+        Expression<Func<T, bool>> expr2)
+    {
+        return Combine(expr1, expr2, Expression.OrElse);
+    }
+
+    /// <summary>
+    /// Negates an expression
+    /// </summary>
+    public static Expression<Func<T, bool>> Not<T>(
+        this Expression<Func<T, bool>> expr)
+    {
+        var parameter = Expression.Parameter(typeof(T));
+        var visitor = new ReplaceExpressionVisitor(expr.Parameters[0], parameter);
+        var body = visitor.Visit(expr.Body);
+
+        return Expression.Lambda<Func<T, bool>>(Expression.Not(body!), parameter);
+    }
+
+    private static Expression<Func<T, bool>> Combine<T>(
+        Expression<Func<T, bool>> expr1,
+        Expression<Func<T, bool>> expr2,
+        Func<Expression, Expression, BinaryExpression> combiner)
+    {
         var parameter = Expression.Parameter(typeof(T));
 
         var leftVisitor = new ReplaceExpressionVisitor(expr1.Parameters[0], parameter);
@@ -204,8 +249,7 @@ internal static class ExpressionExtensions
         var rightVisitor = new ReplaceExpressionVisitor(expr2.Parameters[0], parameter);
         var right = rightVisitor.Visit(expr2.Body);
 
-        return Expression.Lambda<Func<T, bool>>(
-            Expression.AndAlso(left!, right!), parameter);
+        return Expression.Lambda<Func<T, bool>>(combiner(left!, right!), parameter);
     }
 
     private class ReplaceExpressionVisitor : ExpressionVisitor
