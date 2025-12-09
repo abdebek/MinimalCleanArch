@@ -40,6 +40,9 @@ A comprehensive library for implementing Clean Architecture with Minimal APIs on
   dotnet add package MinimalCleanArch.DataAccess
   dotnet add package MinimalCleanArch.Extensions
   dotnet add package MinimalCleanArch.Security
+  dotnet add package MinimalCleanArch.Validation
+  dotnet add package MinimalCleanArch.Messaging
+  dotnet add package MinimalCleanArch.Audit
   ```
 - Then follow the per-package guides (links above) for setup specifics.
 
