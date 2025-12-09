@@ -2,16 +2,25 @@
 
 Security components for MinimalCleanArch.
 
-## Overview
-
-This package provides security features:
-
-- Column-level encryption for sensitive data
-- AES encryption implementation
-- Value converters for Entity Framework Core
-
 ## Version
 - 0.1.6 (net9.0). Use with `MinimalCleanArch` 0.1.6.
+
+## Overview
+- Column-level encryption for EF Core.
+- AES and Data Protection implementations of `IEncryptionService`.
+- Value converters for encrypted properties.
+- Extensions to configure encryption on your model.
+
+## Usage
+```bash
+dotnet add package MinimalCleanArch.Security --version 0.1.6
+```
+
+In Program.cs:
+```csharp
+builder.Services.AddDataProtectionEncryptionForDevelopment("YourApp");
+// Or: builder.Services.AddEncryption(new EncryptionOptions { Key = "YOUR_SECURE_AES_KEY" });
+```
 
 ## Key Components
 

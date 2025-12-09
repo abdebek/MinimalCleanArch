@@ -2,23 +2,23 @@
 
 Minimal API extensions for MinimalCleanArch.
 
-## Overview
-
-This package provides extensions for Minimal API endpoints:
-
-- Validation filters
-- Error handling filters
-- Path parameter validation
-- Standard response definitions
-
 ## Version
 - 0.1.6 (net9.0). Use with `MinimalCleanArch` 0.1.6.
 
-## Key Components
+## Overview
+- Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
+- Error handling: standard error pipeline middleware helpers.
+- OpenAPI helpers: standard response definitions and filters.
+- Misc: path parameter validation, minimal API conveniences.
 
-- ValidationFilter - Validates request bodies
-- EndpointExtensions - Extension methods for endpoint definitions
-- WithValidation<TDto>() - Adds validation for DTOs
-- WithPathParamValidation<T>() - Validates path parameters
-- WithErrorHandling() - Adds global error handling
-- WithStandardResponses<TResponse>() - Adds standard OpenAPI response definitions
+## Usage
+```bash
+dotnet add package MinimalCleanArch.Extensions --version 0.1.6
+```
+
+Register in your API:
+```csharp
+builder.Services.AddMinimalCleanArchExtensions();
+// Optionally add validators:
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+```
