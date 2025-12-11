@@ -25,6 +25,9 @@
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="0.1.6-preview" />
     <!--#endif-->
+    <!--#if (UseCaching)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
+    <!--#endif-->
   </ItemGroup>
 
   <ItemGroup>

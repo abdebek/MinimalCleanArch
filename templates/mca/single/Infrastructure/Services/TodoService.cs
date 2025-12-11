@@ -6,6 +6,9 @@ using MCA.Domain;
 using MCA.Infrastructure.Specifications;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Domain.Common;
+#if (UseCaching)
+using Microsoft.Extensions.Caching.Memory;
+#endif
 
 namespace MCA.Infrastructure.Services;
 
@@ -13,11 +16,21 @@ public class TodoService : ITodoService
 {
     private readonly ITodoRepository _todoRepository;
     private readonly IUnitOfWork _unitOfWork;
+#if (UseCaching)
+    private readonly IMemoryCache _cache;
+#endif
 
-    public TodoService(ITodoRepository todoRepository, IUnitOfWork unitOfWork)
+    public TodoService(ITodoRepository todoRepository, IUnitOfWork unitOfWork
+#if (UseCaching)
+        , IMemoryCache cache
+#endif
+    )
     {
         _todoRepository = todoRepository;
         _unitOfWork = unitOfWork;
+#if (UseCaching)
+        _cache = cache;
+#endif
     }
 
     public async Task<Result<TodoListResponse>> GetListAsync(
@@ -69,7 +82,23 @@ public class TodoService : ITodoService
 
     public async Task<Result<TodoResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(id), cancellationToken);
+        Todo? todo;
+#if (UseCaching)
+        if (_cache.TryGetValue(GetTodoCacheKey(id), out Todo? cached) && cached is not null)
+        {
+            todo = cached;
+        }
+        else
+        {
+            todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(id), cancellationToken);
+            if (todo is not null)
+            {
+                _cache.Set(GetTodoCacheKey(id), todo, TimeSpan.FromMinutes(5));
+            }
+        }
+#else
+        todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(id), cancellationToken);
+#endif
         return todo is null
             ? Result.Failure<TodoResponse>(DomainErrors.General.NotFound(nameof(Todo), id))
             : Result.Success(MapToResponse(todo));
@@ -80,6 +109,9 @@ public class TodoService : ITodoService
         var todo = new Todo(request.Title, request.Description, request.Priority, request.DueDate);
         await _todoRepository.AddAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+#if (UseCaching)
+        InvalidateCache(todo.Id);
+#endif
         return Result.Success(MapToResponse(todo));
     }
 
@@ -94,6 +126,9 @@ public class TodoService : ITodoService
         todo.Update(request.Title, request.Description, request.Priority, request.DueDate);
         await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+#if (UseCaching)
+        InvalidateCache(todo.Id);
+#endif
         return Result.Success(MapToResponse(todo));
     }
 
@@ -108,6 +143,9 @@ public class TodoService : ITodoService
         todo.Delete();
         await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+#if (UseCaching)
+        InvalidateCache(todo.Id);
+#endif
         return Result.Success();
     }
 
@@ -122,9 +160,21 @@ public class TodoService : ITodoService
         todo.MarkAsCompleted();
         await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+#if (UseCaching)
+        InvalidateCache(todo.Id);
+#endif
         return Result.Success();
     }
 
     private static TodoResponse MapToResponse(Todo todo) =>
         new(todo.Id, todo.Title, todo.Description, todo.IsCompleted, todo.Priority, todo.DueDate);
+
+#if (UseCaching)
+    private static string GetTodoCacheKey(int id) => $"todo_{id}";
+
+    private void InvalidateCache(int id)
+    {
+        _cache.Remove(GetTodoCacheKey(id));
+    }
+#endif
 }

@@ -1,5 +1,8 @@
 using MCA.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+#if (UseSecurity)
+using MinimalCleanArch.Security.Encryption;
+#endif
 #if (UseAudit)
 using MinimalCleanArch.Audit.Entities;
 using MinimalCleanArch.Audit.Extensions;
@@ -12,15 +15,27 @@ namespace MCA.Infrastructure.Data;
 /// </summary>
 public class AppDbContext : DbContext
 {
+#if (UseSecurity)
+    private readonly IEncryptionService? _encryptionService;
+#endif
+
     public DbSet<Todo> Todos => Set<Todo>();
 #if (UseAudit)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 #endif
 
+#if (UseSecurity)
+    public AppDbContext(DbContextOptions<AppDbContext> options, IEncryptionService? encryptionService = null)
+        : base(options)
+    {
+        _encryptionService = encryptionService;
+    }
+#else
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }
+#endif
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

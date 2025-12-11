@@ -10,6 +10,10 @@ using MCA.Api.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
+#if (UseValidation)
+using FluentValidation;
+using MCA.Application.Validation;
+#endif
 #if (UseHealthChecks)
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -31,6 +35,19 @@ using MinimalCleanArch.Audit.Extensions;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
+using System;
+#endif
+#if (UseMessaging)
+using Wolverine;
+#if (UseValidation)
+using Wolverine.FluentValidation;
+#endif
+#if (UseDurableMessaging && UseSqlServer)
+using Wolverine.SqlServer;
+#endif
+#if (UseDurableMessaging && UsePostgres)
+using Wolverine.Postgresql;
+#endif
 #endif
 
 #if (UseSerilog)
@@ -75,7 +92,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 #if (UseSqlServer)
 // Database - SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    ?? "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(connectionString);
@@ -91,7 +108,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 #if (UsePostgres)
 // Database - PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    ?? "Host=localhost;Database=MCA;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseNpgsql(connectionString);
@@ -117,14 +134,30 @@ builder.Services.AddScoped<ITodoService, TodoService>();
 #if (UseAudit)
 builder.Services.AddHttpContextAccessor();
 #endif
+#if (UseValidation)
+// Validators (used by endpoints and Wolverine handlers)
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoCommandValidator>();
+#endif
 
 #if (UseSecurity)
 // Security - encryption service (Data Protection for development)
 builder.Services.AddDataProtectionEncryptionForDevelopment(builder.Environment.ApplicationName ?? "MCA");
 #endif
 
+#if (UseSecurity)
+// Basic CORS policy for APIs, customizable via appsettings
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
+#endif
+
 #if (UseCaching)
 // Caching
+builder.Services.AddMemoryCache();
 builder.Services.AddMinimalCleanArchCaching();
 #endif
 
@@ -147,6 +180,19 @@ builder.AddMinimalCleanArchMessaging(options =>
     options.ServiceName = "MCA";
 });
 #endif
+
+builder.Host.UseWolverine(options =>
+{
+#if (UseDurableMessaging && UseSqlServer)
+    options.PersistMessagesWithSqlServer(connectionString);
+#endif
+#if (UseDurableMessaging && UsePostgres)
+    options.PersistMessagesWithPostgresql(connectionString);
+#endif
+#if (UseValidation)
+    options.UseFluentValidation();
+#endif
+});
 #endif
 
 #if (UseAudit)
@@ -171,12 +217,14 @@ builder.Services.AddHealthChecks()
 
 #if (UseOpenTelemetry)
 // OpenTelemetry
+var otlpEndpoint = builder.Configuration.GetValue<string>("OpenTelemetry:Endpoint");
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("MCA"))
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddConsoleExporter())
+        .AddConsoleExporter()
+        .AddOtlpExporterIfConfigured(otlpEndpoint))
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
@@ -202,6 +250,10 @@ app.UseSerilogRequestLogging();
 
 
 app.UseHttpsRedirection();
+
+#if (UseSecurity)
+app.UseCors();
+#endif
 
 #if (UseHealthChecks)
 app.MapHealthChecks("/health", new HealthCheckOptions
@@ -232,5 +284,20 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+#endif
+
+#if (UseOpenTelemetry)
+static class OpenTelemetryExtensions
+{
+    public static TracerProviderBuilder AddOtlpExporterIfConfigured(this TracerProviderBuilder builder, string? endpoint)
+    {
+        if (!string.IsNullOrWhiteSpace(endpoint))
+        {
+            builder.AddOtlpExporter(options => options.Endpoint = new Uri(endpoint));
+        }
+
+        return builder;
+    }
 }
 #endif

@@ -10,7 +10,6 @@
   <ItemGroup>
     <PackageReference Include="MinimalCleanArch" Version="0.1.6-preview" />
     <PackageReference Include="MinimalCleanArch.DataAccess" Version="0.1.6-preview" />
-    <PackageReference Include="MinimalCleanArch.Extensions" Version="0.1.6-preview" />
     <!--#if (UseSqlite)-->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.5" />
     <!--#endif-->
@@ -20,20 +19,30 @@
     <!--#if (UsePostgres)-->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
     <!--#if (UseSecurity)-->
     <PackageReference Include="MinimalCleanArch.Security" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.6-preview" />
+    <!--#if (UseDurableMessaging && UseSqlServer)-->
+    <PackageReference Include="WolverineFx.SqlServer" Version="5.2.0" />
+    <!--#endif-->
+    <!--#if (UseDurableMessaging && UsePostgres)-->
+    <PackageReference Include="WolverineFx.Postgresql" Version="5.2.0" />
+    <!--#endif-->
     <!--#endif-->
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="0.1.6-preview" />
     <!--#endif-->
     <!--#if (UseValidation)-->
     <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.6-preview" />
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+    <PackageReference Include="WolverineFx.FluentValidation" Version="5.2.0" />
     <!--#endif-->
     <!--#if (UseCaching)-->
+    <PackageReference Include="MinimalCleanArch.Extensions" Version="0.1.6-preview" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
     <!--#endif-->
     <!--#if (UseSerilog)-->
@@ -61,10 +70,8 @@
     <!--#endif-->
   </ItemGroup>
 
-  <!--#if (UseTests)-->
   <ItemGroup>
     <Compile Remove="tests/**" />
   </ItemGroup>
-  <!--#endif-->
 
 </Project>

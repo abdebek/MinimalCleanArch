@@ -7,7 +7,7 @@
     <Authors>MinimalCleanArch</Authors>
     <Description>Project templates for creating Clean Architecture applications with MinimalCleanArch library. Includes domain events, CQRS, repository pattern, and more.</Description>
     <PackageTags>dotnet-new;templates;clean-architecture;ddd;minimal-api;webapi</PackageTags>
-    <PackageProjectUrl>https://github.com/your-repo/MinimalCleanArch</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/abdebek/MinimalCleanArch/tree/master/templates</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
@@ -19,7 +19,7 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <MinVerSkip>true</MinVerSkip>
 
-    <Version>0.0.6</Version>
+    <Version>0.1.7-preview</Version>
   </PropertyGroup>
 
   <ItemGroup>
