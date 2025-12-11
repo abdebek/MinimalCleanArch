@@ -112,7 +112,15 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Package version: `0.0.6` (targets .NET 9).
+- Package version: `0.1.7-preview` (targets .NET 9).
 - Templates reference MinimalCleanArch packages `0.1.6-preview` for optional features (security, messaging, audit, validation).
-- Launch settings default to Swagger and random ports between 5000–8000; adjust `Properties/launchSettings.json` if you need fixed ports.
+- Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
+- Launch settings default to Swagger and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.
+
+## Testing the template
+- Standard tests (unit + lightweight API integration) run with `dotnet test` on the generated solution.
+- Optional Docker E2E tests for durable messaging:
+  - Set `RUN_DOCKER_E2E=1` to enable.
+  - Set `RUN_DOCKER_DB=postgres` (default `sqlserver`) to choose provider.
+  - Docker must be available; otherwise these tests are skipped.
