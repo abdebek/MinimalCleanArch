@@ -1,0 +1,35 @@
+name: Validate Templates
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "templates/**"
+      - ".github/workflows/validate-templates.yml"
+      - "temp/**"
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Validate templates from source
+        shell: pwsh
+        run: |
+          pwsh templates/scripts/validate-templates.ps1
+
+      # Optional durable messaging E2E (Testcontainers) - opt in with RUN_DOCKER_E2E
+      # - name: Validate templates with durable E2E
+      #   if: ${{ false }} # set to true to enable and ensure Docker is available
+      #   shell: pwsh
+      #   env:
+      #     RUN_DOCKER_E2E: "1"
+      #     RUN_DOCKER_DB: "sqlserver" # or postgres
+      #   run: |
+      #     pwsh templates/scripts/validate-templates.ps1 -RunDockerE2E
