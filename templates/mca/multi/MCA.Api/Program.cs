@@ -73,13 +73,13 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 // Add services to the container
 
-#if (UseSqlite)
-// Database - SQLite
+#if (UsePostgres)
+// Database - PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Data Source=MCA.db";
+    ?? "Host=localhost;Database=MCA;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
-    options.UseSqlite(connectionString);
+    options.UseNpgsql(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
@@ -88,8 +88,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseDomainEventPublishing(sp);
 #endif
 });
-#endif
-#if (UseSqlServer)
+#elif (UseSqlServer)
 // Database - SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True";
@@ -104,14 +103,13 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseDomainEventPublishing(sp);
 #endif
 });
-#endif
-#if (UsePostgres)
-// Database - PostgreSQL
+#else
+// Database - SQLite (default)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Database=MCA;Username=postgres;Password=postgres";
+    ?? "Data Source=MCA.db";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
-    options.UseNpgsql(connectionString);
+    options.UseSqlite(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 #if (UseAudit)
     options.UseAuditInterceptor(sp);

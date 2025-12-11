@@ -169,7 +169,7 @@ public class DurableApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    async Task IAsyncLifetime.DisposeAsync()
     {
         if (_postgres is not null)
         {
