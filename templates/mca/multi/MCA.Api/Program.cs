@@ -178,19 +178,6 @@ builder.AddMinimalCleanArchMessaging(options =>
     options.ServiceName = "MCA";
 });
 #endif
-
-builder.Host.UseWolverine(options =>
-{
-#if (UseDurableMessaging && UseSqlServer)
-    options.PersistMessagesWithSqlServer(connectionString);
-#endif
-#if (UseDurableMessaging && UsePostgres)
-    options.PersistMessagesWithPostgresql(connectionString);
-#endif
-#if (UseValidation)
-    options.UseFluentValidation();
-#endif
-});
 #endif
 
 #if (UseAudit)

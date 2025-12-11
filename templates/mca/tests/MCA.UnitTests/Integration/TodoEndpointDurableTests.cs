@@ -24,7 +24,9 @@ public class TodoEndpointDurableTests : IClassFixture<DurableApiFactory>, IAsync
     public TodoEndpointDurableTests(DurableApiFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClient();
+        _client = factory.Enabled
+            ? factory.CreateClient()
+            : new HttpClient(new HttpClientHandler());
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
