@@ -286,6 +286,9 @@ finally
 }
 #endif
 
+// Expose Program for integration testing
+public partial class Program;
+
 #if (UseOpenTelemetry)
 static class OpenTelemetryExtensions
 {
