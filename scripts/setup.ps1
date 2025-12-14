@@ -13,14 +13,14 @@ $ErrorActionPreference = "Stop"
 Write-Host "Setting up MinimalCleanArch for NuGet publishing..." -ForegroundColor Green
 
 # Validate inputs
-if ($AuthorName -eq "Abdullah D.") {
-    $AuthorName = Read-Host "Enter Abdullah D."
+if ($AuthorName -eq "Your Name") {
+    $AuthorName = Read-Host "Abdullah D."
 }
-if ($CompanyName -eq "Waanfeetan LLC") {
-    $CompanyName = Read-Host "Enter Waanfeetan LLC name"
+if ($CompanyName -eq "Your Company") {
+    $CompanyName = Read-Host "Waanfeetan LLC name"
 }
-if ($GitHubUser -eq "abdebek") {
-    $GitHubUser = Read-Host "Enter your GitHub username"
+if ($GitHubUser -eq "yourusername") {
+    $GitHubUser = Read-Host "abdebek"
 }
 if ([string]::IsNullOrEmpty($ProjectUrl)) {
     $ProjectUrl = "https://github.com/$GitHubUser/MinimalCleanArch"
@@ -64,7 +64,7 @@ $directoryBuildProps = @"
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    
+
     <!-- Package Information -->
     <PackageVersion>0.0.1</PackageVersion>
     <Authors>$AuthorName</Authors>
@@ -78,7 +78,7 @@ $directoryBuildProps = @"
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    
+
     <!-- Build Configuration -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
