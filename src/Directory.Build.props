@@ -9,7 +9,7 @@
 		<WarningsAsErrors />
 
 		<!-- Package Information -->
-		<PackageVersion>0.1.7</PackageVersion>
+		<PackageVersion>0.1.8-preview</PackageVersion>
 		<Authors>Abdullah D.</Authors>
 		<Company>Waanfeetan</Company>
 		<Product>MinimalCleanArch</Product>

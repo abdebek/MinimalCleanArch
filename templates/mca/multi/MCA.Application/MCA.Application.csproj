@@ -8,13 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinimalCleanArch" Version="0.1.7" />
+    <PackageReference Include="MinimalCleanArch" Version="0.1.8-preview" />
     <!--#if (UseValidation)-->
-    <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.7" />
+    <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.8-preview" />
     <PackageReference Include="FluentValidation" Version="12.0.0" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
-    <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.7" />
+    <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.8-preview" />
     <!--#endif-->
   </ItemGroup>
 

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinimalCleanArch" Version="0.1.7" />
+    <PackageReference Include="MinimalCleanArch" Version="0.1.8-preview" />
   </ItemGroup>
 
 </Project>
