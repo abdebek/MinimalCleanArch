@@ -28,8 +28,11 @@ Remove-Item "$OutputPath/*.snupkg" -Force -ErrorAction SilentlyContinue
 # Projects to pack (in dependency order - core first, then dependent packages)
 $projects = @(
     "src/MinimalCleanArch/MinimalCleanArch.csproj",
-    "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj", 
+    "src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj",
+    "src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj",
+    "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj",
     "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj",
+    "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj",
     "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj",
     "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
 )

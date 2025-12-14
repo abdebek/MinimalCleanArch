@@ -165,9 +165,27 @@
       "value": "(UseMessaging && (UseSqlServer || UsePostgres))"
     },
     "ConnectionString": {
-      "type": "computed",
-      "value": "(UsePostgres ? \"Host=localhost;Database=MCA;Username=postgres;Password=postgres\" : (UseSqlServer ? \"Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True\" : \"Data Source=MCA.db\"))",
-      "replaces": "Data Source=MCA.db"
+      "type": "generated",
+      "generator": "switch",
+      "parameters": {
+        "source": "db",
+        "datatype": "string",
+        "cases": [
+          {
+            "condition": "(db == 'postgres')",
+            "value": "Host=localhost;Database=MCA;Username=postgres;Password=postgres"
+          },
+          {
+            "condition": "(db == 'sqlserver')",
+            "value": "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True"
+          },
+          {
+            "condition": "(db == 'sqlite')",
+            "value": "Data Source=MCA.db"
+          }
+        ]
+      },
+      "replaces": "__DB_CONNECTION_STRING__"
     },
     "MultiProject": {
       "type": "computed",

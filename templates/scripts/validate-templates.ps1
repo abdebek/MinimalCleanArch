@@ -31,7 +31,7 @@ foreach ($scenario in $scenarios) {
     $name = $scenario.Name
     $scenarioArgs = $scenario.Args
     $projName = "App_" + ($name -replace '[^A-Za-z0-9]', '_')
-    $outDir = Join-Path $PSScriptRoot "../temp/validate/$name"
+    $outDir = Join-Path $PSScriptRoot "../../temp/validate/$name"
     if (Test-Path $outDir) { Remove-Item -Recurse -Force $outDir }
 
     Write-Host "==> Scaffolding $name"
@@ -40,7 +40,7 @@ foreach ($scenario in $scenarios) {
     Push-Location $outDir
     try {
         Write-Host "==> Restore $name"
-        dotnet restore
+        dotnet restore --source "$PSScriptRoot/../../artifacts/nuget"
         Write-Host "==> Build $name"
         dotnet build
         Write-Host "==> Test $name"

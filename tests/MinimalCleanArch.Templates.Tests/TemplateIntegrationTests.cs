@@ -17,14 +17,14 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     {
         _output = output;
         _testRunId = Guid.NewGuid().ToString("N").Substring(0, 8);
-        _baseOutputDir = Path.Combine(Path.GetTempPath(), "MCA_Tests", _testRunId);
+        _baseOutputDir = Path.Combine(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../temp")), "MCA_Tests", _testRunId);
         Directory.CreateDirectory(_baseOutputDir);
     }
 
     private void CreateNugetConfig(string projectDir)
     {
         Directory.CreateDirectory(projectDir);
-        var localPackageSource = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../artifacts/local"));
+        var localPackageSource = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../artifacts/nuget"));
         var globalPackages = Path.Combine(projectDir, ".packages");
 
         var nugetConfigContent = $"""
