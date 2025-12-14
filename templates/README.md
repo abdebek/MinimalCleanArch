@@ -112,8 +112,8 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Package version: `0.1.7-preview` (targets .NET 9).
-- Templates reference MinimalCleanArch packages `0.1.6-preview` for optional features (security, messaging, audit, validation).
+- Package version: `0.1.7` (targets .NET 9).
+- Templates reference MinimalCleanArch packages `0.1.7` for optional features (security, messaging, audit, validation).
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
 - Launch settings default to Swagger and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.

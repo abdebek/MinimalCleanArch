@@ -3,7 +3,7 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
-- 0.1.6 (net9.0). Base dependency for all other MinimalCleanArch packages.
+- 0.1.7 (net9.0). Base dependency for all other MinimalCleanArch packages.
 
 ## Contents
 - Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`.
@@ -13,7 +13,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch --version 0.1.6
+dotnet add package MinimalCleanArch --version 0.1.7
 ```
 
 Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` for typed operation results.
