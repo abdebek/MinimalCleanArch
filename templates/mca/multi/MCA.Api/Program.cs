@@ -167,8 +167,7 @@ builder.AddMinimalCleanArchMessagingWithSqlServer(connectionString, options =>
     options.ServiceName = "MCA";
 });
 #elif (UsePostgres)
-// Note: PostgreSQL messaging requires WolverineFx.Postgresql package
-builder.AddMinimalCleanArchMessaging(options =>
+builder.AddMinimalCleanArchMessagingWithPostgres(connectionString, options =>
 {
     options.ServiceName = "MCA";
 });

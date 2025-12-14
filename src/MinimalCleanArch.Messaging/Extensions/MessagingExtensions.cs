@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.SqlServer;
+using Wolverine.Postgresql;
 
 namespace MinimalCleanArch.Messaging.Extensions;
 
@@ -79,6 +80,49 @@ public static class MessagingExtensions
             opts.UseEntityFrameworkCoreTransactions();
 
             // Durable mode for SQL Server - enables outbox pattern
+            opts.Durability.Mode = DurabilityMode.Balanced;
+            opts.Durability.ScheduledJobPollingTime = options.DurabilityPollingInterval;
+        });
+
+        // Register domain event services
+        builder.Services.AddDomainEventPublishing();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds MinimalCleanArch messaging services using Wolverine with PostgreSQL persistence.
+    /// Enables the transactional outbox pattern for reliable messaging.
+    /// </summary>
+    /// <param name="builder">The host application builder.</param>
+    /// <param name="connectionString">PostgreSQL connection string.</param>
+    /// <param name="configure">Optional action to configure messaging options.</param>
+    /// <returns>The host application builder for chaining.</returns>
+    public static IHostApplicationBuilder AddMinimalCleanArchMessagingWithPostgres(
+        this IHostApplicationBuilder builder,
+        string connectionString,
+        Action<MessagingOptions>? configure = null)
+    {
+        var options = new MessagingOptions();
+        configure?.Invoke(options);
+
+        builder.Services.AddSingleton(options);
+
+        var serviceName = options.ServiceName
+            ?? Assembly.GetEntryAssembly()?.GetName().Name
+            ?? "MinimalCleanArch";
+
+        builder.UseWolverine(opts =>
+        {
+            ConfigureWolverineBase(opts, options, serviceName);
+
+            // PostgreSQL persistence for outbox
+            opts.PersistMessagesWithPostgresql(connectionString, options.SchemaName);
+
+            // Enable EF Core transaction integration
+            opts.UseEntityFrameworkCoreTransactions();
+
+            // Durable mode for PostgreSQL - enables outbox pattern
             opts.Durability.Mode = DurabilityMode.Balanced;
             opts.Durability.ScheduledJobPollingTime = options.DurabilityPollingInterval;
         });

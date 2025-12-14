@@ -15,6 +15,8 @@
 		<PackageReference Include="WolverineFx.Http" Version="5.1.0" />
 		<!-- Wolverine SQL Server integration for outbox -->
 		<PackageReference Include="WolverineFx.SqlServer" Version="5.2.0" />
+		<!-- Wolverine PostgreSQL integration for outbox -->
+		<PackageReference Include="WolverineFx.Postgresql" Version="5.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -21,6 +21,28 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         Directory.CreateDirectory(_baseOutputDir);
     }
 
+    private void CreateNugetConfig(string projectDir)
+    {
+        Directory.CreateDirectory(projectDir);
+        var localPackageSource = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../artifacts/local"));
+        var globalPackages = Path.Combine(projectDir, ".packages");
+
+        var nugetConfigContent = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                <packageSources>
+                    <add key="local" value="{localPackageSource}" />
+                </packageSources>
+                <config>
+                    <add key="globalPackagesFolder" value="{globalPackages}" />
+                </config>
+                </configuration>
+                """;
+
+        File.WriteAllText(Path.Combine(projectDir, "nuget.config"), nugetConfigContent);
+        _output.WriteLine($"Created nuget.config pointing to {localPackageSource} and global packages at {globalPackages}");
+    }
+
     [Fact]
     public async Task Create_Build_Run_SqlServer_Project()
     {
@@ -39,6 +61,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         {
             // 2. Generate
             _output.WriteLine("Generating project...");
+            CreateNugetConfig(projectDir);
             await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlserver", "--all");
 
             // 3. Update config (Source)
@@ -48,7 +71,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
             // 4. Build
             _output.WriteLine("Building project...");
-            await RunDotnetCommandAsync("build", projectDir);
+            await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
 
             // 5. Run App
             _output.WriteLine("Running app...");
@@ -95,6 +118,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         {
             // 2. Generate
             _output.WriteLine("Generating project...");
+            CreateNugetConfig(projectDir);
             await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "postgres", "--all");
 
             // 3. Update config (Source)
@@ -104,7 +128,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
             // 4. Build
             _output.WriteLine("Building project...");
-            await RunDotnetCommandAsync("build", projectDir);
+            await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
 
             // 5. Run App
             _output.WriteLine("Running app...");
@@ -130,7 +154,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             await pgContainer.DisposeAsync();
         }
     }
-    
+
     [Fact]
     public async Task Create_Build_Run_Sqlite_Project()
     {
@@ -139,12 +163,13 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
         // 1. Generate (Sqlite is default, but we can specify it)
         _output.WriteLine("Generating project...");
+        CreateNugetConfig(projectDir);
         // Use --healthchecks to ensure we have an endpoint to test, but avoid --recommended which might add Redis
         await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlite", "--healthchecks");
 
         // 2. Build
         _output.WriteLine("Building project...");
-        await RunDotnetCommandAsync("build", projectDir);
+        await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
 
         // 3. Run App
         _output.WriteLine("Running app...");
@@ -181,6 +206,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         {
             // 2. Generate
             _output.WriteLine("Generating project...");
+            CreateNugetConfig(projectDir);
             // Ensure healthchecks are enabled so we can verify startup
             await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--caching", "--healthchecks");
 
@@ -191,7 +217,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
             // 4. Build
             _output.WriteLine("Building project...");
-            await RunDotnetCommandAsync("build", projectDir);
+            await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
 
             // 5. Run App
             _output.WriteLine("Running app...");
@@ -217,7 +243,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             await redisContainer.DisposeAsync();
         }
     }
-    
+
     // Helpers
 
     private async Task RunDotnetCommandAsync(params string[] args)
@@ -300,7 +326,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         };
 
         var process = new Process { StartInfo = psi };
-        
+
         process.OutputDataReceived += (s, e) => { if (e.Data != null) _output.WriteLine($"[APP]: {e.Data}"); };
         process.ErrorDataReceived += (s, e) => { if (e.Data != null) _output.WriteLine($"[APP ERR]: {e.Data}"); };
 
