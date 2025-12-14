@@ -133,6 +133,21 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
+    - name: Pack libraries for local validation
+      run: |
+        mkdir -p ./local-packages
+        dotnet pack src/MinimalCleanArch/MinimalCleanArch.csproj -c Release -o ./local-packages
+        dotnet pack src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj -c Release -o ./local-packages
+        dotnet pack src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj -c Release -o ./local-packages
+        dotnet pack src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj -c Release -o ./local-packages
+        dotnet pack src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj -c Release -o ./local-packages
+        dotnet pack src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj -c Release -o ./local-packages
+        dotnet pack src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj -c Release -o ./local-packages
+
+    - name: Configure Local NuGet Source
+      run: |
+        dotnet nuget add source ${{ github.workspace }}/local-packages -n LocalCI
+
     - name: Install template from repo
       run: dotnet new install templates/mca --force
 
