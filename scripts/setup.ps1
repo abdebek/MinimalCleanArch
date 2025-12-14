@@ -1,9 +1,9 @@
 #!/usr/bin/env pwsh
 
 param(
-    [string]$AuthorName = "Your Name",
-    [string]$CompanyName = "Your Company",
-    [string]$GitHubUser = "yourusername",
+    [string]$AuthorName = "Abdullah D.",
+    [string]$CompanyName = "Waanfeetan LLC",
+    [string]$GitHubUser = "abdebek",
     [string]$ProjectUrl = "",
     [switch]$WhatIf = $false
 )
@@ -13,13 +13,13 @@ $ErrorActionPreference = "Stop"
 Write-Host "Setting up MinimalCleanArch for NuGet publishing..." -ForegroundColor Green
 
 # Validate inputs
-if ($AuthorName -eq "Your Name") {
-    $AuthorName = Read-Host "Enter your name"
+if ($AuthorName -eq "Abdullah D.") {
+    $AuthorName = Read-Host "Enter Abdullah D."
 }
-if ($CompanyName -eq "Your Company") {
-    $CompanyName = Read-Host "Enter your company name"
+if ($CompanyName -eq "Waanfeetan LLC") {
+    $CompanyName = Read-Host "Enter Waanfeetan LLC name"
 }
-if ($GitHubUser -eq "yourusername") {
+if ($GitHubUser -eq "abdebek") {
     $GitHubUser = Read-Host "Enter your GitHub username"
 }
 if ([string]::IsNullOrEmpty($ProjectUrl)) {
