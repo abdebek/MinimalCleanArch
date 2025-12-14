@@ -107,7 +107,12 @@
       ],
       "description": "Database provider"
     },
-
+    "dbName": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "MCA_DB",
+      "description": "Database name"
+    },
     "UseSerilog": {
       "type": "computed",
       "value": "(serilog || recommended || all)"
@@ -173,15 +178,15 @@
         "cases": [
           {
             "condition": "(db == 'postgres')",
-            "value": "Host=localhost;Database=MCA;Username=postgres;Password=postgres"
+            "value": "Host=localhost;Database={dbName};Username=postgres;Password=postgres"
           },
           {
             "condition": "(db == 'sqlserver')",
-            "value": "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True"
+            "value": "Server=localhost;Database={dbName};Trusted_Connection=True;TrustServerCertificate=True"
           },
           {
             "condition": "(db == 'sqlite')",
-            "value": "Data Source=MCA.db"
+            "value": "Data Source={dbName}.db"
           }
         ]
       },

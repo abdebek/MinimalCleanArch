@@ -1,6 +1,7 @@
 #if (UseSerilog)
 using Serilog;
 #endif
+using MCA.Application;
 using MCA.Application.Services;
 using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
@@ -61,6 +62,7 @@ try
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
+var dbName = builder.Configuration["DbName"] ?? "MCA_DB";
 
 #if (UseSerilog)
 // Configure Serilog
@@ -75,8 +77,8 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 #if (UsePostgres)
 // Database - PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Database=MCA;Username=postgres;Password=postgres";
+var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Host=localhost;Database={dbName};Username=postgres;Password=postgres").Replace("{dbName}", dbName);
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseNpgsql(connectionString);
@@ -90,8 +92,8 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #elif (UseSqlServer)
 // Database - SQL Server
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True";
+var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Server=localhost;Database={dbName};Trusted_Connection=True;TrustServerCertificate=True").Replace("{dbName}", dbName);
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(connectionString);
@@ -105,8 +107,8 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #else
 // Database - SQLite (default)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Data Source=MCA.db";
+var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Data Source={dbName}.db").Replace("{dbName}", dbName);
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlite(connectionString);
@@ -164,16 +166,19 @@ builder.Services.AddMinimalCleanArchCaching();
 #if (UseSqlServer)
 builder.AddMinimalCleanArchMessagingWithSqlServer(connectionString, options =>
 {
+    options.IncludeAssembly(typeof(AssemblyReference).Assembly);
     options.ServiceName = "MCA";
 });
 #elif (UsePostgres)
 builder.AddMinimalCleanArchMessagingWithPostgres(connectionString, options =>
 {
+    options.IncludeAssembly(typeof(AssemblyReference).Assembly);
     options.ServiceName = "MCA";
 });
 #else
 builder.AddMinimalCleanArchMessaging(options =>
 {
+    options.IncludeAssembly(typeof(AssemblyReference).Assembly);
     options.ServiceName = "MCA";
 });
 #endif
