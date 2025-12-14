@@ -164,6 +164,11 @@
       "type": "computed",
       "value": "(UseMessaging && (UseSqlServer || UsePostgres))"
     },
+    "ConnectionString": {
+      "type": "computed",
+      "value": "(UsePostgres ? \"Host=localhost;Database=MCA;Username=postgres;Password=postgres\" : (UseSqlServer ? \"Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True\" : \"Data Source=MCA.db\"))",
+      "replaces": "Data Source=MCA.db"
+    },
     "MultiProject": {
       "type": "computed",
       "value": "(!single-project)"
