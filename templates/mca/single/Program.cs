@@ -7,7 +7,9 @@ using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Infrastructure.Services;
 using MCA.Application.Commands;
+#if (UseMessaging)
 using MCA.Application.Handlers;
+#endif
 using MCA.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
@@ -50,16 +52,11 @@ using Wolverine.SqlServer;
 #if (UseDurableMessaging && UsePostgres)
 using Wolverine.Postgresql;
 #endif
-#endif
 
 #if (UseSerilog)
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
-
-try
-{
-    Log.Information("Starting MCA application");
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
@@ -275,9 +272,9 @@ if (app.Environment.IsDevelopment())
     db.Database.EnsureCreated();
 }
 
-app.Run();
-
-#if (UseSerilog)
+try
+{
+    app.Run();
 }
 catch (Exception ex)
 {
