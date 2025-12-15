@@ -7,6 +7,8 @@ using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Infrastructure.Services;
+using MCA.Application.Commands;
+using MCA.Application.Handlers;
 using MCA.Api.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
@@ -62,7 +64,28 @@ try
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
-var dbName = builder.Configuration["DbName"] ?? "MCA_DB";
+var dbName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
+var connectionString = BuildConnectionString(dbName);
+
+string BuildConnectionString(string databaseName)
+{
+    var configured = builder.Configuration.GetConnectionString("DefaultConnection");
+
+#if (UsePostgres)
+    var fallback = $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres";
+#elif (UseSqlServer)
+    var fallback = $"Server=localhost;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+#else
+    var fallback = $"Data Source={databaseName}.db";
+#endif
+
+    if (string.IsNullOrWhiteSpace(configured))
+    {
+        return fallback;
+    }
+
+    return configured.Replace("{dbName}", databaseName);
+}
 
 #if (UseSerilog)
 // Configure Serilog
@@ -77,8 +100,6 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 #if (UsePostgres)
 // Database - PostgreSQL
-var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Database={dbName};Username=postgres;Password=postgres").Replace("{dbName}", dbName);
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseNpgsql(connectionString);
@@ -92,8 +113,6 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #elif (UseSqlServer)
 // Database - SQL Server
-var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Database={dbName};Trusted_Connection=True;TrustServerCertificate=True").Replace("{dbName}", dbName);
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(connectionString);
@@ -107,8 +126,6 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #else
 // Database - SQLite (default)
-var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Data Source={dbName}.db").Replace("{dbName}", dbName);
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlite(connectionString);
@@ -122,12 +139,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #endif
 
-// Register DbContext for generic repository
-builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
-
 // Repositories
-builder.Services.AddScoped<ITodoRepository, TodoRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ITodoRepository>(sp => new TodoRepository(sp.GetRequiredService<AppDbContext>()));
+builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(sp.GetRequiredService<AppDbContext>()));
 
 // Services
 builder.Services.AddScoped<ITodoService, TodoService>();

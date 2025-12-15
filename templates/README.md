@@ -60,6 +60,7 @@ dotnet new mca -n MyApp --all
 | `--db sqlite` | Yes | SQLite (default) |
 | `--db sqlserver` | | SQL Server |
 | `--db postgres` | | PostgreSQL |
+| `--dbName <name>` | MCA_DB | Database name used for generated connection strings and Docker compose settings |
 
 ### Examples
 
@@ -112,13 +113,28 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Package version: `0.1.7` (targets .NET 9).
-- Templates reference MinimalCleanArch packages `0.1.7` for optional features (security, messaging, audit, validation).
+- Package version: `0.1.8-preview` (targets .NET 9).
+- Templates reference MinimalCleanArch packages `0.1.8-preview` for optional features (security, messaging, audit, validation).
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
 - Launch settings default to Swagger and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.
 
+## Quick database containers
+
+- SQL Server:
+
+  ```bash
+  docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=StrongP!12asd" -p 1433:1433 --name sqlserver -d mcr.microsoft.com/mssql/server:2022-latest
+  ```
+
+- PostgreSQL:
+
+  ```bash
+  docker run -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWORD=postgres" -e "POSTGRES_DB=mca" -p 5432:5432 --name postgres -d postgres:16-alpine
+  ```
+
 ## Testing the template
+
 - Standard tests (unit + lightweight API integration) run with `dotnet test` on the generated solution.
 - Optional Docker E2E tests for durable messaging:
   - Set `RUN_DOCKER_E2E=1` to enable.

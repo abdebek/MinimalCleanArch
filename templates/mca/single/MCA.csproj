@@ -25,10 +25,10 @@
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="0.1.8-preview" />
     <!--#if (UseDurableMessaging && UseSqlServer)-->
-    <PackageReference Include="WolverineFx.SqlServer" Version="5.2.0" />
+    <PackageReference Include="WolverineFx.SqlServer" Version="5.5.0" />
     <!--#endif-->
     <!--#if (UseDurableMessaging && UsePostgres)-->
-    <PackageReference Include="WolverineFx.Postgresql" Version="5.2.0" />
+    <PackageReference Include="WolverineFx.Postgresql" Version="5.5.0" />
     <!--#endif-->
     <!--#endif-->
     <!--#if (UseAudit)-->
@@ -38,7 +38,7 @@
     <PackageReference Include="MinimalCleanArch.Validation" Version="0.1.8-preview" />
     <PackageReference Include="FluentValidation" Version="12.0.0" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
-    <PackageReference Include="WolverineFx.FluentValidation" Version="5.2.0" />
+    <PackageReference Include="WolverineFx.FluentValidation" Version="5.5.0" />
     <!--#endif-->
     <!--#if (UseCaching)-->
     <PackageReference Include="MinimalCleanArch.Extensions" Version="0.1.8-preview" />

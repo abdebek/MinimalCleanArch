@@ -110,8 +110,8 @@
     "dbName": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "MCA_DB",
-      "description": "Database name"
+      "defaultValue": "",
+      "description": "Database name (defaults to application name if not provided)"
     },
     "UseSerilog": {
       "type": "computed",
@@ -182,7 +182,7 @@
           },
           {
             "condition": "(db == 'sqlserver')",
-            "value": "Server=localhost;Database={dbName};Trusted_Connection=True;TrustServerCertificate=True"
+            "value": "Server=localhost,1433;Database={dbName};User Id=sa;Password=StrongP!12asd;TrustServerCertificate=True;MultipleActiveResultSets=true"
           },
           {
             "condition": "(db == 'sqlite')",

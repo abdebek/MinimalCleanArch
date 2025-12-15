@@ -11,10 +11,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
 #if (UseSqlServer)
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=MCA;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=__DB_NAME__;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true
 #endif
 #if (UsePostgres)
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=MCA;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=__DB_NAME__;Username=postgres;Password=postgres
 #endif
 #if (UseCaching)
       - Caching__Redis__ConnectionString=redis:6379
@@ -50,7 +50,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=MCA
+      - POSTGRES_DB=__DB_NAME__
     volumes:
       - postgres-data:/var/lib/postgresql/data
 #endif

@@ -6,6 +6,8 @@ using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Infrastructure.Services;
+using MCA.Application.Commands;
+using MCA.Application.Handlers;
 using MCA.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
@@ -61,6 +63,28 @@ try
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
+var dbName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
+var connectionString = BuildConnectionString(dbName);
+
+string BuildConnectionString(string databaseName)
+{
+    var configured = builder.Configuration.GetConnectionString("DefaultConnection");
+
+#if (UsePostgres)
+    var fallback = $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres";
+#elif (UseSqlServer)
+    var fallback = $"Server=localhost;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+#else
+    var fallback = $"Data Source={databaseName}.db";
+#endif
+
+    if (string.IsNullOrWhiteSpace(configured))
+    {
+        return fallback;
+    }
+
+    return configured.Replace("{dbName}", databaseName);
+}
 
 #if (UseSerilog)
 // Configure Serilog
@@ -75,8 +99,6 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 #if (UsePostgres)
 // Database - PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Database=MCA;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseNpgsql(connectionString);
@@ -90,8 +112,6 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #elif (UseSqlServer)
 // Database - SQL Server
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(connectionString);
@@ -105,8 +125,6 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #else
 // Database - SQLite (default)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Data Source=MCA.db";
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlite(connectionString);
@@ -120,12 +138,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 });
 #endif
 
-// Register DbContext for generic repository
-builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
-
 // Repositories
-builder.Services.AddScoped<ITodoRepository, TodoRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ITodoRepository>(sp => new TodoRepository(sp.GetRequiredService<AppDbContext>()));
+builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(sp.GetRequiredService<AppDbContext>()));
 
 // Services
 builder.Services.AddScoped<ITodoService, TodoService>();
@@ -163,16 +178,20 @@ builder.Services.AddMinimalCleanArchCaching();
 #if (UseSqlServer)
 builder.AddMinimalCleanArchMessagingWithSqlServer(connectionString, options =>
 {
+    options.IncludeAssembly(typeof(TodoCommandHandler).Assembly);
     options.ServiceName = "MCA";
 });
+
 #elif (UsePostgres)
 builder.AddMinimalCleanArchMessagingWithPostgres(connectionString, options =>
 {
+    options.IncludeAssembly(typeof(TodoCommandHandler).Assembly);
     options.ServiceName = "MCA";
 });
 #else
 builder.AddMinimalCleanArchMessaging(options =>
 {
+    options.IncludeAssembly(typeof(TodoCommandHandler).Assembly);
     options.ServiceName = "MCA";
 });
 #endif

@@ -24,7 +24,17 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     private void CreateNugetConfig(string projectDir)
     {
         Directory.CreateDirectory(projectDir);
-        var localPackageSource = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../artifacts/nuget"));
+        var repoRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
+        var candidateSources = new[]
+        {
+            Path.Combine(repoRoot, "artifacts/nuget"),
+            Path.Combine(repoRoot, "artifacts/packages")
+        };
+
+        var localPackageSource = candidateSources
+            .FirstOrDefault(path => Directory.Exists(path) && Directory.EnumerateFiles(path, "*.nupkg").Any())
+            ?? candidateSources.FirstOrDefault(Directory.Exists)
+            ?? candidateSources.First();
         var globalPackages = Path.Combine(projectDir, ".packages");
 
         var nugetConfigContent = $"""
@@ -48,6 +58,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     {
         var projectName = "TestAppSql";
         var projectDir = Path.Combine(_baseOutputDir, projectName);
+        var dbName = $"mca_sql_{_testRunId}";
 
         // 1. Start SQL Server Container
         _output.WriteLine("Starting SQL Server...");
@@ -62,10 +73,10 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             // 2. Generate
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
-            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlserver", "--all");
+            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlserver", "--dbName", dbName, "--all");
 
             // 3. Update config (Source)
-            var connectionString = $"Data Source={sqlContainer.Hostname},{sqlContainer.GetMappedPublicPort(1433)};Database=master;User Id=sa;Password=Pass@word1;TrustServerCertificate=True";
+            var connectionString = $"Server={sqlContainer.Hostname},{sqlContainer.GetMappedPublicPort(1433)};Database={dbName};User Id=sa;Password=Pass@word1;TrustServerCertificate=True";
             _output.WriteLine($"SQL Connection String: {connectionString}");
             UpdateAppSettings(projectDir, projectName, "DefaultConnection", connectionString);
 
@@ -103,13 +114,14 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     {
         var projectName = "TestAppPg";
         var projectDir = Path.Combine(_baseOutputDir, projectName);
+        var dbName = $"mca_pg_{_testRunId}";
 
         // 1. Start Postgres Container
         _output.WriteLine("Starting Postgres...");
         var pgContainer = new PostgreSqlBuilder()
             .WithUsername("postgres")
             .WithPassword("postgres")
-            .WithDatabase("mca_test")
+            .WithDatabase(dbName)
             .Build();
 
         await pgContainer.StartAsync();
@@ -119,10 +131,10 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             // 2. Generate
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
-            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "postgres", "--all");
+            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "postgres", "--dbName", dbName, "--all");
 
             // 3. Update config (Source)
-            var connectionString = $"Server={pgContainer.Hostname};Port={pgContainer.GetMappedPublicPort(5432)};Database=mca_test;User Id=postgres;Password=postgres";
+            var connectionString = $"Server={pgContainer.Hostname};Port={pgContainer.GetMappedPublicPort(5432)};Database={dbName};User Id=postgres;Password=postgres";
             _output.WriteLine($"PG Connection String: {connectionString}");
             UpdateAppSettings(projectDir, projectName, "DefaultConnection", connectionString);
 
@@ -160,12 +172,13 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     {
         var projectName = "TestAppSqlite";
         var projectDir = Path.Combine(_baseOutputDir, projectName);
+        var dbName = $"mca_sqlite_{_testRunId}";
 
         // 1. Generate (Sqlite is default, but we can specify it)
         _output.WriteLine("Generating project...");
         CreateNugetConfig(projectDir);
         // Use --healthchecks to ensure we have an endpoint to test, but avoid --recommended which might add Redis
-        await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlite", "--healthchecks");
+        await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlite", "--dbName", dbName, "--healthchecks");
 
         // 2. Build
         _output.WriteLine("Building project...");

@@ -3,29 +3,36 @@ using MCA.Domain.Events;
 namespace MCA.Application.Handlers;
 
 #if (UseMessaging)
-public class TodoEventHandlers
+public class TodoEventHandler
 {
+    private readonly ILogger<TodoEventHandler> _logger;
+
+    public TodoEventHandler(ILogger<TodoEventHandler> logger)
+    {
+        _logger = logger;
+    }
+
     public Task Handle(TodoCreatedEvent message, CancellationToken cancellationToken = default)
     {
-        // Handle Todo created event (e.g., send notification, log)
+        _logger.LogInformation("Todo created: {Id}", message.EntityId);
         return Task.CompletedTask;
     }
 
     public Task Handle(TodoUpdatedEvent message, CancellationToken cancellationToken = default)
     {
-        // Handle Todo updated event
+        _logger.LogInformation("Todo updated: {Id}", message.EntityId);
         return Task.CompletedTask;
     }
 
     public Task Handle(TodoCompletedEvent message, CancellationToken cancellationToken = default)
     {
-        // Handle Todo completed event
+        _logger.LogInformation("Todo completed: {Id}", message.EntityId);
         return Task.CompletedTask;
     }
 
     public Task Handle(TodoDeletedEvent message, CancellationToken cancellationToken = default)
     {
-        // Handle Todo deleted event
+        _logger.LogInformation("Todo deleted: {Id}", message.EntityId);
         return Task.CompletedTask;
     }
 }

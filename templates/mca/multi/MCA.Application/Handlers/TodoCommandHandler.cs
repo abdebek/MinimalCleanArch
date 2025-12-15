@@ -8,11 +8,11 @@ namespace MCA.Application.Handlers;
 /// <summary>
 /// Wolverine handlers for Todo commands/queries (CQRS style).
 /// </summary>
-public class TodoCommandHandlers
+public class TodoCommandHandler
 {
     private readonly ITodoService _todoService;
 
-    public TodoCommandHandlers(ITodoService todoService)
+    public TodoCommandHandler(ITodoService todoService)
     {
         _todoService = todoService;
     }
