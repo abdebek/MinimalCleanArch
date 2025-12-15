@@ -7,7 +7,9 @@ using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Infrastructure.Services;
 using MCA.Application.Commands;
+#if (UseMessaging)
 using MCA.Application.Handlers;
+#endif
 using MCA.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;

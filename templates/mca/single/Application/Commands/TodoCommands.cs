@@ -3,6 +3,8 @@ using MinimalCleanArch.Domain.Common;
 
 namespace MCA.Application.Commands;
 
+public record GetAllTodosQuery;
+
 public record GetTodosQuery(
     string? SearchTerm = null,
     bool? IsCompleted = null,
