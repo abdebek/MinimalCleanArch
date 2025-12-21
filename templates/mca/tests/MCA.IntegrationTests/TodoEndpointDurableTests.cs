@@ -13,7 +13,7 @@ using Testcontainers.PostgreSql;
 using Testcontainers.SqlEdge;
 using Xunit;
 
-namespace MCA.UnitTests.Integration;
+namespace MCA.IntegrationTests;
 
 // These tests are opt-in: set RUN_DOCKER_E2E=1 to enable.
 public class TodoEndpointDurableTests : IClassFixture<DurableApiFactory>, IAsyncLifetime

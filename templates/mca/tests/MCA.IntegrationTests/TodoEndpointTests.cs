@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
-namespace MCA.UnitTests.Integration;
+namespace MCA.IntegrationTests;
 
 public class TodoEndpointTests : IClassFixture<TestApiFactory>
 {

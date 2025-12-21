@@ -3,7 +3,7 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
--0.1.8-preview (net9.0). Works with `MinimalCleanArch`0.1.8-preview and companion packages.
+-0.1.9-preview (net9.0). Works with `MinimalCleanArch`0.1.9-preview and companion packages.
 
 ## What's included
 - `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
