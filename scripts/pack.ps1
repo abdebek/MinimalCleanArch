@@ -3,6 +3,7 @@
 param(
     [string]$Configuration = "Release",
     [string]$OutputPath = "./artifacts/packages",
+    [string]$PackageVersion = "",
     [switch]$SkipBuild = $false,
     [switch]$IncludeSymbols = $true
 )
@@ -13,6 +14,9 @@ Write-Host "Building and packing MinimalCleanArch packages..." -ForegroundColor 
 Write-Host "Configuration: $Configuration" -ForegroundColor Cyan
 Write-Host "Output Path: $OutputPath" -ForegroundColor Cyan
 Write-Host "Skip Build: $SkipBuild" -ForegroundColor Cyan
+if (-not [string]::IsNullOrWhiteSpace($PackageVersion)) {
+    Write-Host "Package Version: $PackageVersion" -ForegroundColor Cyan
+}
 
 # Create output directory
 if (!(Test-Path $OutputPath)) {
@@ -33,7 +37,6 @@ $projects = @(
     "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj",
     "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj",
     "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj",
-    "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj",
     "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj",
     "templates/MinimalCleanArch.Templates.csproj"
 )
@@ -50,9 +53,21 @@ foreach ($project in $projects) {
     Write-Host "Processing ($($successCount + 1)/$totalProjects): $project..." -ForegroundColor Yellow
     
     try {
+        $versionProps = @()
+        if (-not [string]::IsNullOrWhiteSpace($PackageVersion)) {
+            $versionProps += "-p:PackageVersion=$PackageVersion"
+            if ($project -like "templates/*") {
+                $versionProps += "-p:Version=$PackageVersion"
+            }
+        }
+        $buildProps = @(
+            "-p:UseSharedCompilation=false",
+            "-p:BuildInParallel=false"
+        )
+
         if (!$SkipBuild) {
             Write-Host "  Building..." -ForegroundColor Gray
-            dotnet build $project --configuration $Configuration --verbosity minimal --nologo
+            dotnet build $project --configuration $Configuration --verbosity minimal --nologo @buildProps @versionProps
             if ($LASTEXITCODE -ne 0) {
                 throw "Build failed for $project"
             }
@@ -67,6 +82,10 @@ foreach ($project in $projects) {
             "--nologo",
             "-p:GenerateDocumentationFile=false"
         )
+        $packArgs += $buildProps
+        if ($versionProps.Count -gt 0) {
+            $packArgs += $versionProps
+        }
         
         if ($SkipBuild) {
             $packArgs += "--no-build"

@@ -17,11 +17,23 @@ public class TodoCommandHandler
         _todoService = todoService;
     }
 
-    public async Task<Result<TodoListResult>> Handle(GetAllTodosQuery query, CancellationToken cancellationToken)
+    public async Task<Result<TodoListResult>> Handle(GetTodosQuery query, CancellationToken cancellationToken)
     {
-        var result = await _todoService.GetAllAsync(cancellationToken);
+        var request = new TodoListRequest(
+            query.SearchTerm,
+            query.IsCompleted,
+            query.Priority,
+            query.DueBefore,
+            query.DueAfter,
+            query.PageIndex,
+            query.PageSize);
+        var result = await _todoService.GetListAsync(request, cancellationToken);
         return result.IsSuccess
-            ? Result.Success(new TodoListResult(result.Value))
+            ? Result.Success(new TodoListResult(
+                result.Value.Items,
+                result.Value.TotalCount,
+                result.Value.PageIndex,
+                result.Value.PageSize))
             : Result.Failure<TodoListResult>(result.Error);
     }
 

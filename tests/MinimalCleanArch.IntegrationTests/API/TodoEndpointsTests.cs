@@ -1,79 +1,28 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using MinimalCleanArch.IntegrationTests.Infrastructure;
 using MinimalCleanArch.Sample.API.Models;
-using MinimalCleanArch.Sample.Infrastructure.Data;
-using MinimalCleanArch.Security.Configuration;
-using MinimalCleanArch.Security.Encryption;
 using FluentAssertions;
 
 namespace MinimalCleanArch.IntegrationTests.API;
 
-public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public TodoEndpointsTests(WebApplicationFactory<Program> factory)
+    public TodoEndpointsTests(TestWebApplicationFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Remove the existing DbContext registration
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
+        _factory = factory;
+        _client = factory.CreateClient();
+    }
 
-                // Remove the existing ApplicationDbContext registration
-                var contextDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(ApplicationDbContext));
-                
-                if (contextDescriptor != null)
-                {
-                    services.Remove(contextDescriptor);
-                }
+    public Task InitializeAsync() => _factory.EnsureDatabaseCreatedAsync();
 
-                // Remove existing encryption services to avoid conflicts
-                services.RemoveAll<EncryptionOptions>();
-                services.RemoveAll<IEncryptionService>();
-
-                // Add test encryption service with a secure key
-                var encryptionOptions = new EncryptionOptions
-                {
-                    Key = EncryptionOptions.GenerateStrongKey(64),
-                    ValidateKeyStrength = false, // Disable validation for tests
-                    EnableOperationLogging = false,
-                    AllowEnvironmentVariables = false // Don't load from environment in tests
-                };
-                
-                services.AddSingleton(encryptionOptions);
-                services.AddSingleton<IEncryptionService, AesEncryptionService>();
-                
-                // Add test database with unique SQLite file per test run
-                var databaseName = $"test_todos_{Guid.NewGuid()}.db";
-                services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
-                {
-                    options.UseSqlite($"Data Source={databaseName}");
-                    options.EnableServiceProviderCaching(false);
-                    options.EnableSensitiveDataLogging();
-                }, ServiceLifetime.Scoped);
-            });
-        });
-        
-        _client = _factory.CreateClient();
-        
-        // Ensure database is created for each test class
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        dbContext.Database.EnsureCreated();
+    public Task DisposeAsync()
+    {
+        _client.Dispose();
+        return Task.CompletedTask;
     }
 
     [Fact]
@@ -426,6 +375,134 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task GetTodo_ShouldReturnBadRequest_WhenIdInvalid()
+    {
+        var response = await _client.GetAsync("/api/todos/0");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task UpdateTodo_ShouldReturnBadRequest_WhenIdInvalid()
+    {
+        var updateRequest = new UpdateTodoRequest
+        {
+            Title = "Invalid Id Update",
+            Description = "Should fail",
+            Priority = 1,
+            IsCompleted = false
+        };
+
+        var response = await _client.PutAsJsonAsync("/api/todos/0", updateRequest);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task DeleteTodo_ShouldReturnBadRequest_WhenIdInvalid()
+    {
+        var response = await _client.DeleteAsync("/api/todos/0");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetTodos_ShouldReturnBadRequest_WhenPaginationInvalid()
+    {
+        var response = await _client.GetAsync("/api/todos?pageSize=0&pageIndex=1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetTodos_ShouldFilterBySearchTerm()
+    {
+        var token = Guid.NewGuid().ToString("N");
+        await CreateTodoAsync(new CreateTodoRequest
+        {
+            Title = $"Match {token}",
+            Description = "Searchable",
+            Priority = 1
+        });
+
+        await CreateTodoAsync(new CreateTodoRequest
+        {
+            Title = "Other Todo",
+            Description = "No match",
+            Priority = 1
+        });
+
+        var result = await GetTodosAsync($"?searchTerm={token}");
+
+        result.Items.Should().ContainSingle(todo => todo.Title.Contains(token));
+    }
+
+    [Fact]
+    public async Task GetTodos_ShouldFilterByCompletionStatus()
+    {
+        var token = Guid.NewGuid().ToString("N");
+        await CreateTodoAsync(new CreateTodoRequest
+        {
+            Title = $"Pending {token}",
+            Description = "Pending",
+            Priority = 1
+        });
+
+        var completed = await CreateTodoAsync(new CreateTodoRequest
+        {
+            Title = $"Completed {token}",
+            Description = "Completed",
+            Priority = 2
+        });
+
+        var updateRequest = new UpdateTodoRequest
+        {
+            Title = completed.Title,
+            Description = completed.Description,
+            Priority = completed.Priority,
+            IsCompleted = true
+        };
+
+        var updateResponse = await _client.PutAsJsonAsync($"/api/todos/{completed.Id}", updateRequest);
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await GetTodosAsync("?isCompleted=true");
+
+        result.Items.Should().ContainSingle(todo => todo.Title.Contains($"Completed {token}"));
+        result.Items.Should().NotContain(todo => todo.Title.Contains($"Pending {token}"));
+    }
+
+    [Fact]
+    public async Task GetTodos_ShouldFilterByDueDateRange()
+    {
+        var token = Guid.NewGuid().ToString("N");
+        var nearDue = DateTime.UtcNow.AddDays(1);
+        var farDue = DateTime.UtcNow.AddDays(5);
+
+        await CreateTodoAsync(new CreateTodoRequest
+        {
+            Title = $"Past {token}",
+            Description = "Past due",
+            Priority = 1,
+            DueDate = nearDue
+        });
+
+        await CreateTodoAsync(new CreateTodoRequest
+        {
+            Title = $"Future {token}",
+            Description = "Future due",
+            Priority = 1,
+            DueDate = farDue
+        });
+
+        var dueBefore = Uri.EscapeDataString(DateTime.UtcNow.AddDays(2).ToString("O"));
+        var result = await GetTodosAsync($"?dueBefore={dueBefore}");
+
+        result.Items.Should().ContainSingle(todo => todo.Title.Contains($"Past {token}"));
+        result.Items.Should().NotContain(todo => todo.Title.Contains($"Future {token}"));
+    }
+
+    [Fact]
     public async Task EncryptedFields_ShouldBeHandledCorrectly()
     {
         // Arrange
@@ -454,5 +531,39 @@ public class TodoEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         retrievedTodo.Should().NotBeNull();
         retrievedTodo!.Description.Should().Be(sensitiveDescription);
         retrievedTodo.Title.Should().Be("Encryption Test Todo");
+    }
+
+    private async Task<TodoResponse> CreateTodoAsync(CreateTodoRequest request)
+    {
+        var response = await _client.PostAsJsonAsync("/api/todos", request);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await response.Content.ReadFromJsonAsync<TodoResponse>();
+        created.Should().NotBeNull();
+        return created!;
+    }
+
+    private async Task<TodoListResponse> GetTodosAsync(string query)
+    {
+        var response = await _client.GetAsync($"/api/todos{query}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var payload = await response.Content.ReadFromJsonAsync<TodoListResponse>();
+        payload.Should().NotBeNull();
+        return payload!;
+    }
+
+    private sealed class TodoListResponse
+    {
+        public List<TodoResponse> Items { get; set; } = new();
+        public PaginationInfo Pagination { get; set; } = new();
+    }
+
+    private sealed class PaginationInfo
+    {
+        public int TotalCount { get; set; }
+        public int PageSize { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
     }
 }

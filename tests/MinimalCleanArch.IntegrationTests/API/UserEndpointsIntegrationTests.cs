@@ -1,15 +1,12 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using MinimalCleanArch.IntegrationTests.Infrastructure;
 using MinimalCleanArch.Sample.API.Models;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
-using MinimalCleanArch.Security.Configuration;
-using MinimalCleanArch.Security.Encryption;
 using FluentAssertions;
 
 namespace MinimalCleanArch.IntegrationTests.API;
@@ -17,71 +14,25 @@ namespace MinimalCleanArch.IntegrationTests.API;
 /// <summary>
 /// Simplified integration tests for User endpoints without complex authentication
 /// </summary>
-public class UserEndpointsSimpleIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
+public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicationFactory>, IAsyncLifetime, IDisposable
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
     private readonly HttpClient _client;
-    private readonly string _databaseName;
+    private const string DefaultPassword = "StrongPassword123!";
 
-    public UserEndpointsSimpleIntegrationTests(WebApplicationFactory<Program> factory)
+    public UserEndpointsSimpleIntegrationTests(TestWebApplicationFactory factory)
     {
-        _databaseName = $"test_users_simple_{Guid.NewGuid()}.db";
-        
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Remove the existing DbContext registration
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-
-                var contextDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(ApplicationDbContext));
-                
-                if (contextDescriptor != null)
-                {
-                    services.Remove(contextDescriptor);
-                }
-
-                // Remove existing encryption services
-                services.RemoveAll<EncryptionOptions>();
-                services.RemoveAll<IEncryptionService>();
-
-                // Add simplified test encryption service
-                var encryptionOptions = new EncryptionOptions
-                {
-                    Key = EncryptionOptions.GenerateStrongKey(64),
-                    ValidateKeyStrength = false,
-                    EnableOperationLogging = false,
-                    AllowEnvironmentVariables = false
-                };
-                
-                services.AddSingleton(encryptionOptions);
-                services.AddSingleton<IEncryptionService, AesEncryptionService>();
-                
-                // Add test database
-                services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
-                {
-                    options.UseSqlite($"Data Source={_databaseName}");
-                    options.EnableServiceProviderCaching(false);
-                    options.EnableSensitiveDataLogging();
-                }, ServiceLifetime.Scoped);
-            });
-        });
-        
+        _factory = factory;
         _client = _factory.CreateClient();
-        
-        // Ensure database is created and seeded
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        dbContext.Database.EnsureCreated();
-        SeedTestData(scope.ServiceProvider).GetAwaiter().GetResult();
     }
+
+    public async Task InitializeAsync()
+    {
+        await _factory.EnsureDatabaseCreatedAsync();
+        await SeedTestDataAsync();
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     #region Basic Registration Tests
       
@@ -322,6 +273,206 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<WebApplicationF
 
     #endregion
 
+    #region Authenticated User Tests
+
+    [Fact]
+    public async Task GetCurrentUserProfile_WithAuthentication_ReturnsProfile()
+    {
+        var email = $"profile_{Guid.NewGuid():N}@example.com";
+        var user = await _factory.CreateUserAsync(email, DefaultPassword, "User");
+        using var client = _factory.CreateAuthenticatedClient(user.Id, email, "User");
+
+        var response = await client.GetAsync("/api/users/profile");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var profile = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
+        profile.Should().NotBeNull();
+        profile!.Id.Should().Be(user.Id);
+        profile.Email.Should().Be(email);
+        profile.Roles.Should().Contain("User");
+    }
+
+    [Fact]
+    public async Task UpdateCurrentUserProfile_WithAuthentication_UpdatesProfile()
+    {
+        var email = $"update_{Guid.NewGuid():N}@example.com";
+        var user = await _factory.CreateUserAsync(email, DefaultPassword, "User");
+        using var client = _factory.CreateAuthenticatedClient(user.Id, email, "User");
+
+        var updateRequest = new UpdateUserProfileRequest
+        {
+            FullName = "Updated User",
+            DateOfBirth = new DateTime(1990, 1, 1),
+            PhoneNumber = "5551234567",
+            PersonalNotes = "Notes for update"
+        };
+
+        var response = await client.PutAsJsonAsync("/api/users/profile", updateRequest);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var updatedUser = await userManager.FindByIdAsync(user.Id);
+        updatedUser.Should().NotBeNull();
+        updatedUser!.FullName.Should().Be(updateRequest.FullName);
+        updatedUser.DateOfBirth.Should().Be(updateRequest.DateOfBirth);
+        updatedUser.PhoneNumber.Should().Be(updateRequest.PhoneNumber);
+    }
+
+    [Fact]
+    public async Task GetCurrentUserTodos_WithAuthentication_ReturnsOnlyOwnTodos()
+    {
+        var token = Guid.NewGuid().ToString("N");
+        var userAEmail = $"usera_{token}@example.com";
+        var userBEmail = $"userb_{token}@example.com";
+
+        var userA = await _factory.CreateUserAsync(userAEmail, DefaultPassword, "User");
+        var userB = await _factory.CreateUserAsync(userBEmail, DefaultPassword, "User");
+
+        using var clientA = _factory.CreateAuthenticatedClient(userA.Id, userAEmail, "User");
+        using var clientB = _factory.CreateAuthenticatedClient(userB.Id, userBEmail, "User");
+
+        var todoA = new CreateTodoRequest
+        {
+            Title = $"Todo A {token}",
+            Description = "Owned by A",
+            Priority = 1
+        };
+
+        var todoB = new CreateTodoRequest
+        {
+            Title = $"Todo B {token}",
+            Description = "Owned by B",
+            Priority = 1
+        };
+
+        (await clientA.PostAsJsonAsync("/api/todos", todoA)).StatusCode.Should().Be(HttpStatusCode.Created);
+        (await clientB.PostAsJsonAsync("/api/todos", todoB)).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var response = await clientA.GetAsync("/api/users/todos");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var todos = await response.Content.ReadFromJsonAsync<List<TodoResponse>>();
+        todos.Should().NotBeNull();
+        todos!.Should().ContainSingle(t => t.Title == todoA.Title);
+        todos.Should().NotContain(t => t.Title == todoB.Title);
+    }
+
+    #endregion
+
+    #region Admin User Tests
+
+    [Fact]
+    public async Task GetAllUsers_WithAdminRole_ReturnsUsers()
+    {
+        var adminEmail = $"admin_{Guid.NewGuid():N}@example.com";
+        var adminUser = await _factory.CreateUserAsync(adminEmail, DefaultPassword, "Admin");
+        var regularEmail = $"user_{Guid.NewGuid():N}@example.com";
+        await _factory.CreateUserAsync(regularEmail, DefaultPassword, "User");
+
+        using var client = _factory.CreateAuthenticatedClient(adminUser.Id, adminEmail, "Admin");
+        var response = await client.GetAsync("/api/admin/users?page=1&pageSize=50");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payload = await response.Content.ReadFromJsonAsync<UserListResponse>();
+        payload.Should().NotBeNull();
+        payload!.Users.Should().Contain(user => user.Email == regularEmail);
+        payload.TotalCount.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GetAllUsers_WithNonAdminRole_ReturnsForbidden()
+    {
+        var email = $"user_{Guid.NewGuid():N}@example.com";
+        var user = await _factory.CreateUserAsync(email, DefaultPassword, "User");
+        using var client = _factory.CreateAuthenticatedClient(user.Id, email, "User");
+
+        var response = await client.GetAsync("/api/admin/users");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task DeleteUser_WithAdminRole_SoftDeletes()
+    {
+        var adminEmail = $"admin_{Guid.NewGuid():N}@example.com";
+        var adminUser = await _factory.CreateUserAsync(adminEmail, DefaultPassword, "Admin");
+        var targetEmail = $"delete_{Guid.NewGuid():N}@example.com";
+        var targetUser = await _factory.CreateUserAsync(targetEmail, DefaultPassword, "User");
+
+        using var client = _factory.CreateAuthenticatedClient(adminUser.Id, adminEmail, "Admin");
+        var response = await client.DeleteAsync($"/api/admin/users/{targetUser.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var deletedUser = await dbContext.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == targetUser.Id);
+        deletedUser.Should().NotBeNull();
+        deletedUser!.IsDeleted.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteUser_WithAdminRole_ShouldRejectSelfDeletion()
+    {
+        var adminEmail = $"admin_{Guid.NewGuid():N}@example.com";
+        var adminUser = await _factory.CreateUserAsync(adminEmail, DefaultPassword, "Admin");
+        using var client = _factory.CreateAuthenticatedClient(adminUser.Id, adminEmail, "Admin");
+
+        var response = await client.DeleteAsync($"/api/admin/users/{adminUser.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AssignRole_WithAdminRole_AssignsRole()
+    {
+        const string roleName = "Manager";
+        await EnsureRoleExistsAsync(roleName);
+
+        var adminEmail = $"admin_{Guid.NewGuid():N}@example.com";
+        var adminUser = await _factory.CreateUserAsync(adminEmail, DefaultPassword, "Admin");
+        var targetEmail = $"role_{Guid.NewGuid():N}@example.com";
+        var targetUser = await _factory.CreateUserAsync(targetEmail, DefaultPassword, "User");
+
+        using var client = _factory.CreateAuthenticatedClient(adminUser.Id, adminEmail, "Admin");
+        var response = await client.PostAsync($"/api/admin/users/{targetUser.Id}/roles/{roleName}", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roles = await userManager.GetRolesAsync(targetUser);
+        roles.Should().Contain(roleName);
+    }
+
+    [Fact]
+    public async Task RemoveRole_WithAdminRole_RemovesRole()
+    {
+        const string roleName = "Manager";
+        await EnsureRoleExistsAsync(roleName);
+
+        var adminEmail = $"admin_{Guid.NewGuid():N}@example.com";
+        var adminUser = await _factory.CreateUserAsync(adminEmail, DefaultPassword, "Admin");
+        var targetEmail = $"role_{Guid.NewGuid():N}@example.com";
+        var targetUser = await _factory.CreateUserAsync(targetEmail, DefaultPassword, roleName);
+
+        using var client = _factory.CreateAuthenticatedClient(adminUser.Id, adminEmail, "Admin");
+        var response = await client.DeleteAsync($"/api/admin/users/{targetUser.Id}/roles/{roleName}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roles = await userManager.GetRolesAsync(targetUser);
+        roles.Should().NotContain(roleName);
+    }
+
+    #endregion
+
     #region User Management Tests
       
     //TODO: fix
@@ -505,10 +656,11 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<WebApplicationF
 
     #region Helper Methods
 
-    private async Task SeedTestData(IServiceProvider serviceProvider)
+    private async Task SeedTestDataAsync()
     {
-        var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
-        var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
         try
         {
@@ -548,23 +700,30 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<WebApplicationF
         }
     }
 
+    private async Task EnsureRoleExistsAsync(string roleName)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            await roleManager.CreateAsync(new IdentityRole(roleName));
+        }
+    }
+
+    private sealed class UserListResponse
+    {
+        public List<UserSummaryResponse> Users { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+    }
+
     #endregion
 
     public void Dispose()
     {
         _client?.Dispose();
-        
-        // Clean up test database file
-        try
-        {
-            if (File.Exists(_databaseName))
-            {
-                File.Delete(_databaseName);
-            }
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
     }
 }

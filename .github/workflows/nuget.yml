@@ -144,6 +144,14 @@ jobs:
         dotnet pack src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj -c Release -o ./local-packages
         dotnet pack src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj -c Release -o ./local-packages
 
+    - name: Resolve MCA package version
+      id: mca-version
+      shell: bash
+      run: |
+        version=$(grep -o '<PackageVersion>[^<]*</PackageVersion>' src/Directory.Build.props | sed 's/<[^>]*>//g')
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "MCA package version: $version"
+
     - name: Configure Local NuGet Source
       run: |
         dotnet nuget add source ${{ github.workspace }}/local-packages -n LocalCI
@@ -161,7 +169,7 @@ jobs:
         pushd "$SCENARIO_DIR"
 
         echo "Scaffolding: dotnet new mca ${{ matrix.args }}"
-        dotnet new mca ${{ matrix.args }}
+        dotnet new mca ${{ matrix.args }} --mcaVersion "${{ steps.mca-version.outputs.version }}"
 
         PROJECT_ROOT="$SCENARIO_DIR/${{ matrix.project }}"
         pushd "$PROJECT_ROOT"
@@ -270,12 +278,17 @@ jobs:
             project_name=$(basename "$project" .csproj)
             echo "Packing: $project_name"
 
+            extra_args=("/p:PackageVersion=${{ steps.get-version.outputs.version }}")
+            if [ "$project" = "templates/MinimalCleanArch.Templates.csproj" ]; then
+              extra_args+=("/p:Version=${{ steps.get-version.outputs.version }}")
+            fi
+
             if dotnet pack "$project" \
               --configuration Release \
               --output ./artifacts/packages \
               --include-symbols \
               --verbosity minimal \
-              /p:PackageVersion=${{ steps.get-version.outputs.version }}; then
+              "${extra_args[@]}"; then
               success_count=$((success_count + 1))
               echo "✓ Successfully packed $project_name"
             else

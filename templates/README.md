@@ -8,8 +8,9 @@ Project templates for creating Clean Architecture applications with the MinimalC
 # From NuGet
 dotnet new install MinimalCleanArch.Templates
 
-# From a local build (e.g., artifacts/nuget)
-dotnet new install path/to/MinimalCleanArch.Templates.0.0.1-preview.nupkg --add-source path/to/local/feed
+# From a local build (clean)
+dotnet new uninstall MinimalCleanArch.Templates
+dotnet new install ./artifacts/packages
 ```
 
 ## Usage
@@ -62,6 +63,11 @@ dotnet new mca -n MyApp --all
 | `--db postgres` | | PostgreSQL |
 | `--dbName <name>` | MCA_DB | Database name used for generated connection strings and Docker compose settings |
 
+#### Versions
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--mcaVersion <version>` | 0.1.8 | MinimalCleanArch package version to reference (use `0.1.8-preview` for local testing) |
+
 ### Examples
 
 ```bash
@@ -113,11 +119,11 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Package version: `0.1.8-preview` (targets .NET 9).
-- Templates reference MinimalCleanArch packages `0.1.8-preview` for optional features (security, messaging, audit, validation).
+- Template package version is `0.1.8-preview` for local testing; release tags publish `0.1.8`.
+- Templates reference MinimalCleanArch packages via `--mcaVersion` (default `0.1.8`, use `0.1.8-preview` for local testing).
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
 - Launch settings default to Swagger and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
-- When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\nuget`) before restoring.
+- When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\packages`) before restoring.
 
 ## Quick database containers
 

@@ -92,12 +92,16 @@ print_color $CYAN "What-If Mode: $WHAT_IF"
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
-    print_color $RED "API key is required!"
-    print_color $YELLOW "Solutions:"
-    print_color $GRAY "  1. Set NUGET_API_KEY environment variable"
-    print_color $GRAY "  2. Pass -k/--api-key parameter"
-    print_color $GRAY "  3. Get API key from: https://www.nuget.org/account/apikeys"
-    exit 1
+    if [ "$WHAT_IF" = true ]; then
+        print_color $YELLOW "API key not set - continuing in What-If mode"
+    else
+        print_color $RED "API key is required!"
+        print_color $YELLOW "Solutions:"
+        print_color $GRAY "  1. Set NUGET_API_KEY environment variable"
+        print_color $GRAY "  2. Pass -k/--api-key parameter"
+        print_color $GRAY "  3. Get API key from: https://www.nuget.org/account/apikeys"
+        exit 1
+    fi
 fi
 
 # Validate packages directory
@@ -106,40 +110,13 @@ if [ ! -d "$PACKAGES_PATH" ]; then
     exit 1
 fi
 
-# Find packages in dependency order (core first, then dependent packages)
-package_order=(
-    "MinimalCleanArch.0.0.1.nupkg"
-    "MinimalCleanArch.DataAccess.0.0.1.nupkg" 
-    "MinimalCleanArch.Extensions.0.0.1.nupkg"
-    "MinimalCleanArch.Validation.0.0.1.nupkg"
-    "MinimalCleanArch.Security.0.0.1.nupkg"
-)
-
-# Find actual packages and order them properly
+# Find packages (exclude symbol packages)
 packages=()
-for pkg_name in "${package_order[@]}"; do
-    pkg_path="$PACKAGES_PATH/$pkg_name"
-    if [ -f "$pkg_path" ]; then
-        packages+=("$pkg_path")
-    fi
-done
-
-# Add any packages not in the predefined order
-while IFS= read -r -d '' file; do
+while IFS= read -r file; do
     if [[ $(basename "$file") != *.symbols.nupkg ]]; then
-        # Check if this package is already in our ordered list
-        found=false
-        for existing in "${packages[@]}"; do
-            if [ "$file" = "$existing" ]; then
-                found=true
-                break
-            fi
-        done
-        if [ "$found" = false ]; then
-            packages+=("$file")
-        fi
+        packages+=("$file")
     fi
-done < <(find "$PACKAGES_PATH" -name "*.nupkg" -print0 2>/dev/null)
+done < <(find "$PACKAGES_PATH" -maxdepth 1 -name "*.nupkg" -print 2>/dev/null | sort)
 
 if [ ${#packages[@]} -eq 0 ]; then
     print_color $RED "No packages found in $PACKAGES_PATH"

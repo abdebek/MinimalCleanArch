@@ -18,12 +18,16 @@ Write-Host "What-If Mode: $WhatIf" -ForegroundColor Cyan
 
 # Validate API key
 if ([string]::IsNullOrEmpty($ApiKey)) {
-    Write-Host "API key is required!" -ForegroundColor Red
-    Write-Host "Solutions:" -ForegroundColor Yellow
-    Write-Host "  1. Set NUGET_API_KEY environment variable" -ForegroundColor Gray
-    Write-Host "  2. Pass -ApiKey parameter" -ForegroundColor Gray
-    Write-Host "  3. Get API key from: https://www.nuget.org/account/apikeys" -ForegroundColor Gray
-    exit 1
+    if ($WhatIf) {
+        Write-Host "API key not set - continuing in What-If mode" -ForegroundColor Yellow
+    } else {
+        Write-Host "API key is required!" -ForegroundColor Red
+        Write-Host "Solutions:" -ForegroundColor Yellow
+        Write-Host "  1. Set NUGET_API_KEY environment variable" -ForegroundColor Gray
+        Write-Host "  2. Pass -ApiKey parameter" -ForegroundColor Gray
+        Write-Host "  3. Get API key from: https://www.nuget.org/account/apikeys" -ForegroundColor Gray
+        exit 1
+    }
 }
 
 # Validate packages directory

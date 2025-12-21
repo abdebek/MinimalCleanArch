@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CliWrap;
@@ -12,6 +13,8 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     private readonly ITestOutputHelper _output;
     private readonly string _testRunId;
     private readonly string _baseOutputDir;
+    private readonly string _packageSource;
+    private readonly string _templateVersion;
 
     public TemplateIntegrationTests(TemplateTestFixture fixture, ITestOutputHelper output)
     {
@@ -19,6 +22,8 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         _testRunId = Guid.NewGuid().ToString("N").Substring(0, 8);
         _baseOutputDir = Path.Combine(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../temp")), "MCA_Tests", _testRunId);
         Directory.CreateDirectory(_baseOutputDir);
+        _packageSource = fixture.PackageSource;
+        _templateVersion = fixture.TemplateVersion;
     }
 
     private void CreateNugetConfig(string projectDir)
@@ -27,14 +32,15 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         var repoRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../../"));
         var candidateSources = new[]
         {
+            _packageSource,
             Path.Combine(repoRoot, "artifacts/nuget"),
             Path.Combine(repoRoot, "artifacts/packages")
         };
 
         var localPackageSource = candidateSources
-            .FirstOrDefault(path => Directory.Exists(path) && Directory.EnumerateFiles(path, "*.nupkg").Any())
-            ?? candidateSources.FirstOrDefault(Directory.Exists)
-            ?? candidateSources.First();
+            .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path) && Directory.EnumerateFiles(path, "*.nupkg").Any())
+            ?? candidateSources.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+            ?? candidateSources.First(path => !string.IsNullOrWhiteSpace(path));
         var globalPackages = Path.Combine(projectDir, ".packages");
 
         var nugetConfigContent = $"""
@@ -42,6 +48,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
                 <configuration>
                 <packageSources>
                     <add key="local" value="{localPackageSource}" />
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
                 </packageSources>
                 <config>
                     <add key="globalPackagesFolder" value="{globalPackages}" />
@@ -73,7 +80,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             // 2. Generate
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
-            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlserver", "--dbName", dbName, "--all");
+            await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlserver", "--dbName", dbName, "--all"));
 
             // 3. Update config (Source)
             var connectionString = $"Server={sqlContainer.Hostname},{sqlContainer.GetMappedPublicPort(1433)};Database={dbName};User Id=sa;Password=Pass@word1;TrustServerCertificate=True";
@@ -131,7 +138,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             // 2. Generate
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
-            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "postgres", "--dbName", dbName, "--all");
+            await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--db", "postgres", "--dbName", dbName, "--all"));
 
             // 3. Update config (Source)
             var connectionString = $"Server={pgContainer.Hostname};Port={pgContainer.GetMappedPublicPort(5432)};Database={dbName};User Id=postgres;Password=postgres";
@@ -178,7 +185,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         _output.WriteLine("Generating project...");
         CreateNugetConfig(projectDir);
         // Use --healthchecks to ensure we have an endpoint to test, but avoid --recommended which might add Redis
-        await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlite", "--dbName", dbName, "--healthchecks");
+        await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlite", "--dbName", dbName, "--healthchecks"));
 
         // 2. Build
         _output.WriteLine("Building project...");
@@ -221,7 +228,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
             // Ensure healthchecks are enabled so we can verify startup
-            await RunDotnetCommandAsync("new", "mca", "-n", projectName, "-o", projectDir, "--caching", "--healthchecks");
+            await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--caching", "--healthchecks"));
 
             // 3. Update config (Source)
             var connectionString = redisContainer.GetConnectionString();
@@ -273,6 +280,11 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             _output.WriteLine(result.StandardError);
             throw new Exception($"Command failed with exit code {result.ExitCode}");
         }
+    }
+
+    private string[] BuildTemplateArgs(params string[] args)
+    {
+        return args.Concat(new[] { "--mcaVersion", _templateVersion }).ToArray();
     }
 
     private void UpdateAppSettings(string projectDir, string projectName, string key, string value)

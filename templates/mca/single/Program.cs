@@ -52,11 +52,15 @@ using Wolverine.SqlServer;
 #if (UseDurableMessaging && UsePostgres)
 using Wolverine.Postgresql;
 #endif
+#endif
 
 #if (UseSerilog)
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
+
+try
+{
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
@@ -219,11 +223,18 @@ builder.Services.AddHealthChecks()
 var otlpEndpoint = builder.Configuration.GetValue<string>("OpenTelemetry:Endpoint");
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("MCA"))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddConsoleExporter()
-        .AddOtlpExporterIfConfigured(otlpEndpoint))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddConsoleExporter();
+
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+        }
+    })
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
@@ -272,9 +283,9 @@ if (app.Environment.IsDevelopment())
     db.Database.EnsureCreated();
 }
 
-try
-{
-    app.Run();
+app.Run();
+
+#if (UseSerilog)
 }
 catch (Exception ex)
 {
@@ -288,18 +299,3 @@ finally
 
 // Expose Program for integration testing
 public partial class Program;
-
-#if (UseOpenTelemetry)
-static class OpenTelemetryExtensions
-{
-    public static TracerProviderBuilder AddOtlpExporterIfConfigured(this TracerProviderBuilder builder, string? endpoint)
-    {
-        if (!string.IsNullOrWhiteSpace(endpoint))
-        {
-            builder.AddOtlpExporter(options => options.Endpoint = new Uri(endpoint));
-        }
-
-        return builder;
-    }
-}
-#endif

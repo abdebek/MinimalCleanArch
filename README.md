@@ -10,10 +10,10 @@ A comprehensive library for implementing Clean Architecture with Minimal APIs on
 - EF Core integration (repositories, unit of work, auditing/soft-delete filters)
 
 ## Version & Templates
-- Current package version: `0.1.8-preview` (targets .NET 9).
-- Templates: `dotnet new install MinimalCleanArch.Templates` (or local nupkg), then `dotnet new mca -n MyApp` (multi-project) or `--single-project`.
+- Current local test version: `0.1.8-preview` (targets .NET 9). Release tags publish `0.1.8`.
+- Templates: `dotnet new install MinimalCleanArch.Templates` (or local nupkg), then `dotnet new mca -n MyApp` (multi-project) or `--single-project`. Use `--mcaVersion` to pin preview packages.
 - Launch defaults: Swagger, randomized ports 5000–8000; adjust `Properties/launchSettings.json` if needed.
-- Using local nupkgs? Add a `nuget.config` with your local feed (e.g., `artifacts/nuget`) before restoring.
+- Using local nupkgs? Add a `nuget.config` with your local feed (e.g., `artifacts/packages`) before restoring.
 
 ## Packages
 | Package | Description |

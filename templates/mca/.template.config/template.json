@@ -113,6 +113,13 @@
       "defaultValue": "",
       "description": "Database name (defaults to application name if not provided)"
     },
+    "mcaVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.1.8",
+      "description": "MinimalCleanArch package version to reference",
+      "replaces": "__MCA_VERSION__"
+    },
     "UseSerilog": {
       "type": "computed",
       "value": "(serilog || recommended || all)"

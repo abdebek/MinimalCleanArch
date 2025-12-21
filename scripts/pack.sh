@@ -6,6 +6,7 @@ set -e
 CONFIGURATION="Release"
 OUTPUT_PATH="./artifacts/packages"
 SKIP_BUILD=false
+PACKAGE_VERSION=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -22,6 +23,10 @@ while [[ $# -gt 0 ]]; do
             SKIP_BUILD=true
             shift
             ;;
+        --package-version)
+            PACKAGE_VERSION="$2"
+            shift 2
+            ;;
         *)
             shift
             ;;
@@ -32,6 +37,9 @@ echo "Building and packing MinimalCleanArch packages..."
 echo "Configuration: $CONFIGURATION"
 echo "Output Path: $OUTPUT_PATH"
 echo "Skip Build: $SKIP_BUILD"
+if [ -n "$PACKAGE_VERSION" ]; then
+    echo "Package Version: $PACKAGE_VERSION"
+fi
 
 # Create output directory
 mkdir -p "$OUTPUT_PATH"
@@ -42,16 +50,17 @@ echo "Cleaning previous artifacts..."
 rm -f "$OUTPUT_PATH"/*.nupkg
 rm -f "$OUTPUT_PATH"/*.snupkg
 
-# Find all .csproj files in src/ directory
-projects=()
-while IFS= read -r -d '' project; do
-    projects+=("$project")
-done < <(find src/ -name "*.csproj" -print0 2>/dev/null)
-
-if [ ${#projects[@]} -eq 0 ]; then
-    echo "No projects found in src/ directory"
-    exit 1
-fi
+# Projects to pack (in dependency order - core first, then dependent packages)
+projects=(
+    "src/MinimalCleanArch/MinimalCleanArch.csproj"
+    "src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj"
+    "src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj"
+    "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj"
+    "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
+    "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
+    "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+    "templates/MinimalCleanArch.Templates.csproj"
+)
 
 echo "Found ${#projects[@]} projects to build:"
 for project in "${projects[@]}"; do
@@ -62,12 +71,32 @@ echo ""
 success_count=0
 
 for project in "${projects[@]}"; do
+    if [ ! -f "$project" ]; then
+        echo "Project file not found: $project - skipping"
+        continue
+    fi
+
     project_name=$(basename "$project" .csproj)
     echo "Processing: $project_name..."
     
     if [ "$SKIP_BUILD" = false ]; then
         echo "  Building..."
-        if ! dotnet build "$project" --configuration "$CONFIGURATION" --verbosity minimal --nologo; then
+        build_props=(
+            "/p:UseSharedCompilation=false"
+            "/p:BuildInParallel=false"
+        )
+        build_args=(
+            "$project"
+            --configuration "$CONFIGURATION"
+            --verbosity minimal
+            --nologo
+        )
+        build_args+=("${build_props[@]}")
+        if [ -n "$PACKAGE_VERSION" ]; then
+            build_args+=("/p:PackageVersion=$PACKAGE_VERSION")
+        fi
+
+        if ! dotnet build "${build_args[@]}"; then
             echo "  Build failed for $project - skipping"
             continue
         fi
@@ -82,6 +111,14 @@ for project in "${projects[@]}"; do
         "--nologo"
         "--include-symbols"
     )
+    pack_args+=("/p:UseSharedCompilation=false" "/p:BuildInParallel=false")
+
+    if [ -n "$PACKAGE_VERSION" ]; then
+        pack_args+=("/p:PackageVersion=$PACKAGE_VERSION")
+        if [ "$project" = "templates/MinimalCleanArch.Templates.csproj" ]; then
+            pack_args+=("/p:Version=$PACKAGE_VERSION")
+        fi
+    fi
     
     if [ "$SKIP_BUILD" = true ]; then
         pack_args+=("--no-build")
