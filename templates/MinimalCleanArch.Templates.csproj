@@ -19,7 +19,7 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <MinVerSkip>true</MinVerSkip>
 
-    <Version>0.1.9-preview</Version>
+    <Version>0.1.10-preview</Version>
   </PropertyGroup>
 
   <ItemGroup>

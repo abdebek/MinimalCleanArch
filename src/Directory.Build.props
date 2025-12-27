@@ -11,7 +11,7 @@
 		<WarningsAsErrors />
 
 		<!-- Package Information -->
-                <PackageVersion>0.1.9-preview</PackageVersion>
+                <PackageVersion>0.1.10-preview</PackageVersion>
 		<Authors>Abdullah D.</Authors>
 		<Company>Waanfeetan</Company>
 		<Product>MinimalCleanArch</Product>
