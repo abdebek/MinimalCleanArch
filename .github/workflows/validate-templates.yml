@@ -27,7 +27,7 @@ jobs:
       - name: Validate templates from source
         shell: pwsh
         run: |
-          pwsh templates/scripts/validate-templates.ps1 -LocalFeedPath ./artifacts/packages -TemplatePackagePath ./artifacts/packages -McaVersion 0.1.10-preview -Framework net10.0
+          pwsh templates/scripts/validate-templates.ps1 -LocalFeedPath ./artifacts/packages -TemplatePackagePath ./artifacts/packages -McaVersion 0.1.11-preview -Framework net10.0
 
       # Optional durable messaging E2E (Testcontainers) - opt in with RUN_DOCKER_E2E
       # - name: Validate templates with durable E2E
