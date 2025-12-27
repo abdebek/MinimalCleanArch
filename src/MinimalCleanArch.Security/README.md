@@ -3,7 +3,7 @@
 Security components for MinimalCleanArch.
 
 ## Version
--0.1.9-preview (net9.0). Use with `MinimalCleanArch`0.1.9-preview.
+-0.1.9-preview (net9.0, net10.0). Use with `MinimalCleanArch`0.1.9-preview.
 
 ## Overview
 - Column-level encryption for EF Core.

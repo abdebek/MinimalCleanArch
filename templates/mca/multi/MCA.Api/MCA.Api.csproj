@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);NU1608</NoWarn>
@@ -35,13 +35,9 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
     <PackageReference Include="WolverineFx.FluentValidation" Version="5.5.0" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <!--#if (UseSecurity)-->
     <PackageReference Include="MinimalCleanArch.Security" Version="__MCA_VERSION__" />
-    <!--#endif-->
-    <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="__MCA_VERSION__" />
@@ -56,11 +52,26 @@
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseOpenTelemetry)-->
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.11.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.11.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.11.0" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.11.2" />
+    <!--#endif-->
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <!--#if (UseCaching)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
+    <!--#endif-->
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <!--#if (UseCaching)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
     <!--#endif-->
   </ItemGroup>
 

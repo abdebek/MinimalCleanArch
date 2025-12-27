@@ -3,7 +3,7 @@
 Validation components for MinimalCleanArch.
 
 ## Version
--0.1.9-preview (net9.0). Use with `MinimalCleanArch`0.1.9-preview and `MinimalCleanArch.Extensions`.
+-0.1.9-preview (net9.0, net10.0). Use with `MinimalCleanArch`0.1.9-preview and `MinimalCleanArch.Extensions`.
 
 ## Overview
 - FluentValidation registration helpers.

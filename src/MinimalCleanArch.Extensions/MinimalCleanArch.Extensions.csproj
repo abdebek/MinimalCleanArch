@@ -10,10 +10,8 @@
 		<PackageReference Include="FluentValidation" Version="12.0.0" />
 		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
-		<PackageReference Include="Microsoft.OpenApi" Version="1.6.22" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+                <PackageReference Include="Microsoft.OpenApi" Version="2.0.0" />
+                <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.2.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
 		<!-- Serilog for structured logging -->
@@ -23,17 +21,29 @@
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<!-- Rate Limiting (built-in .NET 7+) -->
-		<PackageReference Include="System.Threading.RateLimiting" Version="9.0.5" />
-		<!-- API Versioning -->
-		<PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
-		<!-- OpenTelemetry for observability -->
-		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.10.0" />
-		<PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
-		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
-	</ItemGroup>
+                <!-- API Versioning -->
+                <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
+                <!-- OpenTelemetry for observability -->
+                <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />
+                <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
+                <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.11.0" />
+                <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.11.0" />
+                <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.11.0" />
+                <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.11.0" />
+                <PackageReference Include="OpenTelemetry.Api" Version="1.11.2" />
+        </ItemGroup>
+
+        <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+                <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" />
+                <PackageReference Include="System.Threading.RateLimiting" Version="9.0.5" />
+        </ItemGroup>
+
+        <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+                <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+                <PackageReference Include="System.Threading.RateLimiting" Version="10.0.0" />
+        </ItemGroup>
 
 	<ItemGroup>
 		<!-- Only reference the core library - NO EntityFramework or Security references -->

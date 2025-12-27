@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 9
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Pack libraries and templates (local feed)
         shell: pwsh
@@ -27,7 +27,7 @@ jobs:
       - name: Validate templates from source
         shell: pwsh
         run: |
-          pwsh templates/scripts/validate-templates.ps1 -LocalFeedPath ./artifacts/packages -TemplatePackagePath ./artifacts/packages -McaVersion 0.1.8-preview
+          pwsh templates/scripts/validate-templates.ps1 -LocalFeedPath ./artifacts/packages -TemplatePackagePath ./artifacts/packages -McaVersion 0.1.9-preview -Framework net10.0
 
       # Optional durable messaging E2E (Testcontainers) - opt in with RUN_DOCKER_E2E
       # - name: Validate templates with durable E2E

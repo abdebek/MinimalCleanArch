@@ -2,6 +2,7 @@ param(
     [string]$LocalFeedPath = "$PSScriptRoot/../../artifacts/packages",
     [string]$TemplatePackagePath = "$PSScriptRoot/../../artifacts/packages",
     [string]$McaVersion = "0.1.9-preview",
+    [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
     [switch]$IncludeNugetOrg = $false
 )
@@ -35,6 +36,9 @@ Write-Host "==> Local feed: $localFeed"
 Write-Host "==> Template package: $templatePackage"
 if (-not [string]::IsNullOrWhiteSpace($McaVersion)) {
     Write-Host "==> Template MCA version: $McaVersion"
+}
+if (-not [string]::IsNullOrWhiteSpace($Framework)) {
+    Write-Host "==> Template target framework: $Framework"
 }
 if ($IncludeNugetOrg) {
     Write-Host "==> Using nuget.org in restore sources"
@@ -75,6 +79,9 @@ $buildProps = @(
 $templateArgs = @()
 if (-not [string]::IsNullOrWhiteSpace($McaVersion)) {
     $templateArgs = @("--mcaVersion", $McaVersion)
+}
+if (-not [string]::IsNullOrWhiteSpace($Framework)) {
+    $templateArgs += @("--framework", $Framework)
 }
 
 foreach ($scenario in $scenarios) {

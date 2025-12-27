@@ -22,8 +22,7 @@ public static class TodoEndpoints
     public static void MapTodoEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/todos")
-            .WithTags("Todos")
-            .WithOpenApi();
+            .WithTags("Todos");
 
         group.MapGet("/", GetAllTodos)
             .WithName("GetAllTodos")

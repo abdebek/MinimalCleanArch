@@ -23,17 +23,13 @@ public static class UserEndpoints
             .WithName("RegisterUser")
             .WithValidation<RegisterUserRequest>()
             .WithErrorHandling()
-            .WithOpenApi(op => new Microsoft.OpenApi.Models.OpenApiOperation(op)
-            {
-                Summary = "Register a new user",
-                Description = "Creates a new user account"
-            });
+            .WithSummary("Register a new user")
+            .WithDescription("Creates a new user account");
 
         userApi.MapPost("/login", LoginUser)
             .WithName("LoginUser")
             .WithValidation<LoginUserRequest>()
-            .WithErrorHandling()
-            .WithOpenApi();
+            .WithErrorHandling();
 
         // Authenticated user endpoints
         var authUserApi = userApi.MapGroup("")
@@ -42,23 +38,18 @@ public static class UserEndpoints
         // Get current user profile
         authUserApi.MapGet("/profile", GetCurrentUserProfile)
             .WithName("GetCurrentUserProfile")
-            .WithOpenApi(op => new Microsoft.OpenApi.Models.OpenApiOperation(op)
-            {
-                Summary = "Gets the current user's profile",
-                Description = "Returns the profile information for the currently authenticated user"
-            });
+            .WithSummary("Gets the current user's profile")
+            .WithDescription("Returns the profile information for the currently authenticated user");
 
         // Update current user profile
         authUserApi.MapPut("/profile", UpdateCurrentUserProfile)
             .WithName("UpdateCurrentUserProfile")
             .WithValidation<UpdateUserProfileRequest>()
-            .WithErrorHandling()
-            .WithOpenApi();
+            .WithErrorHandling();
 
         // Get user's todos (example of user-specific data)
         authUserApi.MapGet("/todos", GetCurrentUserTodos)
-            .WithName("GetCurrentUserTodos")
-            .WithOpenApi();
+            .WithName("GetCurrentUserTodos");
 
         // Admin-only endpoints using roles
         var adminApi = app.MapGroup("/api/admin/users")
@@ -66,23 +57,19 @@ public static class UserEndpoints
             .RequireAuthorization("Admin"); // Require Admin role
 
         adminApi.MapGet("/", GetAllUsers)
-            .WithName("GetAllUsers")
-            .WithOpenApi();
+            .WithName("GetAllUsers");
 
         adminApi.MapDelete("/{userId}", DeleteUser)
             .WithName("DeleteUser")
-            .WithErrorHandling()
-            .WithOpenApi();
+            .WithErrorHandling();
 
         adminApi.MapPost("/{userId}/roles/{roleName}", AssignRole)
             .WithName("AssignRole")
-            .WithErrorHandling()
-            .WithOpenApi();
+            .WithErrorHandling();
 
         adminApi.MapDelete("/{userId}/roles/{roleName}", RemoveRole)
             .WithName("RemoveRole")
-            .WithErrorHandling()
-            .WithOpenApi();
+            .WithErrorHandling();
 
         return app;
     }

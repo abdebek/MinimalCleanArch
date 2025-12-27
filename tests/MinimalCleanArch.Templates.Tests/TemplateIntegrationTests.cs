@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using CliWrap;
 using CliWrap.Buffered;
 using Xunit.Abstractions;
@@ -15,6 +16,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     private readonly string _baseOutputDir;
     private readonly string _packageSource;
     private readonly string _templateVersion;
+    private const string TemplateFramework = "net10.0";
 
     public TemplateIntegrationTests(TemplateTestFixture fixture, ITestOutputHelper output)
     {
@@ -81,6 +83,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
             await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlserver", "--dbName", dbName, "--all"));
+            AssertTargetFramework(projectDir, projectName);
 
             // 3. Update config (Source)
             var connectionString = $"Server={sqlContainer.Hostname},{sqlContainer.GetMappedPublicPort(1433)};Database={dbName};User Id=sa;Password=Pass@word1;TrustServerCertificate=True";
@@ -139,6 +142,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             _output.WriteLine("Generating project...");
             CreateNugetConfig(projectDir);
             await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--db", "postgres", "--dbName", dbName, "--all"));
+            AssertTargetFramework(projectDir, projectName);
 
             // 3. Update config (Source)
             var connectionString = $"Server={pgContainer.Hostname};Port={pgContainer.GetMappedPublicPort(5432)};Database={dbName};User Id=postgres;Password=postgres";
@@ -186,6 +190,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         CreateNugetConfig(projectDir);
         // Use --healthchecks to ensure we have an endpoint to test, but avoid --recommended which might add Redis
         await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--db", "sqlite", "--dbName", dbName, "--healthchecks"));
+        AssertTargetFramework(projectDir, projectName);
 
         // 2. Build
         _output.WriteLine("Building project...");
@@ -229,6 +234,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             CreateNugetConfig(projectDir);
             // Ensure healthchecks are enabled so we can verify startup
             await RunDotnetCommandAsync(BuildTemplateArgs("new", "mca", "-n", projectName, "-o", projectDir, "--caching", "--healthchecks"));
+            AssertTargetFramework(projectDir, projectName);
 
             // 3. Update config (Source)
             var connectionString = redisContainer.GetConnectionString();
@@ -266,6 +272,66 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
     // Helpers
 
+    private void AssertTargetFramework(string projectDir, string projectName)
+    {
+        var targetFramework = ResolveTargetFramework(projectDir, projectName);
+        targetFramework.Should().Be(TemplateFramework);
+    }
+
+    private string ResolveTargetFramework(string projectDir, string projectName)
+    {
+        var projectPath = ResolveAppProjectPath(projectDir, projectName);
+        var doc = XDocument.Load(projectPath);
+        var tfm = doc.Descendants("TargetFramework").FirstOrDefault()?.Value?.Trim();
+        if (!string.IsNullOrWhiteSpace(tfm))
+        {
+            return tfm;
+        }
+
+        var tfms = doc.Descendants("TargetFrameworks").FirstOrDefault()?.Value;
+        if (!string.IsNullOrWhiteSpace(tfms))
+        {
+            var frameworks = tfms.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var match = frameworks.FirstOrDefault(framework => framework.Equals(TemplateFramework, StringComparison.OrdinalIgnoreCase));
+            return match ?? frameworks.First();
+        }
+
+        throw new InvalidOperationException($"Target framework not found in {projectPath}");
+    }
+
+    private string ResolveAppProjectPath(string projectDir, string projectName)
+    {
+        var csprojFiles = Directory.GetFiles(projectDir, "*.csproj", SearchOption.AllDirectories)
+            .Where(path => !IsInDirectory(path, "bin") && !IsInDirectory(path, "obj") && !IsInDirectory(path, "tests"))
+            .ToList();
+
+        if (!csprojFiles.Any())
+        {
+            throw new FileNotFoundException("No project files found.");
+        }
+
+        var namedProject = csprojFiles.FirstOrDefault(path =>
+            Path.GetFileName(path).Equals($"{projectName}.Api.csproj", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetFileName(path).Equals($"{projectName}.csproj", StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(namedProject))
+        {
+            return namedProject;
+        }
+
+        var webProject = csprojFiles.FirstOrDefault(path =>
+            File.ReadAllText(path).Contains("Microsoft.NET.Sdk.Web", StringComparison.OrdinalIgnoreCase));
+
+        return webProject ?? csprojFiles.First();
+    }
+
+    private static bool IsInDirectory(string path, string directoryName)
+    {
+        var separators = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
+        var segments = path.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+        return segments.Any(segment => segment.Equals(directoryName, StringComparison.OrdinalIgnoreCase));
+    }
+
     private async Task RunDotnetCommandAsync(params string[] args)
     {
         var result = await Cli.Wrap("dotnet")
@@ -284,7 +350,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
     private string[] BuildTemplateArgs(params string[] args)
     {
-        return args.Concat(new[] { "--mcaVersion", _templateVersion }).ToArray();
+        return args.Concat(new[] { "--mcaVersion", _templateVersion, "--framework", TemplateFramework }).ToArray();
     }
 
     private void UpdateAppSettings(string projectDir, string projectName, string key, string value)
@@ -322,16 +388,18 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
     private Process StartApp(string projectDir, string projectName)
     {
-        // We built it, now we run it.
-        // Ideally we run the dll from bin/Debug/net9.0
+        // We built it, now we run it from the target framework output.
+        var targetFramework = ResolveTargetFramework(projectDir, projectName);
+        var outputSegment = Path.Combine("bin", "Debug", targetFramework);
+
         // Find the .dll
         var dllFiles = Directory.GetFiles(projectDir, $"{projectName}*.dll", SearchOption.AllDirectories);
-        // Filter for the one in bin/Debug/net9.0 and is the main app
+        // Filter for the one in bin/Debug/<tfm> and is the main app
         // In Multi: projectName.Api.dll
         // In Single: projectName.dll
-        
+
         var mainDll = dllFiles
-            .Where(f => f.Contains("bin") && f.Contains("Debug") && f.Contains("net9.0"))
+            .Where(f => f.Contains(outputSegment, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(f => new FileInfo(f).LastWriteTime)
             .FirstOrDefault(f => f.EndsWith($"{projectName}.dll") || f.EndsWith($"{projectName}.Api.dll"));
 

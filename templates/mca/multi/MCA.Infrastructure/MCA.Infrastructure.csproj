@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);NU1608</NoWarn>
@@ -10,6 +10,15 @@
   <ItemGroup>
     <PackageReference Include="MinimalCleanArch" Version="__MCA_VERSION__" />
     <PackageReference Include="MinimalCleanArch.DataAccess" Version="__MCA_VERSION__" />
+    <!--#if (UseSecurity)-->
+    <PackageReference Include="MinimalCleanArch.Security" Version="__MCA_VERSION__" />
+    <!--#endif-->
+    <!--#if (UseAudit)-->
+    <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
+    <!--#endif-->
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <!--#if (UseSqlite)-->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.5" />
     <!--#endif-->
@@ -19,14 +28,23 @@
     <!--#if (UsePostgres)-->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
     <!--#endif-->
-    <!--#if (UseSecurity)-->
-    <PackageReference Include="MinimalCleanArch.Security" Version="__MCA_VERSION__" />
-    <!--#endif-->
-    <!--#if (UseAudit)-->
-    <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
-    <!--#endif-->
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
+    <!--#endif-->
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <!--#if (UseSqlite)-->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <!--#endif-->
+    <!--#if (UseSqlServer)-->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <!--#endif-->
+    <!--#if (UsePostgres)-->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <!--#endif-->
+    <!--#if (UseCaching)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
     <!--#endif-->
   </ItemGroup>
 

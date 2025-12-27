@@ -5,11 +5,19 @@
 		<PackageTags>clean-architecture;audit;audit-log;change-tracking;compliance</PackageTags>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
-	</ItemGroup>
+        <ItemGroup>
+                <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        </ItemGroup>
+
+        <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
+                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
+        </ItemGroup>
+
+        <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+        </ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />

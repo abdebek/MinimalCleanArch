@@ -38,7 +38,7 @@ This sample demonstrates:
 ## Quick Start
 
 ### Prerequisites
-- .NET 9.0 SDK
+- .NET 10.0 SDK
 - SQLite (included)
 - MinimalCleanArch packages v0.1.7 (if using a local feed, add `nuget.config` pointing to it before restore)
 

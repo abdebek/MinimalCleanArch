@@ -5,12 +5,20 @@
 		<PackageTags>clean-architecture;encryption;data-protection;azure-keyvault</PackageTags>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.5" />
-		<PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.2.4" />
-		<PackageReference Include="Azure.Identity" Version="1.14.0" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
-	</ItemGroup>
+        <ItemGroup>
+                <FrameworkReference Include="Microsoft.AspNetCore.App" />
+                <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.2.4" />
+                <PackageReference Include="Azure.Identity" Version="1.14.0" />
+        </ItemGroup>
+
+        <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+                <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.5" />
+                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
+        </ItemGroup>
+
+        <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+                <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.0" />
+                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+        </ItemGroup>
 
 </Project>

@@ -120,6 +120,17 @@
       "description": "MinimalCleanArch package version to reference",
       "replaces": "__MCA_VERSION__"
     },
+    "framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "net10.0",
+      "choices": [
+        { "choice": "net9.0", "description": ".NET 9" },
+        { "choice": "net10.0", "description": ".NET 10" }
+      ],
+      "description": "Target framework for generated projects",
+      "replaces": "__MCA_TFM__"
+    },
     "UseSerilog": {
       "type": "computed",
       "value": "(serilog || recommended || all)"

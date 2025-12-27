@@ -49,10 +49,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup .NET 9.0
+    - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Verify .NET version
       run: dotnet --version
@@ -128,10 +128,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup .NET 9.0
+    - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Pack libraries for local validation
       run: |
@@ -203,10 +203,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup .NET 9.0
+    - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Verify .NET version
       run: dotnet --version
@@ -366,10 +366,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup .NET 9.0
+    - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Download packages artifact
       uses: actions/download-artifact@v4
@@ -470,7 +470,7 @@ jobs:
           ## MinimalCleanArch ${{ github.ref_name }}
 
           ### Packages Published
-          - MinimalCleanArch - Core components (.NET 9.0)
+          - MinimalCleanArch - Core components (.NET 9.0, .NET 10.0)
           - MinimalCleanArch.DataAccess - Entity Framework Core implementation  
           - MinimalCleanArch.Extensions - Minimal API extensions
           - MinimalCleanArch.Validation - FluentValidation integration
@@ -486,8 +486,8 @@ jobs:
           dotnet add package MinimalCleanArch.Extensions --version ${{ needs.pack.outputs.package-version }}
           ```
 
-          ### .NET 9.0 Features
-          This release targets .NET 9.0 and includes:
+          ### .NET 9.0 and 10.0 Features
+          This release targets .NET 9.0 and .NET 10.0 and includes:
           - Updated to Entity Framework Core 9.0.5
           - FluentValidation 12.0.0 support
           - Enhanced performance and security
@@ -515,10 +515,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup .NET 9.0
+    - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Restore dependencies
       run: dotnet restore MinimalCleanArch.CI.sln

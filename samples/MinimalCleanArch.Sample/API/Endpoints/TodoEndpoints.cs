@@ -2,7 +2,6 @@
 using MinimalCleanArch.Sample.API.Models;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Specifications;
-using Microsoft.OpenApi.Models;
 using MinimalCleanArch.Extensions.Extensions;
 
 namespace MinimalCleanArch.Sample.API.Endpoints;
@@ -20,32 +19,23 @@ public static class TodoEndpoints
         // Get all todos
         todoApi.MapGet("/", GetTodos)
             .WithName("GetTodos")
-            .WithOpenApi(op => new OpenApiOperation(op)
-            {
-                Summary = "Gets all todos with optional filtering",
-                Description = "Gets a list of todos with optional filtering and pagination"
-            })
+            .WithSummary("Gets all todos with optional filtering")
+            .WithDescription("Gets a list of todos with optional filtering and pagination")
             .WithStandardResponses<object>();
 
         // Get todo by ID
         todoApi.MapGet("/{id:int}", GetTodoById)
             .WithName("GetTodoById")
-            .WithOpenApi(op => new OpenApiOperation(op)
-            {
-                Summary = "Gets a todo by ID",
-                Description = "Gets a todo by its ID"
-            })
+            .WithSummary("Gets a todo by ID")
+            .WithDescription("Gets a todo by its ID")
             .WithStandardResponses<TodoResponse>()
             .WithErrorHandling();
 
         // Create todo
         todoApi.MapPost("/", CreateTodo)
             .WithName("CreateTodo")
-            .WithOpenApi(op => new OpenApiOperation(op)
-            {
-                Summary = "Creates a new todo",
-                Description = "Creates a new todo"
-            })
+            .WithSummary("Creates a new todo")
+            .WithDescription("Creates a new todo")
             .WithValidation<CreateTodoRequest>()
             .WithStandardResponses<TodoResponse>()
             .WithErrorHandling();
@@ -53,11 +43,8 @@ public static class TodoEndpoints
         // Update todo
         todoApi.MapPut("/{id:int}", UpdateTodo)
             .WithName("UpdateTodo")
-            .WithOpenApi(op => new OpenApiOperation(op)
-            {
-                Summary = "Updates a todo",
-                Description = "Updates a todo"
-            })
+            .WithSummary("Updates a todo")
+            .WithDescription("Updates a todo")
             .WithValidation<UpdateTodoRequest>()
             .WithStandardResponses<TodoResponse>()
             .WithErrorHandling();
@@ -65,11 +52,8 @@ public static class TodoEndpoints
         // Delete todo
         todoApi.MapDelete("/{id:int}", DeleteTodo)
             .WithName("DeleteTodo")
-            .WithOpenApi(op => new OpenApiOperation(op)
-            {
-                Summary = "Deletes a todo",
-                Description = "Deletes a todo"
-            })
+            .WithSummary("Deletes a todo")
+            .WithDescription("Deletes a todo")
             .WithStandardResponses<object>()
             .WithErrorHandling();
 

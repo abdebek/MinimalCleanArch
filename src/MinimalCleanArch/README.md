@@ -3,7 +3,7 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
--0.1.9-preview (net9.0). Base dependency for all other MinimalCleanArch packages.
+-0.1.9-preview (net9.0, net10.0). Base dependency for all other MinimalCleanArch packages.
 
 ## Contents
 - Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`.

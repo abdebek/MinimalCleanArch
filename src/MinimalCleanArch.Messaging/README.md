@@ -3,7 +3,7 @@
 Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Version
--0.1.9-preview (net9.0). Use with `MinimalCleanArch`0.1.9-preview and companions.
+-0.1.9-preview (net9.0, net10.0). Use with `MinimalCleanArch`0.1.9-preview and companions.
 
 ## What's included
 - Domain event contracts and helpers.
