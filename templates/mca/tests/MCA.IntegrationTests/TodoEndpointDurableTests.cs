@@ -10,7 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
-using Testcontainers.SqlEdge;
+using Testcontainers.MsSql;
 using Xunit;
 
 namespace MCA.IntegrationTests;
@@ -78,7 +78,7 @@ public class DurableApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly bool _enabled;
     private readonly string _dbKind;
-    private SqlEdgeContainer? _sqlServer;
+    private MsSqlContainer? _sqlServer;
     private PostgreSqlContainer? _postgres;
 
     public bool Enabled => _enabled;
@@ -154,7 +154,7 @@ public class DurableApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         if (_dbKind == "postgres")
         {
-            _postgres = new PostgreSqlBuilder()
+            _postgres = new PostgreSqlBuilder("postgres:latest")
                 .WithDatabase("mca")
                 .WithUsername("postgres")
                 .WithPassword("postgres")
@@ -163,7 +163,7 @@ public class DurableApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         }
         else
         {
-            _sqlServer = new SqlEdgeBuilder()
+            _sqlServer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
                 .WithPassword("YourStrong@Passw0rd")
                 .WithPortBinding(0, 1433)
                 .Build();

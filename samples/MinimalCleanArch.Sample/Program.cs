@@ -21,6 +21,7 @@ using MinimalCleanArch.Sample.Infrastructure.Seeders;
 using MinimalCleanArch.Sample.Infrastructure.Services;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
+using Scalar.AspNetCore;
 using Serilog;
 
 // Configure Serilog early for startup logging
@@ -53,8 +54,7 @@ try
     }
 
     // Add services to the container
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddOpenApi();
 
     // Add API versioning
     builder.Services.AddMinimalCleanArchApiVersioning();
@@ -226,8 +226,8 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        app.MapOpenApi();
+        app.MapScalarApiReference();
     }
 
     app.UseHttpsRedirection();

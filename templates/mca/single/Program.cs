@@ -1,6 +1,7 @@
 #if (UseSerilog)
 using Serilog;
 #endif
+using Scalar.AspNetCore;
 using MCA.Application.Services;
 using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
@@ -241,17 +242,16 @@ builder.Services.AddOpenTelemetry()
         .AddConsoleExporter());
 #endif
 
-// API Explorer for OpenAPI/Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// OpenAPI document generation
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 #if (UseSerilog)
