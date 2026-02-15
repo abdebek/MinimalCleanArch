@@ -42,6 +42,9 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using System;
 #endif
+#if (UseAuth)
+using MCA.Infrastructure.Configuration;
+#endif
 #if (UseMessaging)
 using Wolverine;
 #if (UseValidation)
@@ -105,6 +108,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseNpgsql(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+    options.UseOpenIddict<Guid>();
+#endif
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
 #endif
@@ -118,6 +124,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+    options.UseOpenIddict<Guid>();
+#endif
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
 #endif
@@ -131,6 +140,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlite(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+    options.UseOpenIddict<Guid>();
+#endif
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
 #endif
@@ -167,6 +179,12 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
+#endif
+
+#if (UseAuth)
+// Authentication - OpenIddict + ASP.NET Core Identity
+builder.Services.AddAuthServices(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 #endif
 
 #if (UseCaching)
@@ -265,6 +283,11 @@ app.UseHttpsRedirection();
 app.UseCors();
 #endif
 
+#if (UseAuth)
+app.UseAuthentication();
+app.UseAuthorization();
+#endif
+
 #if (UseHealthChecks)
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
@@ -274,6 +297,10 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 
 // Map endpoints
 app.MapTodoEndpoints();
+#if (UseAuth)
+app.MapAuthEndpoints();
+app.MapOpenIddictEndpoints();
+#endif
 
 // Ensure database is created (development only)
 if (app.Environment.IsDevelopment())
@@ -281,6 +308,9 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+#if (UseAuth)
+    await app.Services.SeedOpenIddictApplicationsAsync(builder.Configuration);
+#endif
 }
 
 app.Run();

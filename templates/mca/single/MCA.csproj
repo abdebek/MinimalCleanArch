@@ -25,6 +25,12 @@
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
     <!--#endif-->
+    <!--#if (UseAuth)-->
+    <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.2.0" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.2.0" />
+    <!--#endif-->
     <!--#if (UseValidation)-->
     <PackageReference Include="MinimalCleanArch.Validation" Version="__MCA_VERSION__" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
@@ -76,6 +82,10 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
     <!--#endif-->
+    <!--#if (UseAuth)-->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.5" />
+    <!--#endif-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
@@ -92,6 +102,10 @@
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
+    <!--#endif-->
+    <!--#if (UseAuth)-->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.3" />
     <!--#endif-->
   </ItemGroup>
 

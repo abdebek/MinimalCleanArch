@@ -90,6 +90,12 @@
       "defaultValue": "false",
       "description": "Include audit logging"
     },
+    "auth": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include OpenIddict authentication (Identity + OAuth2/OpenID Connect)"
+    },
     "opentelemetry": {
       "type": "parameter",
       "datatype": "bool",
@@ -145,7 +151,11 @@
     },
     "UseSecurity": {
       "type": "computed",
-      "value": "(security || recommended || all)"
+      "value": "(security || recommended || all || auth)"
+    },
+    "UseAuth": {
+      "type": "computed",
+      "value": "(auth || all)"
     },
     "UseCaching": {
       "type": "computed",
@@ -255,6 +265,7 @@
       "modifiers": [
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
+        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/AuthSettings.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Services/AuthenticationService.cs", "**/Services/CustomClaimsPrincipalFactory.cs"] },
         { "exclude": ["**/bin/**", "**/obj/**"] }
       ]
     },
@@ -266,6 +277,7 @@
         { "condition": "(!UseDocker)", "exclude": ["Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
+        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/AuthSettings.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Services/AuthenticationService.cs", "**/Services/CustomClaimsPrincipalFactory.cs"] },
         { "exclude": ["**/bin/**", "**/obj/**"] }
       ]
     }
