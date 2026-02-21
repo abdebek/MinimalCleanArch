@@ -127,7 +127,9 @@ dotnet new uninstall MinimalCleanArch.Templates
 - Template package version is `0.1.12-preview` (local/default). The current stable packages are `0.1.7` (pass `--mcaVersion 0.1.7`).
 - Templates reference MinimalCleanArch packages via `--mcaVersion` (default `0.1.12-preview`).
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
-- `--auth` adds OpenIddict 7.2.0 with ASP.NET Core Identity: password, authorization code, and refresh token grants; register/change-password endpoints; seeded default API client. Automatically enables `--security`.
+- `--auth` adds OpenIddict 7.2.0 with ASP.NET Core Identity: password, authorization code, and refresh token grants; register/change-password endpoints; seeded default API clients, plus roles scope/claims support. Automatically enables `--security`.
+- Optional bootstrap admin seeding is available via `Seed:*` settings (`Seed:EnableBootstrapAdmin`, `Seed:AdminEmail`, `Seed:AdminPassword`, `Seed:AdminRole`), disabled by default.
+- Auth login page templates include commented external provider button snippets (Google/Microsoft/GitHub) in `Endpoints/AuthEndpoints.cs`; enable providers in `IdentityServiceExtensions` and set `Authentication:<Provider>:ClientId/ClientSecret`, then uncomment buttons.
 - Launch settings default to Scalar UI and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\packages`) before restoring.
 

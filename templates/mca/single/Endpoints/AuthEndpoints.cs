@@ -212,6 +212,9 @@ public static class AuthEndpoints
                     button { width: 100%; padding: .6rem; background: #4f46e5; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
                     button:hover { background: #4338ca; }
                     .error { color: #dc2626; font-size: .875rem; margin-bottom: 1rem; }
+                    .providers { margin-top: 1rem; display: grid; gap: .5rem; }
+                    .provider-button { display: block; width: 100%; text-align: center; text-decoration: none; padding: .6rem; border: 1px solid #d1d5db; color: #111827; border-radius: 4px; font-size: .95rem; background: #fff; }
+                    .provider-button:hover { background: #f9fafb; }
                 </style>
             </head>
             <body>
@@ -226,6 +229,14 @@ public static class AuthEndpoints
                     <input type="hidden" name="returnUrl" value="{returnUrl}">
                     <button type="submit">Sign in</button>
                 </form>
+                <!-- External providers (optional): enable provider handlers first in IdentityServiceExtensions, then uncomment. -->
+                <!--
+                <div class="providers">
+                    <a class="provider-button" href="/api/auth/external/Google?returnUrl={returnUrl}">Continue with Google</a>
+                    <a class="provider-button" href="/api/auth/external/Microsoft?returnUrl={returnUrl}">Continue with Microsoft</a>
+                    <a class="provider-button" href="/api/auth/external/GitHub?returnUrl={returnUrl}">Continue with GitHub</a>
+                </div>
+                -->
             </div>
             </body>
             </html>

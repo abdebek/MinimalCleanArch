@@ -3,8 +3,11 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using MCA.Application.Interfaces;
+using MCA.Domain.Constants;
+using MCA.Domain.Entities;
 using MCA.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -191,6 +194,20 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
         body.Should().Contain("State mismatch");
     }
 
+    [Fact]
+    public async Task BootstrapAdminSeed_CreatesAdminRoleAndUser()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        (await roleManager.RoleExistsAsync(Roles.Admin)).Should().BeTrue();
+
+        var adminUser = await userManager.FindByEmailAsync("admin@example.com");
+        adminUser.Should().NotBeNull();
+        (await userManager.IsInRoleAsync(adminUser!, Roles.Admin)).Should().BeTrue();
+    }
+
     // --- SSR form login (development only) ---
 
     [Fact]
@@ -298,7 +315,13 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
         {
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["App:BaseUrl"] = "http://localhost"
+                ["App:BaseUrl"] = "http://localhost",
+                ["Seed:EnableBootstrapAdmin"] = "true",
+                ["Seed:AdminEmail"] = "admin@example.com",
+                ["Seed:AdminPassword"] = "SeededAdmin!123",
+                ["Seed:AdminFirstName"] = "System",
+                ["Seed:AdminLastName"] = "Administrator",
+                ["Seed:AdminRole"] = Roles.Admin
             });
         });
         builder.ConfigureServices(services =>

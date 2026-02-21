@@ -1,4 +1,5 @@
 using MCA.Application.Interfaces;
+using MCA.Domain.Constants;
 using MCA.Domain.Entities;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Providers;
@@ -292,6 +293,8 @@ public static class IdentityServiceExtensions
                 OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
             }
         });
+
+        await SeedBootstrapAdminAsync(scope.ServiceProvider, configuration);
     }
 
     private static async Task UpsertClientAsync(
@@ -303,5 +306,66 @@ public static class IdentityServiceExtensions
             await manager.CreateAsync(descriptor);
         else
             await manager.UpdateAsync(existing, descriptor);
+    }
+
+    private static async Task SeedBootstrapAdminAsync(IServiceProvider services, IConfiguration configuration)
+    {
+        var enableBootstrapAdmin = configuration.GetValue<bool>("Seed:EnableBootstrapAdmin");
+        if (!enableBootstrapAdmin)
+            return;
+
+        var adminEmail = configuration["Seed:AdminEmail"];
+        var adminPassword = configuration["Seed:AdminPassword"];
+        var adminFirstName = configuration["Seed:AdminFirstName"] ?? "System";
+        var adminLastName = configuration["Seed:AdminLastName"] ?? "Administrator";
+        var adminRole = configuration["Seed:AdminRole"] ?? Roles.Admin;
+
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        {
+            throw new InvalidOperationException(
+                "Bootstrap admin seeding is enabled but Seed:AdminEmail and/or Seed:AdminPassword is missing.");
+        }
+
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+
+        if (!await roleManager.RoleExistsAsync(adminRole))
+        {
+            var roleResult = await roleManager.CreateAsync(new IdentityRole<Guid>(adminRole));
+            if (!roleResult.Succeeded)
+                throw new InvalidOperationException($"Failed to create bootstrap admin role '{adminRole}': {FormatIdentityErrors(roleResult.Errors)}");
+        }
+
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser(adminFirstName, adminLastName, adminEmail)
+            {
+                EmailConfirmed = true
+            };
+
+            var createUserResult = await userManager.CreateAsync(adminUser, adminPassword);
+            if (!createUserResult.Succeeded)
+                throw new InvalidOperationException($"Failed to create bootstrap admin user '{adminEmail}': {FormatIdentityErrors(createUserResult.Errors)}");
+        }
+        else if (!adminUser.EmailConfirmed)
+        {
+            adminUser.EmailConfirmed = true;
+            var updateResult = await userManager.UpdateAsync(adminUser);
+            if (!updateResult.Succeeded)
+                throw new InvalidOperationException($"Failed to update bootstrap admin user '{adminEmail}': {FormatIdentityErrors(updateResult.Errors)}");
+        }
+
+        if (!await userManager.IsInRoleAsync(adminUser, adminRole))
+        {
+            var addToRoleResult = await userManager.AddToRoleAsync(adminUser, adminRole);
+            if (!addToRoleResult.Succeeded)
+                throw new InvalidOperationException($"Failed to assign role '{adminRole}' to bootstrap admin '{adminEmail}': {FormatIdentityErrors(addToRoleResult.Errors)}");
+        }
+    }
+
+    private static string FormatIdentityErrors(IEnumerable<IdentityError> errors)
+    {
+        return string.Join("; ", errors.Select(error => error.Description));
     }
 }
