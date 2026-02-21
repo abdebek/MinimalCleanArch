@@ -34,7 +34,7 @@ dotnet new mca -n MyApp --all
 | Option | Description |
 |--------|-------------|
 | `--recommended` | Includes: serilog, healthchecks, validation, security, caching |
-| `--all` | Includes all features plus: messaging, audit, opentelemetry, docker, tests |
+| `--all` | Includes all features plus: auth, messaging, audit, opentelemetry, docker, tests |
 
 #### Project Structure
 | Option | Default | Description |
@@ -49,6 +49,7 @@ dotnet new mca -n MyApp --all
 | `--serilog` | Structured logging with Serilog |
 | `--healthchecks` | Health check endpoints |
 | `--validation` | FluentValidation integration |
+| `--auth` | OpenIddict authentication (Identity + OAuth2/OpenID Connect) |
 | `--security` | Encryption, security headers, CORS |
 | `--caching` | In-memory and Redis caching |
 | `--messaging` | Wolverine domain events |
@@ -66,7 +67,7 @@ dotnet new mca -n MyApp --all
 #### Versions
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--mcaVersion <version>` | 0.1.11-preview | MinimalCleanArch package version to reference (local default) |
+| `--mcaVersion <version>` | 0.1.12-preview | MinimalCleanArch package version to reference (local default) |
 | `--framework <tfm>` | net10.0 | Target framework for generated projects (`net9.0` or `net10.0`) |
 
 ### Examples
@@ -83,6 +84,9 @@ dotnet new mca -n Prototype --single-project
 
 # Full-featured application
 dotnet new mca -n EnterpriseApp --all --db sqlserver
+
+# API with authentication (OpenIddict + Identity)
+dotnet new mca -n SecureApp --auth --db postgres
 ```
 
 ## Project Structure
@@ -120,10 +124,11 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Template package version is `0.1.11-preview` (local/default). The current stable packages are `0.1.7` (pass `--mcaVersion 0.1.7`).
-- Templates reference MinimalCleanArch packages via `--mcaVersion` (default `0.1.11-preview`).
+- Template package version is `0.1.12-preview` (local/default). The current stable packages are `0.1.7` (pass `--mcaVersion 0.1.7`).
+- Templates reference MinimalCleanArch packages via `--mcaVersion` (default `0.1.12-preview`).
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
-- Launch settings default to Swagger and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
+- `--auth` adds OpenIddict 7.2.0 with ASP.NET Core Identity: password, authorization code, and refresh token grants; register/change-password endpoints; seeded default API client. Automatically enables `--security`.
+- Launch settings default to Scalar UI and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\packages`) before restoring.
 
 ## Quick database containers

@@ -45,6 +45,7 @@ using System;
 #endif
 #if (UseAuth)
 using MCA.Api.Configuration;
+using MCA.Application.Interfaces;
 using MCA.Infrastructure.Configuration;
 #endif
 #if (UseMessaging)
@@ -189,6 +190,7 @@ builder.Services.AddCors(options =>
 // Authentication - OpenIddict + ASP.NET Core Identity
 builder.Services.AddAuthServices(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddHttpClient();
 #endif
 
 #if (UseCaching)
@@ -289,6 +291,7 @@ app.UseCors();
 #if (UseAuth)
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSession();
 #endif
 
 #if (UseHealthChecks)
@@ -301,8 +304,10 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 // Map endpoints
 app.MapTodoEndpoints();
 #if (UseAuth)
-app.MapAuthEndpoints();
+app.MapAuthEndpoints(app.Environment.IsDevelopment());
 app.MapOpenIddictEndpoints();
+app.MapExternalAuthEndpoints();
+app.MapOAuthEndpoints();
 #endif
 
 // Ensure database is created (development only)

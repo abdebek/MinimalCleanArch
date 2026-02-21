@@ -61,7 +61,7 @@ public class TemplateTestFixture : IAsyncLifetime
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .FirstOrDefault();
 
-        var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.1.11-preview";
+        var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.1.12-preview";
 
         return (packagePath ?? TemplatePath, version);
     }

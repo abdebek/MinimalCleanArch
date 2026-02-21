@@ -6,6 +6,7 @@ using MCA.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
@@ -28,7 +29,12 @@ public class TodoEndpointTests : IClassFixture<TestApiFactory>
     ]
     public async Task GetTodos_InitiallyEmpty_ReturnsOkAndEmptyList()
     {
-        var response = await _client.GetAsync("/api/todos");
+        // Use a dedicated factory with a fresh DB to guarantee empty state regardless
+        // of which order xUnit executes tests within the class.
+        await using var isolatedFactory = new TestApiFactory();
+        using var isolatedClient = isolatedFactory.CreateClient();
+
+        var response = await isolatedClient.GetAsync("/api/todos");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payload = await response.Content.ReadFromJsonAsync<List<TodoResponse>>();
@@ -78,18 +84,26 @@ public class TodoEndpointTests : IClassFixture<TestApiFactory>
 
 public class TestApiFactory : WebApplicationFactory<Program>
 {
+    // Each factory instance gets its own DB so independently-created factories
+    // (e.g. inline factories in a test) never share state with the class-level fixture.
+    private readonly string _dbName = $"TestDb-{Guid.NewGuid()}";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
         builder.ConfigureServices(services =>
         {
             services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
+            services.RemoveAll(typeof(IDbContextOptionsConfiguration<AppDbContext>));
             services.RemoveAll<AppDbContext>();
 
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseInMemoryDatabase("TestDb");
+                options.UseInMemoryDatabase(_dbName);
                 options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+                options.UseOpenIddict<Guid>();
+#endif
             });
 
             // Ensure database is created for each test run

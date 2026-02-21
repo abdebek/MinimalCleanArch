@@ -1,7 +1,7 @@
 param(
     [string]$LocalFeedPath = "$PSScriptRoot/../../artifacts/packages",
     [string]$TemplatePackagePath = "$PSScriptRoot/../../artifacts/packages",
-    [string]$McaVersion = "0.1.11-preview",
+    [string]$McaVersion = "0.1.12-preview",
     [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
     [switch]$IncludeNugetOrg = $false
@@ -55,10 +55,12 @@ dotnet new install "$templatePackage" --force | Out-Null
 $scenarios = @(
     @{ Name = "multi-default"; Args = @() },
     @{ Name = "multi-recommended-sqlite"; Args = @("--recommended") },
+    @{ Name = "multi-auth-sqlite"; Args = @("--auth", "--tests") },
     @{ Name = "multi-all-sqlserver"; Args = @("--all", "--db", "sqlserver", "--tests") },
     @{ Name = "multi-all-postgres"; Args = @("--all", "--db", "postgres", "--tests") },
     @{ Name = "single-default"; Args = @("--single-project") },
     @{ Name = "single-recommended"; Args = @("--single-project", "--recommended") },
+    @{ Name = "single-auth-sqlite"; Args = @("--single-project", "--auth", "--tests") },
     @{ Name = "single-all-sqlite"; Args = @("--single-project", "--all", "--tests") }
 )
 

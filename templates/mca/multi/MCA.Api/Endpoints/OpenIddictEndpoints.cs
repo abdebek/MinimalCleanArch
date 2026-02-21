@@ -1,4 +1,5 @@
 #if (UseAuth)
+using MCA.Application.Interfaces;
 using MCA.Domain.Entities;
 using MCA.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
@@ -95,7 +96,9 @@ public static class OpenIddictEndpoints
                         properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "Invalid credentials."
+                            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = result.IsLockedOut
+                                ? "Account is locked out."
+                                : "Invalid credentials."
                         }));
                 }
 
@@ -160,7 +163,7 @@ public static class OpenIddictEndpoints
                 }
 
                 principal = await signInManager.CreateUserPrincipalAsync(user);
-                principal.SetScopes(request.GetScopes());
+                principal.SetScopes(result.Principal!.GetScopes());
                 principal.SetResources("mca.api");
 
                 foreach (var claim in principal.Claims)
@@ -224,14 +227,69 @@ public static class OpenIddictEndpoints
         // Logout endpoint
         app.MapPost("/connect/logout", async (
             HttpContext context,
-            [FromServices] SignInManager<ApplicationUser> signInManager) =>
+            [FromServices] SignInManager<ApplicationUser> signInManager,
+            [FromServices] ITokenService tokenService) =>
         {
+            var userId = context.User.FindFirstValue(Claims.Subject);
+            if (!string.IsNullOrEmpty(userId))
+                await tokenService.RevokeAllTokensAsync(userId);
+
             await signInManager.SignOutAsync();
             return Results.SignOut(authenticationSchemes: new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme });
         })
         .AllowAnonymous()
         .WithName("Logout")
         .WithTags("OpenIddict");
+
+        // Dev endpoints — only registered in development via conditional mapping in Program.cs
+        app.MapGet("/dev/openiddict/check", async (
+            [FromServices] IOpenIddictApplicationManager appManager,
+            [FromServices] IOpenIddictTokenManager tokenManager) =>
+        {
+            var apps = new List<object>();
+            await foreach (var app in appManager.ListAsync())
+            {
+                apps.Add(new
+                {
+                    clientId = await appManager.GetClientIdAsync(app),
+                    displayName = await appManager.GetDisplayNameAsync(app),
+                    type = await appManager.GetClientTypeAsync(app)
+                });
+            }
+
+            var tokenCount = 0L;
+            await foreach (var _ in tokenManager.ListAsync())
+                tokenCount++;
+
+            return Results.Ok(new { applications = apps, tokenCount });
+        })
+        .AllowAnonymous()
+        .WithName("DevOpenIddictCheck")
+        .WithTags("Dev");
+
+        app.MapDelete("/dev/openiddict/tokens", async (
+            [FromServices] IOpenIddictTokenManager tokenManager,
+            [FromServices] IOpenIddictAuthorizationManager authorizationManager) =>
+        {
+            var revokedTokens = 0;
+            await foreach (var token in tokenManager.ListAsync())
+            {
+                await tokenManager.TryRevokeAsync(token);
+                revokedTokens++;
+            }
+
+            var deletedAuths = 0;
+            await foreach (var auth in authorizationManager.ListAsync())
+            {
+                await authorizationManager.TryRevokeAsync(auth);
+                deletedAuths++;
+            }
+
+            return Results.Ok(new { revokedTokens, revokedAuthorizations = deletedAuths });
+        })
+        .AllowAnonymous()
+        .WithName("DevClearOpenIddictTokens")
+        .WithTags("Dev");
     }
 
     private static OpenIddictRequest? GetOpenIddictServerRequest(this HttpContext context)

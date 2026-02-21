@@ -5,21 +5,22 @@ namespace MCA.Infrastructure.Configuration;
 
 public class ConfigureOpenIddictServerOptions : IConfigureOptions<OpenIddictServerOptions>
 {
-    private readonly IOptions<AuthSettings> _authSettings;
+    private readonly IOptions<OpenIddictSettings> _settings;
 
-    public ConfigureOpenIddictServerOptions(IOptions<AuthSettings> authSettings)
+    public ConfigureOpenIddictServerOptions(IOptions<OpenIddictSettings> settings)
     {
-        _authSettings = authSettings;
+        _settings = settings;
     }
 
     public void Configure(OpenIddictServerOptions options)
     {
-        var settings = _authSettings.Value;
-        if (settings?.TokenLifetimes is not null)
+        var lifetimes = _settings.Value?.TokenLifetimes;
+        if (lifetimes is not null)
         {
-            options.AccessTokenLifetime = settings.TokenLifetimes.AccessToken;
-            options.RefreshTokenLifetime = settings.TokenLifetimes.RefreshToken;
-            options.AuthorizationCodeLifetime = settings.TokenLifetimes.AuthorizationCode;
+            options.AccessTokenLifetime = lifetimes.AccessToken;
+            options.RefreshTokenLifetime = lifetimes.RefreshToken;
+            options.AuthorizationCodeLifetime = lifetimes.AuthorizationCode;
+            options.IdentityTokenLifetime = lifetimes.IdentityToken;
         }
     }
 }
