@@ -144,12 +144,16 @@ public static class AuthEndpoints
 
                 var safeReturnUrl = !string.IsNullOrEmpty(returnUrl)
                     && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
-                    ? System.Net.WebUtility.HtmlEncode(returnUrl)
-                    : "";
+                    ? returnUrl
+                    : "/";
+
+                var safeReturnUrlHtml = System.Net.WebUtility.HtmlEncode(safeReturnUrl);
+                var safeReturnUrlQuery = Uri.EscapeDataString(safeReturnUrl);
 
                 var html = LoginPage.Html
                     .Replace("{errorHtml}", errorHtml)
-                    .Replace("{returnUrl}", safeReturnUrl);
+                    .Replace("{returnUrl}", safeReturnUrlHtml)
+                    .Replace("{returnUrlQuery}", safeReturnUrlQuery);
 
                 return Results.Content(html, "text/html");
             })
@@ -235,9 +239,9 @@ public static class AuthEndpoints
                 <!-- External providers (optional): enable provider handlers first in IdentityServiceExtensions, then uncomment. -->
                 <!--
                 <div class="providers">
-                    <a class="provider-button" href="/api/auth/external/Google?returnUrl={returnUrl}">Continue with Google</a>
-                    <a class="provider-button" href="/api/auth/external/Microsoft?returnUrl={returnUrl}">Continue with Microsoft</a>
-                    <a class="provider-button" href="/api/auth/external/GitHub?returnUrl={returnUrl}">Continue with GitHub</a>
+                    <a class="provider-button" href="/api/auth/external/Google?returnUrl={returnUrlQuery}">Continue with Google</a>
+                    <a class="provider-button" href="/api/auth/external/Microsoft?returnUrl={returnUrlQuery}">Continue with Microsoft</a>
+                    <a class="provider-button" href="/api/auth/external/GitHub?returnUrl={returnUrlQuery}">Continue with GitHub</a>
                 </div>
                 -->
             </div>

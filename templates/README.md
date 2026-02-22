@@ -129,9 +129,77 @@ dotnet new uninstall MinimalCleanArch.Templates
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
 - `--auth` adds OpenIddict 7.2.0 with ASP.NET Core Identity: password, authorization code, and refresh token grants; register/change-password endpoints; seeded default API clients, plus roles scope/claims support. Automatically enables `--security`.
 - Optional bootstrap admin seeding is available via `Seed:*` settings (`Seed:EnableBootstrapAdmin`, `Seed:AdminEmail`, `Seed:AdminPassword`, `Seed:AdminRole`), disabled by default.
-- Auth login page templates include commented external provider button snippets (Google/Microsoft/GitHub) in `Endpoints/AuthEndpoints.cs`; enable providers in `IdentityServiceExtensions` and set `Authentication:<Provider>:ClientId/ClientSecret`, then uncomment buttons.
 - Launch settings default to Scalar UI and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\packages`) before restoring.
+
+## External Sign-In (Google, Microsoft, GitHub)
+
+Use this when your generated app includes `--auth`.
+
+1. Enable provider handlers in generated code:
+```csharp
+// Single-project:
+// Infrastructure/Configuration/IdentityServiceExtensions.cs
+
+// Multi-project:
+// MCA.Api/Configuration/IdentityServiceExtensions.cs
+
+// Uncomment the providers you want:
+// .AddGoogle(...)
+// .AddMicrosoftAccount(...)
+// .AddGitHub(...)
+```
+
+1. Add required NuGet package for GitHub:
+```bash
+dotnet add package AspNet.Security.OAuth.GitHub
+```
+`AddGoogle` and `AddMicrosoftAccount` are in `Microsoft.AspNetCore.Authentication.*` packages already referenced by the template when `--auth` is used.
+
+1. Add provider secrets (prefer user-secrets or environment variables, not committed appsettings):
+```json
+{
+  "Authentication": {
+    "Google": {
+      "ClientId": "YOUR_GOOGLE_CLIENT_ID",
+      "ClientSecret": "YOUR_GOOGLE_CLIENT_SECRET"
+    },
+    "Microsoft": {
+      "ClientId": "YOUR_MICROSOFT_CLIENT_ID",
+      "ClientSecret": "YOUR_MICROSOFT_CLIENT_SECRET"
+    },
+    "GitHub": {
+      "ClientId": "YOUR_GITHUB_CLIENT_ID",
+      "ClientSecret": "YOUR_GITHUB_CLIENT_SECRET"
+    }
+  }
+}
+```
+
+1. Configure provider callback URLs in each provider console (replace port with your running HTTPS port):
+- Google: `https://localhost:<port>/signin-google`
+- Microsoft: `https://localhost:<port>/signin-microsoft`
+- GitHub: `https://localhost:<port>/signin-github`
+These are handled by ASP.NET Core external auth middleware.
+
+1. (Optional UI) uncomment provider buttons in login page:
+- Single-project: `Endpoints/AuthEndpoints.cs`
+- Multi-project: `MCA.Api/Endpoints/AuthEndpoints.cs`
+Buttons are scaffolded as HTML comments by default.
+
+1. Verify flow:
+- Start endpoint (your app): `GET /api/auth/external/GitHub?returnUrl=/`
+- Provider returns to middleware callback: `/signin-github`
+- Middleware then returns to app finalize endpoint: `/api/auth/external/GitHub/callback`
+- Replace `GitHub` with `Google` or `Microsoft` for other providers.
+
+Notes:
+- `/api/auth/external/{provider}` must match the provider scheme name you configured (`Google`, `Microsoft`, `GitHub`).
+- External login endpoints are mapped automatically when `--auth` is enabled via `MapExternalAuthEndpoints()`.
+- The dev SSR login page is available in Development environment at `/auth/login`.
+- `GitHub` casing matters in the route segment (`/api/auth/external/GitHub`).
+- If you see `GitHub did not provide an email claim`, add `options.Scope.Add("user:email")` in `.AddGitHub(...)` and ensure the GitHub account has at least one verified email.
+- If GitHub says `redirect_uri is not associated`, set GitHub callback URL to exactly your app callback (example: `https://localhost:5026/signin-github`).
 
 ## Quick database containers
 

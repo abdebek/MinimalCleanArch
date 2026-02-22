@@ -45,10 +45,17 @@ public static class ExternalAuthEndpoints
 
             var externalUser = result.Principal;
             var email = externalUser.FindFirstValue(ClaimTypes.Email)
-                ?? externalUser.FindFirstValue("email");
+                ?? externalUser.FindFirstValue("email")
+                ?? externalUser.FindFirstValue("urn:github:email");
 
             if (string.IsNullOrEmpty(email))
-                return Results.BadRequest(new { error = "Email claim not provided by external provider." });
+            {
+                var message = string.Equals(provider, "GitHub", StringComparison.OrdinalIgnoreCase)
+                    ? "GitHub did not provide an email claim. Ensure options.Scope.Add(\"user:email\") is set and the GitHub account has a verified email."
+                    : $"Email claim not provided by external provider '{provider}'.";
+
+                return Results.BadRequest(new { error = message });
+            }
 
             // Find or create the user
             var user = await userManager.FindByEmailAsync(email);

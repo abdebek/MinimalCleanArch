@@ -105,6 +105,7 @@ public static class IdentityServiceExtensions
         // {
         //     options.ClientId = configuration["Authentication:GitHub:ClientId"]!;
         //     options.ClientSecret = configuration["Authentication:GitHub:ClientSecret"]!;
+        //     options.Scope.Add("user:email"); // Needed when GitHub email is private
         //     options.SignInScheme = "ExternalCookie";
         // });
 
