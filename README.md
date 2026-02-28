@@ -1,52 +1,54 @@
 # MinimalCleanArch
 
-A comprehensive library for implementing Clean Architecture with Minimal APIs on .NET 9 and .NET 10. It provides domain foundations, repositories, unit of work, specifications, security/encryption, and minimal-API extensions.
+A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10.
 
 ## Core Features
-- Clean Architecture foundations (entities, repositories, unit of work, specifications, result pattern)
-- Minimal API extensions (validation wiring, standardized error handling, OpenAPI helpers)
-- Security & encryption (Data Protection/AES column encryption)
-- Soft delete & auditing (IsDeleted + auditing timestamps/users)
-- EF Core integration (repositories, unit of work, auditing/soft-delete filters)
+- Domain building blocks (entities, repositories, unit of work, specifications, result pattern)
+- Minimal API helpers (validation wiring, standardized error handling, OpenAPI + Scalar)
+- Security and encryption (Data Protection/AES column encryption)
+- Soft delete and auditing support
+- EF Core integration with specification evaluation
 
-## Version & Templates
-- Packages: stable `0.1.7`. Preview `0.1.13-preview` targets .NET 9 and .NET 10.
-- Templates: `dotnet new install MinimalCleanArch.Templates` (or local nupkg), then `dotnet new mca -n MyApp` (multi-project) or `--single-project`. Use `--mcaVersion` to pin preview packages.
-- Launch defaults: Scalar UI, randomized ports 5000–8000; adjust `Properties/launchSettings.json` if needed.
-- Using local nupkgs? Add a `nuget.config` with your local feed (e.g., `artifacts/packages`) before restoring.
+## Versions
+- Stable packages: `0.1.7`
+- Preview packages/templates: `0.1.13-preview`
+
+## Try It Fast
+
+```bash
+dotnet new install MinimalCleanArch.Templates
+dotnet new mca -n QuickStart --single-project --recommended
+cd QuickStart
+dotnet run
+```
+
+Then open `https://localhost:<port>/scalar/v1`.
+
+For auth + OpenIddict + Scalar password flow:
+
+```bash
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.13-preview
+cd QuickAuth
+dotnet run
+```
+
+Use the auth walkthrough in [`templates/README.md`](templates/README.md).
 
 ## Packages
 | Package | Description |
 | :-- | :-- |
-| [`MinimalCleanArch`](src/MinimalCleanArch/README.md) | Core interfaces and base classes (Entities, Repositories, Specifications, Result pattern). |
-| [`MinimalCleanArch.DataAccess`](src/MinimalCleanArch.DataAccess/README.md) | EF Core implementation (DbContextBase, Repository, UnitOfWork, SpecificationEvaluator). |
-| [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | Minimal API enhancements (validation filters, error handling, standard responses). |
-| [`MinimalCleanArch.Validation`](src/MinimalCleanArch.Validation/README.md) | FluentValidation integration components (often used via Extensions). |
-| [`MinimalCleanArch.Security`](src/MinimalCleanArch.Security/README.md) | Data encryption services (AES, Data Protection) and EF Core integration. |
-| [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | Domain events/messaging helpers and Wolverine integration. |
+| [`MinimalCleanArch`](src/MinimalCleanArch/README.md) | Core abstractions and domain primitives. |
+| [`MinimalCleanArch.DataAccess`](src/MinimalCleanArch.DataAccess/README.md) | EF Core repository/unit of work implementation. |
+| [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | Minimal API extensions (validation, errors, responses). |
+| [`MinimalCleanArch.Validation`](src/MinimalCleanArch.Validation/README.md) | FluentValidation integration components. |
+| [`MinimalCleanArch.Security`](src/MinimalCleanArch.Security/README.md) | Encryption and security utilities. |
+| [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | Messaging/domain event helpers. |
 | [`MinimalCleanArch.Audit`](src/MinimalCleanArch.Audit/README.md) | Audit logging components. |
-| [`MinimalCleanArch.Templates`](templates/README.md) | `dotnet new mca` templates (single- or multi-project, clean architecture). |
+| [`MinimalCleanArch.Templates`](templates/README.md) | `dotnet new mca` templates. |
 
-## Quick Start (short)
-- Scaffold with the template:
-  ```bash
-  dotnet new install MinimalCleanArch.Templates
-  dotnet new mca -n MyApp              # multi-project
-  dotnet new mca -n MyApp --single-project
-  ```
-- Or install packages directly:
-  ```bash
-  dotnet add package MinimalCleanArch
-  dotnet add package MinimalCleanArch.DataAccess
-  dotnet add package MinimalCleanArch.Extensions
-  dotnet add package MinimalCleanArch.Security
-  dotnet add package MinimalCleanArch.Validation
-  dotnet add package MinimalCleanArch.Messaging
-  dotnet add package MinimalCleanArch.Audit
-  ```
-- Then follow the per-package guides (links above) for setup specifics.
-
-## Documentation map
+## Documentation Map
+- Templates: [`templates/README.md`](templates/README.md)
+- Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
 - Core: [`src/MinimalCleanArch/README.md`](src/MinimalCleanArch/README.md)
 - DataAccess: [`src/MinimalCleanArch.DataAccess/README.md`](src/MinimalCleanArch.DataAccess/README.md)
 - Extensions: [`src/MinimalCleanArch.Extensions/README.md`](src/MinimalCleanArch.Extensions/README.md)
@@ -54,14 +56,9 @@ A comprehensive library for implementing Clean Architecture with Minimal APIs on
 - Security: [`src/MinimalCleanArch.Security/README.md`](src/MinimalCleanArch.Security/README.md)
 - Messaging: [`src/MinimalCleanArch.Messaging/README.md`](src/MinimalCleanArch.Messaging/README.md)
 - Audit: [`src/MinimalCleanArch.Audit/README.md`](src/MinimalCleanArch.Audit/README.md)
-- Templates: [`templates/README.md`](templates/README.md)
-- Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
-
-## Sample Application
-- See [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md).
 
 ## Contributing
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
-MIT License. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
