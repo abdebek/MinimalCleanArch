@@ -81,14 +81,48 @@ Notes:
 - In Development, Scalar is preconfigured with OAuth2 password flow (`/connect/token`) and a preferred `oauth2` security scheme.
 - The bearer token is persisted and automatically reused for secured requests.
 
-## Try Password Reset + SMTP Quickly
+## Try Password Reset Email Quickly (SMTP or API)
 
 1. Configure `EmailSettings` in `appsettings.json` (or user-secrets):
-- `SmtpServer`
-- `Port`
+- `Provider` (`Smtp` or `Api`)
 - `SenderEmail`
-- `EnableSsl`
 - `AppBaseUrl`
+- SMTP mode: `SmtpServer`, `Port`, `EnableSsl`, credentials if needed
+- API mode: `Api:Endpoint`, optional `Api:ApiKey`, `Api:ApiKeyHeaderName`, `Api:ApiKeyPrefix`, `Api:Headers`
+
+1. Example API-mode configuration:
+
+```json
+{
+  "EmailSettings": {
+    "Provider": "Api",
+    "SenderEmail": "no-reply@example.com",
+    "SenderName": "MCA",
+    "AppBaseUrl": "https://localhost:5001",
+    "Api": {
+      "Endpoint": "https://your-email-api.example.com/send",
+      "ApiKey": "your-api-key",
+      "ApiKeyHeaderName": "Authorization",
+      "ApiKeyPrefix": "Bearer",
+      "Headers": {
+        "X-Tenant": "demo"
+      }
+    }
+  }
+}
+```
+
+The API sender posts JSON in this shape:
+
+```json
+{
+  "from": { "email": "no-reply@example.com", "name": "MCA" },
+  "to": [{ "email": "user@example.com" }],
+  "subject": "Subject",
+  "html": "<p>Body</p>",
+  "text": "Body"
+}
+```
 
 1. Trigger reset flow:
 - `POST /api/auth/forgot-password` with an email.

@@ -31,12 +31,25 @@ public static class IdentityServiceExtensions
 
         services.AddOptions<EmailSettings>()
             .Bind(configuration.GetSection(EmailSettings.SectionName))
-            .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpServer), "EmailSettings:SmtpServer is required.")
-            .Validate(settings => settings.Port is > 0 and <= 65535, "EmailSettings:Port must be between 1 and 65535.")
+            .Validate(settings => IsSupportedEmailProvider(settings.Provider), "EmailSettings:Provider must be either 'Smtp' or 'Api'.")
             .Validate(settings => settings.TimeoutSeconds > 0, "EmailSettings:TimeoutSeconds must be greater than 0.")
             .Validate(settings => IsValidEmail(settings.SenderEmail), "EmailSettings:SenderEmail must be a valid email address.")
             .Validate(settings => !string.IsNullOrWhiteSpace(settings.AppBaseUrl) && Uri.TryCreate(settings.AppBaseUrl, UriKind.Absolute, out _), "EmailSettings:AppBaseUrl must be an absolute URI.")
-            .Validate(settings => isDevelopment || settings.EnableSsl, "EmailSettings:EnableSsl must be true outside development.")
+            .Validate(settings => !IsSmtpProvider(settings.Provider) || !string.IsNullOrWhiteSpace(settings.SmtpServer), "EmailSettings:SmtpServer is required when Provider is Smtp.")
+            .Validate(settings => !IsSmtpProvider(settings.Provider) || settings.Port is > 0 and <= 65535, "EmailSettings:Port must be between 1 and 65535 when Provider is Smtp.")
+            .Validate(settings => !IsSmtpProvider(settings.Provider) || isDevelopment || settings.EnableSsl, "EmailSettings:EnableSsl must be true outside development when Provider is Smtp.")
+            .Validate(
+                settings => !IsApiProvider(settings.Provider) ||
+                    (settings.Api is not null &&
+                     !string.IsNullOrWhiteSpace(settings.Api.Endpoint) &&
+                     Uri.TryCreate(settings.Api.Endpoint, UriKind.Absolute, out _)),
+                "EmailSettings:Api:Endpoint must be an absolute URI when Provider is Api.")
+            .Validate(
+                settings => !IsApiProvider(settings.Provider) ||
+                    settings.Api is null ||
+                    string.IsNullOrWhiteSpace(settings.Api.ApiKey) ||
+                    !string.IsNullOrWhiteSpace(settings.Api.ApiKeyHeaderName),
+                "EmailSettings:Api:ApiKeyHeaderName is required when ApiKey is configured.")
             .ValidateOnStart();
 
         var oidcSettings = configuration.GetSection(OpenIddictSettings.SectionName).Get<OpenIddictSettings>()
@@ -215,8 +228,21 @@ public static class IdentityServiceExtensions
         services.AddScoped<ITokenService, OpenIddictTokenService>();
 
         // Email services
+        services.AddHttpClient("AuthEmailApi", (sp, client) =>
+        {
+            var emailSettings = sp.GetRequiredService<IOptions<EmailSettings>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, emailSettings.TimeoutSeconds));
+        });
         services.AddTransient<AuthEmailTemplateProvider>();
-        services.AddTransient<IEmailSender, SmtpEmailSender>();
+        services.AddTransient<SmtpEmailSender>();
+        services.AddTransient<ApiEmailSender>();
+        services.AddTransient<IEmailSender>(sp =>
+        {
+            var emailSettings = sp.GetRequiredService<IOptions<EmailSettings>>().Value;
+            return IsApiProvider(emailSettings.Provider)
+                ? sp.GetRequiredService<ApiEmailSender>()
+                : sp.GetRequiredService<SmtpEmailSender>();
+        });
         services.AddTransient<IEmailService, EmailService>();
 
         // PKCE helper
@@ -415,5 +441,21 @@ public static class IdentityServiceExtensions
         {
             return false;
         }
+    }
+
+    private static bool IsSupportedEmailProvider(string? provider)
+    {
+        return IsSmtpProvider(provider) || IsApiProvider(provider);
+    }
+
+    private static bool IsSmtpProvider(string? provider)
+    {
+        return string.IsNullOrWhiteSpace(provider) ||
+               string.Equals(provider, EmailProviders.Smtp, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsApiProvider(string? provider)
+    {
+        return string.Equals(provider, EmailProviders.Api, StringComparison.OrdinalIgnoreCase);
     }
 }
