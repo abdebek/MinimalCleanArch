@@ -11,21 +11,40 @@ using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using OpenIddict.Validation.AspNetCore;
+using System.Net.Mail;
 
 namespace MCA.Infrastructure.Configuration;
 
 public static class IdentityServiceExtensions
 {
+    private const string DefaultWebClientSecret = "mca-default-secret-change-me";
+
     public static IServiceCollection AddAuthServices(
         this IServiceCollection services,
         IConfiguration configuration,
         bool isDevelopment = false)
     {
-        services.Configure<OpenIddictSettings>(configuration.GetSection(OpenIddictSettings.SectionName));
-        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
+        services.AddOptions<OpenIddictSettings>()
+            .Bind(configuration.GetSection(OpenIddictSettings.SectionName))
+            .ValidateOnStart();
+
+        services.AddOptions<EmailSettings>()
+            .Bind(configuration.GetSection(EmailSettings.SectionName))
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.SmtpServer), "EmailSettings:SmtpServer is required.")
+            .Validate(settings => settings.Port is > 0 and <= 65535, "EmailSettings:Port must be between 1 and 65535.")
+            .Validate(settings => settings.TimeoutSeconds > 0, "EmailSettings:TimeoutSeconds must be greater than 0.")
+            .Validate(settings => IsValidEmail(settings.SenderEmail), "EmailSettings:SenderEmail must be a valid email address.")
+            .Validate(settings => !string.IsNullOrWhiteSpace(settings.AppBaseUrl) && Uri.TryCreate(settings.AppBaseUrl, UriKind.Absolute, out _), "EmailSettings:AppBaseUrl must be an absolute URI.")
+            .Validate(settings => isDevelopment || settings.EnableSsl, "EmailSettings:EnableSsl must be true outside development.")
+            .ValidateOnStart();
 
         var oidcSettings = configuration.GetSection(OpenIddictSettings.SectionName).Get<OpenIddictSettings>()
             ?? new OpenIddictSettings();
+
+        if (!isDevelopment)
+        {
+            ValidateProductionOpenIddictSettings(oidcSettings);
+        }
 
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
         {
@@ -163,15 +182,13 @@ public static class IdentityServiceExtensions
                     var signingCert = CertificateLoader.Load(oidcSettings.SigningCertificate);
                     var encryptionCert = CertificateLoader.Load(oidcSettings.EncryptionCertificate);
 
-                    if (signingCert != null)
-                        options.AddSigningCertificate(signingCert);
-                    else
-                        options.AddDevelopmentSigningCertificate();
+                    if (signingCert == null)
+                        throw new InvalidOperationException("OpenIddict signing certificate could not be loaded.");
+                    options.AddSigningCertificate(signingCert);
 
-                    if (encryptionCert != null)
-                        options.AddEncryptionCertificate(encryptionCert);
-                    else
-                        options.AddDevelopmentEncryptionCertificate();
+                    if (encryptionCert == null)
+                        throw new InvalidOperationException("OpenIddict encryption certificate could not be loaded.");
+                    options.AddEncryptionCertificate(encryptionCert);
                 }
 
                 var aspNetCoreBuilder = options.UseAspNetCore()
@@ -197,7 +214,6 @@ public static class IdentityServiceExtensions
         services.AddScoped<ITokenService, OpenIddictTokenService>();
 
         // Email services
-        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
         services.AddTransient<AuthEmailTemplateProvider>();
         services.AddTransient<IEmailSender, SmtpEmailSender>();
         services.AddTransient<IEmailService, EmailService>();
@@ -233,7 +249,7 @@ public static class IdentityServiceExtensions
         // Web client (authorization code + PKCE)
         var webSecret = settings.Clients.TryGetValue("Web", out var webClient)
             ? webClient.Secret
-            : "mca-default-secret-change-me";
+            : DefaultWebClientSecret;
 
         await UpsertClientAsync(manager, new OpenIddictApplicationDescriptor
         {
@@ -368,5 +384,35 @@ public static class IdentityServiceExtensions
     private static string FormatIdentityErrors(IEnumerable<IdentityError> errors)
     {
         return string.Join("; ", errors.Select(error => error.Description));
+    }
+
+    private static void ValidateProductionOpenIddictSettings(OpenIddictSettings settings)
+    {
+        if (settings.SigningCertificate.Source == CertificateSource.None)
+            throw new InvalidOperationException("OpenIddict:SigningCertificate must be configured outside development.");
+
+        if (settings.EncryptionCertificate.Source == CertificateSource.None)
+            throw new InvalidOperationException("OpenIddict:EncryptionCertificate must be configured outside development.");
+
+        var hasWebClient = settings.Clients.TryGetValue("Web", out var webClient);
+        var secret = webClient?.Secret;
+        if (!hasWebClient || string.IsNullOrWhiteSpace(secret) || secret == DefaultWebClientSecret)
+            throw new InvalidOperationException("OpenIddict:Clients:Web:Secret must be set to a non-default value outside development.");
+    }
+
+    private static bool IsValidEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        try
+        {
+            _ = new MailAddress(email);
+            return true;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 }

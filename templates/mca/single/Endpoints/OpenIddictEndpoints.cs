@@ -14,7 +14,7 @@ namespace MCA.Endpoints;
 
 public static class OpenIddictEndpoints
 {
-    public static void MapOpenIddictEndpoints(this IEndpointRouteBuilder app)
+    public static void MapOpenIddictEndpoints(this IEndpointRouteBuilder app, bool isDevelopment = false)
     {
         app.MapMethods("/connect/authorize", new[] { "GET", "POST" }, async (
             HttpContext context,
@@ -216,50 +216,53 @@ public static class OpenIddictEndpoints
         .WithName("Logout")
         .WithTags("OpenIddict");
 
-        app.MapGet("/dev/openiddict/check", async (
-            [FromServices] IOpenIddictApplicationManager appManager,
-            [FromServices] IOpenIddictTokenManager tokenManager) =>
+        if (isDevelopment)
         {
-            var apps = new List<object>();
-            await foreach (var app in appManager.ListAsync())
+            app.MapGet("/dev/openiddict/check", async (
+                [FromServices] IOpenIddictApplicationManager appManager,
+                [FromServices] IOpenIddictTokenManager tokenManager) =>
             {
-                apps.Add(new
+                var apps = new List<object>();
+                await foreach (var app in appManager.ListAsync())
                 {
-                    clientId = await appManager.GetClientIdAsync(app),
-                    displayName = await appManager.GetDisplayNameAsync(app),
-                    type = await appManager.GetClientTypeAsync(app)
-                });
-            }
-            var tokenCount = 0L;
-            await foreach (var _ in tokenManager.ListAsync())
-                tokenCount++;
-            return Results.Ok(new { applications = apps, tokenCount });
-        })
-        .AllowAnonymous()
-        .WithName("DevOpenIddictCheck")
-        .WithTags("Dev");
+                    apps.Add(new
+                    {
+                        clientId = await appManager.GetClientIdAsync(app),
+                        displayName = await appManager.GetDisplayNameAsync(app),
+                        type = await appManager.GetClientTypeAsync(app)
+                    });
+                }
+                var tokenCount = 0L;
+                await foreach (var _ in tokenManager.ListAsync())
+                    tokenCount++;
+                return Results.Ok(new { applications = apps, tokenCount });
+            })
+            .AllowAnonymous()
+            .WithName("DevOpenIddictCheck")
+            .WithTags("Dev");
 
-        app.MapDelete("/dev/openiddict/tokens", async (
-            [FromServices] IOpenIddictTokenManager tokenManager,
-            [FromServices] IOpenIddictAuthorizationManager authorizationManager) =>
-        {
-            var revokedTokens = 0;
-            await foreach (var token in tokenManager.ListAsync())
+            app.MapDelete("/dev/openiddict/tokens", async (
+                [FromServices] IOpenIddictTokenManager tokenManager,
+                [FromServices] IOpenIddictAuthorizationManager authorizationManager) =>
             {
-                await tokenManager.TryRevokeAsync(token);
-                revokedTokens++;
-            }
-            var deletedAuths = 0;
-            await foreach (var auth in authorizationManager.ListAsync())
-            {
-                await authorizationManager.TryRevokeAsync(auth);
-                deletedAuths++;
-            }
-            return Results.Ok(new { revokedTokens, revokedAuthorizations = deletedAuths });
-        })
-        .AllowAnonymous()
-        .WithName("DevClearOpenIddictTokens")
-        .WithTags("Dev");
+                var revokedTokens = 0;
+                await foreach (var token in tokenManager.ListAsync())
+                {
+                    await tokenManager.TryRevokeAsync(token);
+                    revokedTokens++;
+                }
+                var deletedAuths = 0;
+                await foreach (var auth in authorizationManager.ListAsync())
+                {
+                    await authorizationManager.TryRevokeAsync(auth);
+                    deletedAuths++;
+                }
+                return Results.Ok(new { revokedTokens, revokedAuthorizations = deletedAuths });
+            })
+            .AllowAnonymous()
+            .WithName("DevClearOpenIddictTokens")
+            .WithTags("Dev");
+        }
     }
 
     private static OpenIddictRequest? GetOpenIddictServerRequest(this HttpContext context)

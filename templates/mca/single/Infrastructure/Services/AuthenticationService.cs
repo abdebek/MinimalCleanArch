@@ -79,12 +79,9 @@ public class AuthenticationService : IAuthenticationService
         }
         catch (Exception ex)
         {
-            // Log and continue — no SMTP configured in development
-            _logger.LogWarning(ex, "Failed to send password reset email to {Email}. Token returned for dev convenience.", email);
+            _logger.LogWarning(ex, "Failed to send password reset email to {Email}.", email);
         }
 
-        // Return token for dev convenience when SMTP is not configured
-        _logger.LogInformation("Password reset token for {Email}: {Token}", email, token);
         return Result.Success(token);
     }
 

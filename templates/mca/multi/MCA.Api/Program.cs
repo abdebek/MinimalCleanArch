@@ -274,7 +274,28 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    {
+#if (UseAuth)
+        var webClientSecret = app.Configuration["OpenIddict:Clients:Web:Secret"];
+        options.AddPasswordFlow("oauth2", flow =>
+        {
+            flow.TokenUrl = "/connect/token";
+            flow.ClientId = "mca-web-client";
+            flow.ClientSecret = webClientSecret;
+            flow.SelectedScopes = new[]
+            {
+                "openid",
+                "profile",
+                "email",
+                "offline_access",
+                "mca.api"
+            };
+        });
+        options.AddPreferredSecuritySchemes(new[] { "oauth2" });
+        options.WithPersistentAuthentication();
+#endif
+    });
 }
 
 #if (UseSerilog)
@@ -305,9 +326,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 app.MapTodoEndpoints();
 #if (UseAuth)
 app.MapAuthEndpoints(app.Environment.IsDevelopment());
-app.MapOpenIddictEndpoints();
+app.MapOpenIddictEndpoints(app.Environment.IsDevelopment());
 app.MapExternalAuthEndpoints();
-app.MapOAuthEndpoints();
+app.MapOAuthEndpoints(app.Environment.IsDevelopment());
 #endif
 
 // Ensure database is created (development only)

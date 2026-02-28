@@ -16,8 +16,11 @@ public static class OAuthEndpoints
     private const string VerifierSessionKey = "pkce_verifier";
     private const string StateSessionKey = "oauth_state";
 
-    public static void MapOAuthEndpoints(this IEndpointRouteBuilder app)
+    public static void MapOAuthEndpoints(this IEndpointRouteBuilder app, bool isDevelopment = false)
     {
+        if (!isDevelopment)
+            return;
+
         // Start PKCE flow — generates code_verifier + code_challenge, stores in session, redirects to /connect/authorize
         app.MapGet("/oauth/demo/start", (
             HttpContext context,
@@ -60,6 +63,7 @@ public static class OAuthEndpoints
             [FromQuery] string? state,
             [FromQuery] string? error,
             [FromServices] IHttpClientFactory httpClientFactory,
+            [FromServices] IConfiguration configuration,
             [FromQuery] string? clientId) =>
         {
             if (!string.IsNullOrEmpty(error))
@@ -80,6 +84,10 @@ public static class OAuthEndpoints
             var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
             var redirectUri = $"{baseUrl}/oauth/demo/callback";
             var effectiveClientId = clientId ?? "mca-web-client";
+            var clientSecret = configuration["OpenIddict:Clients:Web:Secret"];
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+                return Results.Problem("OpenIddict web client secret is not configured.", statusCode: 500);
 
             // Exchange code for tokens
             var httpClient = httpClientFactory.CreateClient();
@@ -89,7 +97,7 @@ public static class OAuthEndpoints
                 ["code"] = code!,
                 ["redirect_uri"] = redirectUri,
                 ["client_id"] = effectiveClientId,
-                ["client_secret"] = "mca-default-secret-change-me",
+                ["client_secret"] = clientSecret,
                 ["code_verifier"] = codeVerifier
             });
 

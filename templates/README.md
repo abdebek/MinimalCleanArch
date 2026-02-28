@@ -129,6 +129,9 @@ dotnet new uninstall MinimalCleanArch.Templates
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
 - `--auth` adds OpenIddict 7.2.0 with ASP.NET Core Identity: password, authorization code, and refresh token grants; register/change-password endpoints; seeded default API clients, plus roles scope/claims support. Automatically enables `--security`.
 - Optional bootstrap admin seeding is available via `Seed:*` settings (`Seed:EnableBootstrapAdmin`, `Seed:AdminEmail`, `Seed:AdminPassword`, `Seed:AdminRole`), disabled by default.
+- Password reset endpoints do not return reset tokens in API responses.
+- OAuth demo (`/oauth/demo/*`) and OpenIddict dev endpoints (`/dev/openiddict/*`) are mapped only in Development.
+- In Development, Scalar is preconfigured with OAuth2 password flow (`/connect/token`) so you can sign in once and reuse the bearer token across requests.
 - Launch settings default to Scalar UI and random ports between 5000-8000; adjust `Properties/launchSettings.json` if you need fixed ports.
 - When using a local package feed, add a `nuget.config` with your `packageSources` (e.g., `D:\C\repos\MinimalCleanArch\artifacts\packages`) before restoring.
 

@@ -24,7 +24,8 @@ public class SmtpEmailSender : IEmailSender
         using var client = new SmtpClient(_settings.SmtpServer, _settings.Port)
         {
             EnableSsl = _settings.EnableSsl,
-            UseDefaultCredentials = _settings.UseDefaultCredentials
+            UseDefaultCredentials = _settings.UseDefaultCredentials,
+            Timeout = Math.Max(1, _settings.TimeoutSeconds) * 1000
         };
 
         if (!_settings.UseDefaultCredentials && !string.IsNullOrEmpty(_settings.Username))

@@ -60,12 +60,10 @@ public static class AuthEndpoints
             [FromBody] ForgotPasswordRequest request,
             [FromServices] IAuthenticationService authService) =>
         {
-            var result = await authService.SendPasswordResetAsync(request.Email);
+            await authService.SendPasswordResetAsync(request.Email);
             return Results.Ok(new
             {
-                message = "If an account exists for that email, a password reset link has been sent.",
-                // Remove the 'token' field in production — only here for dev convenience
-                token = result.IsSuccess ? result.Value : null
+                message = "If an account exists for that email, a password reset link has been sent."
             });
         })
         .AllowAnonymous()

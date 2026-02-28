@@ -68,7 +68,7 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     }
 
     [Fact]
-    public async Task ForgotPassword_KnownEmail_ReturnsDevToken()
+    public async Task ForgotPassword_KnownEmail_DoesNotLeakToken()
     {
         var email = UniqueEmail();
         await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
@@ -76,8 +76,9 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
         var response = await _client.PostAsJsonAsync("/api/auth/forgot-password", new { email });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<ForgotPasswordResult>();
-        body!.token.Should().NotBeNullOrWhiteSpace();
+        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        body.GetProperty("message").GetString().Should().NotBeNullOrWhiteSpace();
+        body.TryGetProperty("token", out _).Should().BeFalse();
     }
 
     // --- Confirm email ---
@@ -303,7 +304,6 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     private static string UniqueEmail() => $"test{Guid.NewGuid():N}@example.com";
 
     private record RegisterResult(string userId, string message);
-    private record ForgotPasswordResult(string message, string? token);
 }
 
 public class AuthTestApiFactory : WebApplicationFactory<Program>
