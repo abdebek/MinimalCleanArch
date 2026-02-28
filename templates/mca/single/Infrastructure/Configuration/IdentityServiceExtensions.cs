@@ -17,6 +17,7 @@ namespace MCA.Infrastructure.Configuration;
 
 public static class IdentityServiceExtensions
 {
+    private const string DefaultWebClientId = "mca-web-client";
     private const string DefaultWebClientSecret = "mca-default-secret-change-me";
 
     public static IServiceCollection AddAuthServices(
@@ -270,22 +271,24 @@ public static class IdentityServiceExtensions
         var settings = configuration.GetSection(OpenIddictSettings.SectionName).Get<OpenIddictSettings>()
             ?? new OpenIddictSettings();
 
-        var appBaseUrl = configuration["App:BaseUrl"] ?? "https://localhost:5001";
+        var redirectBaseUrls = ResolveRedirectBaseUrls(configuration);
 
         // Web client (authorization code + PKCE)
-        var webSecret = settings.Clients.TryGetValue("Web", out var webClient)
-            ? webClient.Secret
+        var hasWebClient = settings.Clients.TryGetValue("Web", out var webClient);
+        var webClientId = hasWebClient && !string.IsNullOrWhiteSpace(webClient!.ClientId)
+            ? webClient.ClientId
+            : DefaultWebClientId;
+        var webSecret = hasWebClient
+            ? webClient!.Secret
             : DefaultWebClientSecret;
 
-        await UpsertClientAsync(manager, new OpenIddictApplicationDescriptor
+        var webClientDescriptor = new OpenIddictApplicationDescriptor
         {
-            ClientId = "mca-web-client",
+            ClientId = webClientId,
             ClientSecret = webSecret,
             ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             DisplayName = "MCA Web Client",
             ClientType = OpenIddictConstants.ClientTypes.Confidential,
-            RedirectUris = { new Uri($"{appBaseUrl}/oauth/demo/callback") },
-            PostLogoutRedirectUris = { new Uri($"{appBaseUrl}/") },
             Permissions =
             {
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
@@ -306,16 +309,24 @@ public static class IdentityServiceExtensions
             {
                 OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
             }
-        });
+        };
+
+        foreach (var baseUrl in redirectBaseUrls)
+        {
+            webClientDescriptor.RedirectUris.Add(new Uri($"{baseUrl}/oauth/demo/callback"));
+            webClientDescriptor.PostLogoutRedirectUris.Add(new Uri($"{baseUrl}/"));
+        }
+
+        await UpsertClientAsync(manager, webClientDescriptor);
 
         // Mobile/SPA client (public, PKCE only, no secret)
-        await UpsertClientAsync(manager, new OpenIddictApplicationDescriptor
+        var mobileClientDescriptor = new OpenIddictApplicationDescriptor
         {
             ClientId = "mca-mobile-client",
             ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             DisplayName = "MCA Mobile Client",
             ClientType = OpenIddictConstants.ClientTypes.Public,
-            RedirectUris = { new Uri("nativeapp://callback"), new Uri($"{appBaseUrl}/oauth/demo/callback") },
+            RedirectUris = { new Uri("nativeapp://callback") },
             PostLogoutRedirectUris = { new Uri("nativeapp://logout") },
             Permissions =
             {
@@ -335,7 +346,14 @@ public static class IdentityServiceExtensions
             {
                 OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
             }
-        });
+        };
+
+        foreach (var baseUrl in redirectBaseUrls)
+        {
+            mobileClientDescriptor.RedirectUris.Add(new Uri($"{baseUrl}/oauth/demo/callback"));
+        }
+
+        await UpsertClientAsync(manager, mobileClientDescriptor);
 
         await SeedBootstrapAdminAsync(scope.ServiceProvider, configuration);
     }
@@ -410,6 +428,45 @@ public static class IdentityServiceExtensions
     private static string FormatIdentityErrors(IEnumerable<IdentityError> errors)
     {
         return string.Join("; ", errors.Select(error => error.Description));
+    }
+
+    private static IReadOnlyList<string> ResolveRedirectBaseUrls(IConfiguration configuration)
+    {
+        var results = new List<string>();
+
+        AddBaseUrlCandidate(results, configuration["App:BaseUrl"]);
+
+        var aspNetCoreUrls = configuration["ASPNETCORE_URLS"] ?? configuration["urls"];
+        if (!string.IsNullOrWhiteSpace(aspNetCoreUrls))
+        {
+            var candidates = aspNetCoreUrls.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            foreach (var candidate in candidates)
+                AddBaseUrlCandidate(results, candidate);
+        }
+
+        if (results.Count == 0)
+            results.Add("https://localhost:5001");
+
+        return results;
+    }
+
+    private static void AddBaseUrlCandidate(List<string> results, string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+            return;
+
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri))
+            return;
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var normalized = uri.GetLeftPart(UriPartial.Authority);
+        if (!results.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+            results.Add(normalized);
     }
 
     private static void ValidateProductionOpenIddictSettings(OpenIddictSettings settings)

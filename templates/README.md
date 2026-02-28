@@ -245,7 +245,10 @@ MyApp/
 - `--auth` automatically enables `--security`.
 - Password reset endpoints do not return reset tokens in API responses.
 - OAuth demo endpoints (`/oauth/demo/*`) and OpenIddict dev endpoints (`/dev/openiddict/*`) are mapped only in Development.
-- Optional bootstrap admin seeding is available via `Seed:*` settings and is disabled by default.
+- Default demo/scalar client id is `OpenIddict:Clients:Web:ClientId` (defaults to `mca-web-client`). You can override per-request with `/oauth/demo/start?clientId=...`.
+- Development defaults seed a bootstrap admin (`admin@example.com` / `Admin123!`) via `appsettings.Development.json`.
+- OpenIddict dev client redirect URIs are seeded from both `App:BaseUrl` and runtime `ASPNETCORE_URLS`, reducing localhost port mismatch issues.
+- Bootstrap admin seeding is controlled by `Seed:*` settings (`appsettings.json` defaults to disabled; `appsettings.Development.json` enables a demo admin by default).
 - Outside Development, OpenIddict client secret and certificate settings are validated on startup.
 
 ## External Sign-In (Google, Microsoft, GitHub)
@@ -310,3 +313,5 @@ pwsh ./templates/scripts/validate-templates.ps1 `
 ```bash
 dotnet new uninstall MinimalCleanArch.Templates
 ```
+
+

@@ -278,10 +278,11 @@ if (app.Environment.IsDevelopment())
     {
 #if (UseAuth)
         var webClientSecret = app.Configuration["OpenIddict:Clients:Web:Secret"];
+        var webClientId = app.Configuration["OpenIddict:Clients:Web:ClientId"] ?? "mca-web-client";
         options.AddPasswordFlow("oauth2", flow =>
         {
             flow.TokenUrl = "/connect/token";
-            flow.ClientId = "mca-web-client";
+            flow.ClientId = webClientId;
             flow.ClientSecret = webClientSecret;
             flow.SelectedScopes = new[]
             {

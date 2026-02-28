@@ -196,6 +196,57 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     }
 
     [Fact]
+    public async Task OAuthDemoEndToEnd_CompletesPkceFlowAndReturnsTokens()
+    {
+        var email = UniqueEmail();
+        await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        var demoClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        var startResponse = await demoClient.GetAsync("/oauth/demo/start");
+        startResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var authorizeLocation = ToRelativePathAndQuery(startResponse.Headers.Location!.ToString());
+
+        var unauthAuthorizeResponse = await demoClient.GetAsync(authorizeLocation);
+        unauthAuthorizeResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var loginLocation = unauthAuthorizeResponse.Headers.Location!.ToString();
+        loginLocation.Should().Contain("/auth/login");
+
+        var loginResponse = await demoClient.PostAsync("/auth/login", new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["email"] = email,
+                ["password"] = "Test@1234",
+                ["returnUrl"] = authorizeLocation
+            }));
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var postLoginLocation = ToRelativePathAndQuery(loginResponse.Headers.Location!.ToString());
+        postLoginLocation.Should().Contain("/connect/authorize");
+
+        var authorizeAfterLoginResponse = await demoClient.GetAsync(postLoginLocation);
+        authorizeAfterLoginResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var callbackLocation = ToRelativePathAndQuery(authorizeAfterLoginResponse.Headers.Location!.ToString());
+        callbackLocation.Should().Contain("/oauth/demo/callback");
+        callbackLocation.Should().Contain("code=");
+        callbackLocation.Should().Contain("state=");
+
+        var callbackResponse = await demoClient.GetAsync(callbackLocation);
+        var callbackBodyText = await callbackResponse.Content.ReadAsStringAsync();
+        callbackResponse.StatusCode.Should().Be(HttpStatusCode.OK, $"callback response body: {callbackBodyText}");
+
+        var body = System.Text.Json.JsonDocument.Parse(callbackBodyText).RootElement;
+        body.GetProperty("message").GetString().Should().Contain("PKCE flow completed successfully");
+        body.TryGetProperty("tokens", out var tokens).Should().BeTrue();
+        tokens.TryGetProperty("access_token", out _).Should().BeTrue();
+        tokens.TryGetProperty("token_type", out _).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task BootstrapAdminSeed_CreatesAdminRoleAndUser()
     {
         using var scope = _factory.Services.CreateScope();
@@ -303,6 +354,14 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
     private static string UniqueEmail() => $"test{Guid.NewGuid():N}@example.com";
 
+    private static string ToRelativePathAndQuery(string uriOrPath)
+    {
+        if (Uri.TryCreate(uriOrPath, UriKind.Absolute, out var absolute))
+            return absolute.PathAndQuery;
+
+        return uriOrPath;
+    }
+
     private record RegisterResult(string userId, string message);
 }
 
@@ -315,7 +374,10 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
         {
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["App:BaseUrl"] = "http://localhost",
+                // Intentionally mismatch App:BaseUrl with runtime URLs to verify redirect URI seeding
+                // remains resilient in development when launch profile ports differ.
+                ["App:BaseUrl"] = "https://localhost:7443",
+                ["ASPNETCORE_URLS"] = "http://localhost",
                 ["Seed:EnableBootstrapAdmin"] = "true",
                 ["Seed:AdminEmail"] = "admin@example.com",
                 ["Seed:AdminPassword"] = "SeededAdmin!123",
@@ -342,6 +404,17 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
             // Replace SMTP sender with a no-op to prevent connection attempts in tests
             services.RemoveAll<IEmailSender>();
             services.AddTransient<IEmailSender, NoOpEmailSender>();
+
+            // Route internally-created HttpClient calls (e.g. OAuth demo callback token exchange)
+            // back into the in-memory TestServer instead of localhost network sockets.
+            services.RemoveAll<IHttpClientFactory>();
+            services.AddSingleton<IHttpClientFactory>(_ =>
+                new InProcessHttpClientFactory(() =>
+                    CreateClient(new WebApplicationFactoryClientOptions
+                    {
+                        AllowAutoRedirect = false,
+                        HandleCookies = true
+                    })));
         });
     }
 }
@@ -350,5 +423,17 @@ internal sealed class NoOpEmailSender : IEmailSender
 {
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
+}
+
+internal sealed class InProcessHttpClientFactory : IHttpClientFactory
+{
+    private readonly Func<HttpClient> _clientFactory;
+
+    public InProcessHttpClientFactory(Func<HttpClient> clientFactory)
+    {
+        _clientFactory = clientFactory;
+    }
+
+    public HttpClient CreateClient(string name) => _clientFactory();
 }
 #endif

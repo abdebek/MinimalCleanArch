@@ -26,6 +26,7 @@ public class CertificateSettings
 
 public class ClientSettings
 {
+    public string ClientId { get; set; } = string.Empty;
     public string Secret { get; set; } = string.Empty;
     public string[] RedirectUris { get; set; } = Array.Empty<string>();
     public string[] PostLogoutRedirectUris { get; set; } = Array.Empty<string>();
