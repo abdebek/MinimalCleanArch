@@ -1,8 +1,9 @@
-﻿using MinimalCleanArch.Repositories;
+using MinimalCleanArch.Domain.Common;
+using MinimalCleanArch.Extensions.Extensions;
+using MinimalCleanArch.Repositories;
 using MinimalCleanArch.Sample.API.Models;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Specifications;
-using MinimalCleanArch.Extensions.Extensions;
 
 namespace MinimalCleanArch.Sample.API.Endpoints;
 
@@ -21,7 +22,8 @@ public static class TodoEndpoints
             .WithName("GetTodos")
             .WithSummary("Gets all todos with optional filtering")
             .WithDescription("Gets a list of todos with optional filtering and pagination")
-            .WithStandardResponses<object>();
+            .WithStandardResponses<object>()
+            .WithErrorHandling();
 
         // Get todo by ID
         todoApi.MapGet("/{id:int}", GetTodoById)
@@ -60,8 +62,8 @@ public static class TodoEndpoints
         return app;
     }
 
-    // Handler implementations with UnitOfWork pattern
     private static async Task<IResult> GetTodos(
+        HttpContext context,
         IRepository<Todo> repository,
         string? searchTerm = null,
         bool? isCompleted = null,
@@ -71,96 +73,54 @@ public static class TodoEndpoints
         int pageSize = 10,
         int pageIndex = 1)
     {
-        try
+        var paginationValidation = ValidatePagination(pageSize, pageIndex);
+        if (paginationValidation.IsFailure)
         {
-            // Validate parameters
-            if (pageSize <= 0 || pageIndex <= 0)
-            {
-                return Results.BadRequest("Invalid pagination parameters");
-            }
-
-            // Ensure page size doesn't exceed maximum
-            const int maxPageSize = 50;
-            pageSize = Math.Min(maxPageSize, Math.Max(1, pageSize));
-
-            var filterSpec = new TodoFilterSpecification(
-                searchTerm,
-                isCompleted,
-                dueBefore,
-                dueAfter,
-                priority);
-
-            // Get total count
-            var totalCount = await repository.CountAsync(filterSpec.Criteria);
-
-            // Get paginated results
-            var paginatedSpec = new TodoPaginatedSpecification(
-                pageSize,
-                pageIndex,
-                filterSpec);
-
-            var todos = await repository.GetAsync(paginatedSpec);
-
-            // Map to response
-            var todoResponses = todos.Select(MapToResponse).ToList();
-
-            // Create pagination header
-            var paginationHeader = new
-            {
-                TotalCount = totalCount,
-                PageSize = pageSize,
-                CurrentPage = pageIndex,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            };
-
-            return Results.Ok(new
-            {
-                Items = todoResponses,
-                Pagination = paginationHeader
-            });
+            return paginationValidation.Error.ToProblem(context);
         }
-        catch (ArgumentException ex)
+
+        const int maxPageSize = 50;
+        pageSize = Math.Min(maxPageSize, Math.Max(1, pageSize));
+
+        var filterSpec = new TodoFilterSpecification(
+            searchTerm,
+            isCompleted,
+            dueBefore,
+            dueAfter,
+            priority);
+
+        var totalCount = await repository.CountAsync(filterSpec.Criteria);
+
+        var paginatedSpec = new TodoPaginatedSpecification(
+            pageSize,
+            pageIndex,
+            filterSpec);
+
+        var todos = await repository.GetAsync(paginatedSpec);
+        var todoResponses = todos.Select(MapToResponse).ToList();
+
+        var paginationHeader = new
         {
-            return Results.BadRequest(ex.Message);
-        }
-        catch (Exception ex)
+            TotalCount = totalCount,
+            PageSize = pageSize,
+            CurrentPage = pageIndex,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
+
+        return Results.Ok(new
         {
-            // Log the exception here in a real application
-            return Results.Problem(
-                title: "Internal Server Error",
-                detail: $"An error occurred while retrieving todos: {ex.Message}",
-                statusCode: 500);
-        }
+            Items = todoResponses,
+            Pagination = paginationHeader
+        });
     }
 
     private static async Task<IResult> GetTodoById(
+        HttpContext context,
         int id,
         IRepository<Todo> repository)
     {
-        try
-        {
-            // Validate ID
-            if (id <= 0)
-            {
-                return Results.BadRequest("Invalid todo ID");
-            }
-
-            var todo = await repository.GetByIdAsync(id);
-            if (todo == null)
-            {
-                return Results.NotFound($"Todo with ID {id} was not found");
-            }
-
-            return Results.Ok(MapToResponse(todo));
-        }
-        catch (Exception)
-        {
-            // Log the exception here in a real application
-            return Results.Problem(
-                title: "Internal Server Error",
-                detail: "An error occurred while retrieving the todo",
-                statusCode: 500);
-        }
+        var todoResult = await TryGetTodoAsync(id, repository);
+        return todoResult.MatchHttp(context, todo => Results.Ok(MapToResponse(todo)));
     }
 
     private static async Task<IResult> CreateTodo(
@@ -168,124 +128,113 @@ public static class TodoEndpoints
         IRepository<Todo> repository,
         IUnitOfWork unitOfWork)
     {
-        try
-        {
-            // Validation is handled by the WithValidation filter
-            var todo = new Todo(
-                request.Title,
-                request.Description,
-                request.Priority,
-                request.DueDate);
+        // Request shape validation is handled by WithValidation.
+        // Domain invariants can still throw DomainException and are handled by filters/middleware.
+        var todo = new Todo(
+            request.Title,
+            request.Description,
+            request.Priority,
+            request.DueDate);
 
-            await repository.AddAsync(todo);
-            await unitOfWork.SaveChangesAsync();
+        await repository.AddAsync(todo);
+        await unitOfWork.SaveChangesAsync();
 
-            return Results.Created(
-                $"/api/todos/{todo.Id}",
-                MapToResponse(todo));
-        }
-        catch (MinimalCleanArch.Domain.Exceptions.DomainException ex)
-        {
-            return Results.BadRequest(new { error = ex.Message });
-        }
-        catch (Exception)
-        {
-            // Log the exception here in a real application
-            return Results.Problem(
-                title: "Internal Server Error",
-                detail: "An error occurred while creating the todo",
-                statusCode: 500);
-        }
+        return Results.Created(
+            $"/api/todos/{todo.Id}",
+            MapToResponse(todo));
     }
 
     private static async Task<IResult> UpdateTodo(
+        HttpContext context,
         int id,
         UpdateTodoRequest request,
         IRepository<Todo> repository,
         IUnitOfWork unitOfWork)
     {
-        try
-        {
-            // Validate ID
-            if (id <= 0)
+        var todoResult = await TryGetTodoAsync(id, repository);
+        return await todoResult.Match(
+            async todo =>
             {
-                return Results.BadRequest("Invalid todo ID");
-            }
+                if (request.IsCompleted && !todo.IsCompleted)
+                {
+                    todo.MarkAsCompleted();
+                }
+                else if (!request.IsCompleted && todo.IsCompleted)
+                {
+                    todo.MarkAsNotCompleted();
+                }
 
-            var todo = await repository.GetByIdAsync(id);
-            if (todo == null)
-            {
-                return Results.NotFound($"Todo with ID {id} was not found");
-            }
+                todo.Update(
+                    request.Title,
+                    request.Description,
+                    request.Priority,
+                    request.DueDate);
 
-            // Update completion status first
-            if (request.IsCompleted && !todo.IsCompleted)
-            {
-                todo.MarkAsCompleted();
-            }
-            else if (!request.IsCompleted && todo.IsCompleted)
-            {
-                todo.MarkAsNotCompleted();
-            }
+                await repository.UpdateAsync(todo);
+                await unitOfWork.SaveChangesAsync();
 
-            // Update other properties
-            todo.Update(
-                request.Title,
-                request.Description,
-                request.Priority,
-                request.DueDate);
-
-            await repository.UpdateAsync(todo);
-            await unitOfWork.SaveChangesAsync();
-
-            return Results.Ok(MapToResponse(todo));
-        }
-        catch (MinimalCleanArch.Domain.Exceptions.DomainException ex)
-        {
-            return Results.BadRequest(new { error = ex.Message });
-        }
-        catch (Exception)
-        {
-            // Log the exception here in a real application
-            return Results.Problem(
-                title: "Internal Server Error",
-                detail: "An error occurred while updating the todo",
-                statusCode: 500);
-        }
+                return Results.Ok(MapToResponse(todo));
+            },
+            error => Task.FromResult(error.ToProblem(context)));
     }
 
     private static async Task<IResult> DeleteTodo(
+        HttpContext context,
         int id,
         IRepository<Todo> repository,
         IUnitOfWork unitOfWork)
     {
-        try
-        {
-            // Validate ID
-            if (id <= 0)
+        var todoResult = await TryGetTodoAsync(id, repository);
+        return await todoResult.Match(
+            async todo =>
             {
-                return Results.BadRequest("Invalid todo ID");
-            }
+                await repository.DeleteAsync(todo);
+                await unitOfWork.SaveChangesAsync();
+                return Results.NoContent();
+            },
+            error => Task.FromResult(error.ToProblem(context)));
+    }
 
-            var todo = await repository.GetByIdAsync(id);
-            if (todo == null)
-            {
-                return Results.NotFound($"Todo with ID {id} was not found");
-            }
-
-            await repository.DeleteAsync(todo);
-            await unitOfWork.SaveChangesAsync();
-
-            return Results.NoContent();
-        }
-        catch (Exception)
+    private static Result ValidatePagination(int pageSize, int pageIndex)
+    {
+        if (pageSize > 0 && pageIndex > 0)
         {
-            // Log the exception here in a real application
-            return Results.Problem( 
-                title: "Internal Server Error",
-                detail: "An error occurred while deleting the todo",
-                statusCode: 500);
+            return Result.Success();
         }
+
+        return Error.Validation("INVALID_PAGINATION", "Invalid pagination parameters")
+            .WithMetadata("PageSize", pageSize)
+            .WithMetadata("PageIndex", pageIndex);
+    }
+
+    private static Result ValidateTodoId(int id)
+    {
+        if (id > 0)
+        {
+            return Result.Success();
+        }
+
+        return Error.Validation("INVALID_TODO_ID", "Invalid todo ID", "id")
+            .WithMetadata("TodoId", id);
+    }
+
+    private static async Task<Result<Todo>> TryGetTodoAsync(int id, IRepository<Todo> repository)
+    {
+        var idValidation = ValidateTodoId(id);
+        if (idValidation.IsFailure)
+        {
+            return Result.Failure<Todo>(idValidation.Error);
+        }
+
+        var todo = await repository.GetByIdAsync(id);
+        if (todo is null)
+        {
+            return Result.Failure<Todo>(
+                Error.NotFound("TODO_NOT_FOUND", $"Todo with ID {id} was not found")
+                    .WithMetadata("TodoId", id));
+        }
+
+        return Result.Success(todo);
     }
 
     private static TodoResponse MapToResponse(Todo todo)

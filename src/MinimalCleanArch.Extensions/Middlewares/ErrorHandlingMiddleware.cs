@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MinimalCleanArch.Domain.Common;
-using MinimalCleanArch.Domain.Exceptions;
+using MinimalCleanArch.Extensions.Errors;
 using System.Diagnostics;
-using System.Net;
 using System.Text.Json;
 using MinimalCleanArch.Extensions.Models;
 
@@ -61,36 +59,31 @@ public sealed class ErrorHandlingMiddleware
     {
         context.Response.ContentType = "application/problem+json";
 
-        var statusCode = GetStatusCode(exception);
-        context.Response.StatusCode = (int)statusCode;
+        var statusCode = ErrorResponseMapper.ResolveStatusCode(exception);
+        context.Response.StatusCode = statusCode;
+        var includeSensitiveDetails = _environment?.IsDevelopment() == true || Debugger.IsAttached;
 
         var problemDetails = new ProblemDetails
         {
-            Status = (int)statusCode,
-            Title = GetTitle(exception),
-            Type = $"https://httpstatuses.com/{(int)statusCode}",
-            Detail = GetDetail(exception, statusCode),
+            Status = statusCode,
+            Title = ErrorResponseMapper.ResolveTitle(exception),
+            Type = $"https://httpstatuses.com/{statusCode}",
+            Detail = ErrorResponseMapper.ResolveDetail(exception, includeSensitiveDetails),
             Instance = context.Request.Path
         };
 
-        // Always include correlation ID and trace ID
-        problemDetails.Extensions["correlationId"] = correlationId;
-        problemDetails.Extensions["traceId"] = Activity.Current?.Id ?? context.TraceIdentifier;
-
-        if (exception is DomainException domainException && domainException.Error != Error.None)
+        foreach (var extension in ErrorResponseMapper.CreateBaseExtensions(context, exception))
         {
-            problemDetails.Extensions["code"] = domainException.Error.Code;
-            problemDetails.Extensions["errorType"] = domainException.Error.Type.ToString();
+            problemDetails.Extensions[extension.Key] = extension.Value!;
+        }
 
-            if (domainException.Error.Metadata.Count > 0)
-            {
-                problemDetails.Extensions["metadata"] = domainException.Error.Metadata;
-            }
+        if (!problemDetails.Extensions.ContainsKey("correlationId"))
+        {
+            problemDetails.Extensions["correlationId"] = correlationId;
         }
 
         // Include additional debug info in development or when debugger is attached
-        var isDevelopment = _environment?.IsDevelopment() == true || Debugger.IsAttached;
-        if (isDevelopment)
+        if (includeSensitiveDetails)
         {
             problemDetails.Extensions["exceptionType"] = exception.GetType().FullName ?? "Unknown";
             problemDetails.Extensions["stackTrace"] = exception.StackTrace ?? string.Empty;
@@ -112,93 +105,5 @@ public sealed class ErrorHandlingMiddleware
         };
 
         await context.Response.WriteAsJsonAsync(problemDetails, options);
-    }
-
-    private static HttpStatusCode GetStatusCode(Exception exception)
-    {
-        return exception switch
-        {
-            DomainException domainException when domainException.Error != Error.None
-                => ToHttpStatusCode(domainException.Error.StatusCode),
-            ArgumentNullException => HttpStatusCode.BadRequest,
-            ArgumentException => HttpStatusCode.BadRequest,
-            InvalidOperationException => HttpStatusCode.BadRequest,
-            ApplicationException => HttpStatusCode.BadRequest,
-            UnauthorizedAccessException => HttpStatusCode.Unauthorized,
-            KeyNotFoundException => HttpStatusCode.NotFound,
-            NotImplementedException => HttpStatusCode.NotImplemented,
-            OperationCanceledException => HttpStatusCode.BadRequest,
-            TimeoutException => HttpStatusCode.GatewayTimeout,
-            _ => HttpStatusCode.InternalServerError
-        };
-    }
-
-    private static string GetTitle(Exception exception)
-    {
-        return exception switch
-        {
-            DomainException domainException when domainException.Error != Error.None => GetTitle(domainException.Error),
-            ArgumentNullException => "Invalid Request",
-            ArgumentException => "Invalid Request",
-            InvalidOperationException => "Invalid Operation",
-            ApplicationException => "Bad Request",
-            UnauthorizedAccessException => "Unauthorized",
-            KeyNotFoundException => "Not Found",
-            NotImplementedException => "Not Implemented",
-            OperationCanceledException => "Request Cancelled",
-            TimeoutException => "Gateway Timeout",
-            _ => "Internal Server Error"
-        };
-    }
-
-    private string GetDetail(Exception exception, HttpStatusCode statusCode)
-    {
-        if (exception is DomainException domainException && domainException.Error != Error.None)
-        {
-            if (statusCode == HttpStatusCode.InternalServerError &&
-                _environment?.IsDevelopment() != true &&
-                !Debugger.IsAttached)
-            {
-                return "An unexpected error occurred. Please try again later.";
-            }
-
-            return domainException.Error.Message;
-        }
-
-        // Don't expose internal error details in production
-        if (statusCode == HttpStatusCode.InternalServerError &&
-            _environment?.IsDevelopment() != true &&
-            !Debugger.IsAttached)
-        {
-            return "An unexpected error occurred. Please try again later.";
-        }
-
-        return exception.Message;
-    }
-
-    private static HttpStatusCode ToHttpStatusCode(int statusCode)
-    {
-        if (statusCode is < 100 or > 599)
-        {
-            return HttpStatusCode.InternalServerError;
-        }
-
-        return (HttpStatusCode)statusCode;
-    }
-
-    private static string GetTitle(Error error)
-    {
-        return error.Type switch
-        {
-            ErrorType.Validation => "Validation Error",
-            ErrorType.NotFound => "Not Found",
-            ErrorType.Unauthorized or ErrorType.Authentication => "Unauthorized",
-            ErrorType.Forbidden or ErrorType.Authorization => "Forbidden",
-            ErrorType.Conflict => "Conflict",
-            ErrorType.BusinessRule => "Business Rule Violation",
-            ErrorType.External => "External Service Error",
-            ErrorType.RateLimit => "Rate Limit Exceeded",
-            _ => "Internal Server Error"
-        };
     }
 }

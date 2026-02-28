@@ -14,7 +14,8 @@ This sample demonstrates:
 - **Column-level Encryption** - Sensitive data protection with AES encryption
 - **Specification Pattern** - Flexible and reusable query logic
 - **Validation** - Request validation using FluentValidation
-- **Error Handling** - Global error handling middleware
+- **Error Handling** - Global + endpoint error handling with structured `DomainException`/`Error` RFC 7807 responses
+- **Result-First Endpoints** - expected API outcomes are returned as `Result` and mapped with `MatchHttp`/`ToProblem`
 
 ## Features Showcased
 

@@ -1,3 +1,4 @@
+using MinimalCleanArch.Domain.Common;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Domain.Events;
 using MinimalCleanArch.Domain.Exceptions;
@@ -100,12 +101,15 @@ public class Todo : BaseSoftDeleteEntity, IHasDomainEvents
     {
         if (string.IsNullOrWhiteSpace(title))
         {
-            throw new DomainException("Title cannot be empty");
+            throw new DomainException(
+                Error.Validation("TODO_TITLE_REQUIRED", "Title cannot be empty", nameof(Title)));
         }
 
         if (title.Length > 100)
         {
-            throw new DomainException("Title cannot be longer than 100 characters");
+            throw new DomainException(
+                Error.Validation("TODO_TITLE_TOO_LONG", "Title cannot be longer than 100 characters", nameof(Title))
+                    .WithMetadata("MaxLength", 100));
         }
 
         Title = title;
@@ -129,7 +133,10 @@ public class Todo : BaseSoftDeleteEntity, IHasDomainEvents
     {
         if (priority < 0 || priority > 5)
         {
-            throw new DomainException("Priority must be between 0 and 5");
+            throw new DomainException(
+                Error.Validation("TODO_PRIORITY_OUT_OF_RANGE", "Priority must be between 0 and 5", nameof(Priority))
+                    .WithMetadata("Min", 0)
+                    .WithMetadata("Max", 5));
         }
 
         Priority = priority;
