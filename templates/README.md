@@ -67,7 +67,7 @@ dotnet new mca -n MyApp --all
 #### Versions
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--mcaVersion <version>` | 0.1.12-preview | MinimalCleanArch package version to reference (local default) |
+| `--mcaVersion <version>` | 0.1.13-preview | MinimalCleanArch package version to reference (local default) |
 | `--framework <tfm>` | net10.0 | Target framework for generated projects (`net9.0` or `net10.0`) |
 
 ### Examples
@@ -124,8 +124,8 @@ dotnet new uninstall MinimalCleanArch.Templates
 ```
 
 ## Notes
-- Template package version is `0.1.12-preview` (local/default). The current stable packages are `0.1.7` (pass `--mcaVersion 0.1.7`).
-- Templates reference MinimalCleanArch packages via `--mcaVersion` (default `0.1.12-preview`).
+- Template package version is `0.1.13-preview` (local/default). The current stable packages are `0.1.7` (pass `--mcaVersion 0.1.7`).
+- Templates reference MinimalCleanArch packages via `--mcaVersion` (default `0.1.13-preview`).
 - Validation, CQRS, and messaging are wired: Wolverine-based commands/queries with FluentValidation; durable messaging/outbox is enabled for SQL Server/Postgres when requested.
 - `--auth` adds OpenIddict 7.2.0 with ASP.NET Core Identity: password, authorization code, and refresh token grants; register/change-password endpoints; seeded default API clients, plus roles scope/claims support. Automatically enables `--security`.
 - Optional bootstrap admin seeding is available via `Seed:*` settings (`Seed:EnableBootstrapAdmin`, `Seed:AdminEmail`, `Seed:AdminPassword`, `Seed:AdminRole`), disabled by default.

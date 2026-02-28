@@ -1,7 +1,7 @@
 param(
     [string]$LocalFeedPath = "$PSScriptRoot/../../artifacts/packages",
     [string]$TemplatePackagePath = "$PSScriptRoot/../../artifacts/packages",
-    [string]$McaVersion = "0.1.12-preview",
+    [string]$McaVersion = "0.1.13-preview",
     [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
     [switch]$IncludeNugetOrg = $false
@@ -9,6 +9,49 @@ param(
 
 set-strictmode -version latest
 $ErrorActionPreference = "Stop"
+
+function Invoke-Checked {
+    param(
+        [string]$Description,
+        [scriptblock]$Action,
+        [switch]$AllowFailure = $false
+    )
+
+    Write-Host "==> $Description"
+    & $Action
+    $exitCode = $LASTEXITCODE
+
+    if (($exitCode -ne 0) -and -not $AllowFailure) {
+        throw "$Description failed with exit code $exitCode"
+    }
+}
+
+function New-RestoreConfig {
+    param(
+        [string]$ConfigPath,
+        [string]$FeedPath,
+        [switch]$UseNugetOrg = $false
+    )
+
+    $sources = @(
+        "    <add key=`"LocalFeed`" value=`"$FeedPath`" />"
+    )
+    if ($UseNugetOrg) {
+        $sources += "    <add key=`"nuget.org`" value=`"https://api.nuget.org/v3/index.json`" protocolVersion=`"3`" />"
+    }
+
+    $configContent = @"
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+$($sources -join "`n")
+  </packageSources>
+</configuration>
+"@
+
+    Set-Content -Path $ConfigPath -Value $configContent -Encoding UTF8
+}
 
 $resolvedFeed = Resolve-Path -Path $LocalFeedPath -ErrorAction SilentlyContinue
 if (-not $resolvedFeed) {
@@ -45,11 +88,17 @@ if ($IncludeNugetOrg) {
 }
 
 # Clean template cache and uninstall any installed package
-dotnet new uninstall MinimalCleanArch.Templates | Out-Null
-dotnet new --debug:reinit | Out-Null
+Invoke-Checked -Description "Uninstalling previous template package (if installed)" -AllowFailure -Action {
+    dotnet new uninstall MinimalCleanArch.Templates | Out-Null
+}
+Invoke-Checked -Description "Resetting template cache" -Action {
+    dotnet new --debug:reinit | Out-Null
+}
 
 # Install from template package
-dotnet new install "$templatePackage" --force | Out-Null
+Invoke-Checked -Description "Installing template package" -Action {
+    dotnet new install "$templatePackage" --force | Out-Null
+}
 
 # Scaffolds to validate
 $scenarios = @(
@@ -86,43 +135,74 @@ if (-not [string]::IsNullOrWhiteSpace($Framework)) {
     $templateArgs += @("--framework", $Framework)
 }
 
+$failedScenarios = @()
+
 foreach ($scenario in $scenarios) {
     $name = $scenario.Name
     $scenarioArgs = $scenario.Args
     $projName = "App_" + ($name -replace '[^A-Za-z0-9]', '_')
     $outDir = Join-Path $workRoot $name
+    $tempRestoreConfig = Join-Path $outDir "NuGet.Temp.config"
 
-    Write-Host "==> Scaffolding $name"
-    dotnet new mca -n $projName -o $outDir @scenarioArgs @templateArgs
-
-    Push-Location $outDir
     try {
-        Write-Host "==> Restore $name"
-        $restoreSources = @("--source", $localFeed)
-        if ($IncludeNugetOrg) {
-            $restoreSources += @("--source", "https://api.nuget.org/v3/index.json")
+        Invoke-Checked -Description "Scaffolding $name" -Action {
+            dotnet new mca -n $projName -o $outDir @scenarioArgs @templateArgs
         }
-        dotnet restore @restoreSources
-        Write-Host "==> Build $name"
-        dotnet build --no-restore @buildProps
-        $testProjects = @(Get-ChildItem -Path (Join-Path $outDir "tests") -Filter "*.csproj" -Recurse -ErrorAction SilentlyContinue)
-        if ($testProjects.Count -gt 0) {
-            Write-Host "==> Test $name"
+
+        Push-Location $outDir
+        try {
+            New-RestoreConfig -ConfigPath $tempRestoreConfig -FeedPath $localFeed -UseNugetOrg:$IncludeNugetOrg
             $solution = Get-ChildItem -Path $outDir -Filter "*.sln" -ErrorAction SilentlyContinue | Select-Object -First 1
+            $restoreTarget = $null
             if ($solution) {
-                dotnet test $solution.FullName --no-build --no-restore
-            } else {
-                foreach ($testProject in $testProjects) {
-                    dotnet test $testProject.FullName --no-build --no-restore
-                }
+                $restoreTarget = $solution.FullName
             }
-        } else {
-            Write-Host "==> Test $name (skipped - no test projects)"
+            if (-not $restoreTarget) {
+                $entryProject = Get-ChildItem -Path $outDir -Filter "*.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
+                if (-not $entryProject) {
+                    throw "No solution or project file found in scaffold output: $outDir"
+                }
+                $restoreTarget = $entryProject.FullName
+            }
+
+            Invoke-Checked -Description "Restore $name" -Action {
+                dotnet restore $restoreTarget --configfile $tempRestoreConfig
+            }
+
+            Invoke-Checked -Description "Build $name" -Action {
+                dotnet build $restoreTarget --no-restore @buildProps
+            }
+
+            $testProjects = @(Get-ChildItem -Path (Join-Path $outDir "tests") -Filter "*.csproj" -Recurse -ErrorAction SilentlyContinue)
+            if ($testProjects.Count -gt 0) {
+                if ($solution) {
+                    Invoke-Checked -Description "Test $name" -Action {
+                        dotnet test $solution.FullName --no-build --no-restore
+                    }
+                } else {
+                    foreach ($testProject in $testProjects) {
+                        Invoke-Checked -Description "Test $name ($($testProject.Name))" -Action {
+                            dotnet test $testProject.FullName --no-build --no-restore
+                        }
+                    }
+                }
+            } else {
+                Write-Host "==> Test $name (skipped - no test projects)"
+            }
+        }
+        finally {
+            Pop-Location
+            Remove-Item -Path $tempRestoreConfig -Force -ErrorAction SilentlyContinue
         }
     }
-    finally {
-        Pop-Location
+    catch {
+        $failedScenarios += $name
+        Write-Error "Scenario '$name' failed: $_"
     }
 }
 
-Write-Host "Validation complete."
+if ($failedScenarios.Count -gt 0) {
+    throw "Validation failed for scenario(s): $($failedScenarios -join ', ')"
+}
+
+Write-Host "Validation complete. All scenarios passed."

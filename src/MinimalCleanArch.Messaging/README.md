@@ -3,7 +3,7 @@
 Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Version
--0.1.12-preview (net9.0, net10.0). Use with `MinimalCleanArch`0.1.12-preview and companions.
+- 0.1.13-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.13-preview and companions.
 
 ## What's included
 - Domain event contracts and helpers.
@@ -12,7 +12,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Messaging --version0.1.12-preview
+dotnet add package MinimalCleanArch.Messaging --version 0.1.13-preview
 ```
 
 When using a local feed, add a `nuget.config` pointing to your local packages folder (e.g., `artifacts/nuget`) before restoring.
