@@ -28,52 +28,62 @@ public abstract class BaseSpecification<T> : ISpecification<T>
     /// Gets the filter expression
     /// </summary>
     public Expression<Func<T, bool>>? Criteria { get; private set; }
-    
+
     /// <summary>
     /// Gets the include expressions for eager loading related entities
     /// </summary>
     public List<Expression<Func<T, object>>> Includes { get; } = new();
-    
+
     /// <summary>
     /// Gets the string-based include expressions for eager loading related entities
     /// </summary>
     public List<string> IncludeStrings { get; } = new();
-    
+
     /// <summary>
     /// Gets the order by expression
     /// </summary>
     public Expression<Func<T, object>>? OrderBy { get; private set; }
-    
+
     /// <summary>
     /// Gets the order by descending expression
     /// </summary>
     public Expression<Func<T, object>>? OrderByDescending { get; private set; }
-    
+
     /// <summary>
     /// Gets the additional order by expressions
     /// </summary>
     public List<(Expression<Func<T, object>> KeySelector, bool Descending)> ThenBys { get; } = new();
-    
+
     /// <summary>
     /// Gets the skip value for pagination
     /// </summary>
     public int? Skip { get; private set; }
-    
+
     /// <summary>
     /// Gets the take value for pagination
     /// </summary>
     public int? Take { get; private set; }
-    
+
     /// <summary>
     /// Gets a value indicating whether to include soft deleted entities
     /// </summary>
     public bool IgnoreSoftDelete { get; private set; }
-    
+
     /// <summary>
     /// Gets a value indicating whether the query should be tracked by the EF Core change tracker
     /// </summary>
     public bool AsNoTracking { get; private set; }
-    
+
+    /// <summary>
+    /// Gets a value indicating whether includes should be loaded with split query behavior.
+    /// </summary>
+    public bool AsSplitQuery { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether all global query filters should be ignored.
+    /// </summary>
+    public bool IgnoreQueryFilters { get; private set; }
+
     /// <summary>
     /// Gets a value indicating whether this specification is for a count-only query
     /// </summary>
@@ -179,6 +189,22 @@ public abstract class BaseSpecification<T> : ISpecification<T>
     protected void UseNoTracking()
     {
         AsNoTracking = true;
+    }
+
+    /// <summary>
+    /// Configures the specification to use split query behavior for include graphs.
+    /// </summary>
+    protected void UseSplitQuery()
+    {
+        AsSplitQuery = true;
+    }
+
+    /// <summary>
+    /// Configures the specification to ignore all EF Core global query filters.
+    /// </summary>
+    protected void IgnoreAllQueryFilters()
+    {
+        IgnoreQueryFilters = true;
     }
 
     /// <summary>

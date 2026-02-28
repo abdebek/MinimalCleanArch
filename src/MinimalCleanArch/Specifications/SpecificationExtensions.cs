@@ -22,4 +22,10 @@ public static class SpecificationExtensions
     /// </summary>
     public static ISpecification<T> Not<T>(this ISpecification<T> specification) =>
         new NotSpecification<T>(specification);
+
+    /// <summary>
+    /// Checks whether an entity satisfies the specification criteria.
+    /// </summary>
+    public static bool IsSatisfiedBy<T>(this ISpecification<T> specification, T entity) =>
+        InMemorySpecificationEvaluator.IsSatisfiedBy(entity, specification);
 }

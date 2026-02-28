@@ -99,6 +99,16 @@ public sealed class AndSpecification<T> : BaseSpecification<T>
             UseNoTracking();
         }
 
+        if (left.AsSplitQuery || right.AsSplitQuery)
+        {
+            UseSplitQuery();
+        }
+
+        if (left.IgnoreQueryFilters || right.IgnoreQueryFilters)
+        {
+            IgnoreAllQueryFilters();
+        }
+
         if (left.IsCountOnly || right.IsCountOnly)
         {
             ForCountOnly();
@@ -201,6 +211,16 @@ public sealed class OrSpecification<T> : BaseSpecification<T>
             UseNoTracking();
         }
 
+        if (left.AsSplitQuery || right.AsSplitQuery)
+        {
+            UseSplitQuery();
+        }
+
+        if (left.IgnoreQueryFilters || right.IgnoreQueryFilters)
+        {
+            IgnoreAllQueryFilters();
+        }
+
         if (left.IsCountOnly || right.IsCountOnly)
         {
             ForCountOnly();
@@ -282,6 +302,16 @@ public sealed class NotSpecification<T> : BaseSpecification<T>
         if (source.AsNoTracking)
         {
             UseNoTracking();
+        }
+
+        if (source.AsSplitQuery)
+        {
+            UseSplitQuery();
+        }
+
+        if (source.IgnoreQueryFilters)
+        {
+            IgnoreAllQueryFilters();
         }
 
         if (source.IsCountOnly)

@@ -57,7 +57,17 @@ public interface ISpecification<T>
     /// Gets a value indicating whether the query should be tracked by the EF Core change tracker
     /// </summary>
     bool AsNoTracking { get; }
-    
+
+    /// <summary>
+    /// Gets a value indicating whether collection includes should be executed as split queries.
+    /// </summary>
+    bool AsSplitQuery { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether all global query filters should be ignored.
+    /// </summary>
+    bool IgnoreQueryFilters { get; }
+
     /// <summary>
     /// Gets a value indicating whether this specification is for a count-only query
     /// </summary>

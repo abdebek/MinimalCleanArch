@@ -8,7 +8,7 @@ Entity Framework Core implementation for MinimalCleanArch (repositories, unit of
 ## What's included
 - `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
 - `Repository<TEntity,TKey>` and `UnitOfWork` implementations.
-- `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`.
+- `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`, `AsSplitQuery`, and `IgnoreQueryFilters`.
 - DI extensions to register repositories/unit of work.
 
 ## Usage
