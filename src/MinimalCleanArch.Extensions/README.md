@@ -7,7 +7,7 @@ Minimal API extensions for MinimalCleanArch.
 
 ## Overview
 - Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
-- Error handling: standard error pipeline middleware helpers.
+- Error handling: standard error pipeline middleware helpers, including structured `DomainException`/`Error` mapping to RFC 7807.
 - OpenAPI helpers: standard response definitions and filters.
 - Misc: path parameter validation, minimal API conveniences.
 

@@ -7,7 +7,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 
 ## Contents
 - Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`.
-- Common types: `Result`/`Result<T>`, `Error`.
+- Common types: `Result`/`Result<T>`, `Error` (status code + metadata support, with `Match`/`Bind` helpers).
 - Repositories: `IRepository<TEntity, TKey>`, `IUnitOfWork`.
 - Specifications: `ISpecification<T>`, `BaseSpecification<T>`, composable `And/Or/Not`, `InMemorySpecificationEvaluator`, and query flags (`AsNoTracking`, `AsSplitQuery`, `IgnoreQueryFilters`, `IsCountOnly`).
 

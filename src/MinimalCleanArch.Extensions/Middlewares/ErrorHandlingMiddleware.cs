@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MinimalCleanArch.Domain.Common;
+using MinimalCleanArch.Domain.Exceptions;
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
@@ -75,6 +77,17 @@ public sealed class ErrorHandlingMiddleware
         problemDetails.Extensions["correlationId"] = correlationId;
         problemDetails.Extensions["traceId"] = Activity.Current?.Id ?? context.TraceIdentifier;
 
+        if (exception is DomainException domainException && domainException.Error != Error.None)
+        {
+            problemDetails.Extensions["code"] = domainException.Error.Code;
+            problemDetails.Extensions["errorType"] = domainException.Error.Type.ToString();
+
+            if (domainException.Error.Metadata.Count > 0)
+            {
+                problemDetails.Extensions["metadata"] = domainException.Error.Metadata;
+            }
+        }
+
         // Include additional debug info in development or when debugger is attached
         var isDevelopment = _environment?.IsDevelopment() == true || Debugger.IsAttached;
         if (isDevelopment)
@@ -105,6 +118,8 @@ public sealed class ErrorHandlingMiddleware
     {
         return exception switch
         {
+            DomainException domainException when domainException.Error != Error.None
+                => ToHttpStatusCode(domainException.Error.StatusCode),
             ArgumentNullException => HttpStatusCode.BadRequest,
             ArgumentException => HttpStatusCode.BadRequest,
             InvalidOperationException => HttpStatusCode.BadRequest,
@@ -122,6 +137,7 @@ public sealed class ErrorHandlingMiddleware
     {
         return exception switch
         {
+            DomainException domainException when domainException.Error != Error.None => GetTitle(domainException.Error),
             ArgumentNullException => "Invalid Request",
             ArgumentException => "Invalid Request",
             InvalidOperationException => "Invalid Operation",
@@ -137,6 +153,18 @@ public sealed class ErrorHandlingMiddleware
 
     private string GetDetail(Exception exception, HttpStatusCode statusCode)
     {
+        if (exception is DomainException domainException && domainException.Error != Error.None)
+        {
+            if (statusCode == HttpStatusCode.InternalServerError &&
+                _environment?.IsDevelopment() != true &&
+                !Debugger.IsAttached)
+            {
+                return "An unexpected error occurred. Please try again later.";
+            }
+
+            return domainException.Error.Message;
+        }
+
         // Don't expose internal error details in production
         if (statusCode == HttpStatusCode.InternalServerError &&
             _environment?.IsDevelopment() != true &&
@@ -146,5 +174,31 @@ public sealed class ErrorHandlingMiddleware
         }
 
         return exception.Message;
+    }
+
+    private static HttpStatusCode ToHttpStatusCode(int statusCode)
+    {
+        if (statusCode is < 100 or > 599)
+        {
+            return HttpStatusCode.InternalServerError;
+        }
+
+        return (HttpStatusCode)statusCode;
+    }
+
+    private static string GetTitle(Error error)
+    {
+        return error.Type switch
+        {
+            ErrorType.Validation => "Validation Error",
+            ErrorType.NotFound => "Not Found",
+            ErrorType.Unauthorized or ErrorType.Authentication => "Unauthorized",
+            ErrorType.Forbidden or ErrorType.Authorization => "Forbidden",
+            ErrorType.Conflict => "Conflict",
+            ErrorType.BusinessRule => "Business Rule Violation",
+            ErrorType.External => "External Service Error",
+            ErrorType.RateLimit => "Rate Limit Exceeded",
+            _ => "Internal Server Error"
+        };
     }
 }
