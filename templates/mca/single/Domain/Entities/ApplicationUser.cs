@@ -1,4 +1,3 @@
-#if (UseAuth)
 using Microsoft.AspNetCore.Identity;
 using MinimalCleanArch.Domain.Entities;
 
@@ -24,4 +23,3 @@ public class ApplicationUser : IdentityUser<Guid>, IAuditableEntity
         UserName = userName ?? email;
     }
 }
-#endif
