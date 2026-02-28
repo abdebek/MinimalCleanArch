@@ -3,7 +3,7 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
-- 0.1.13-preview (net9.0, net10.0). Works with `MinimalCleanArch` 0.1.13-preview and companion packages.
+- 0.1.14-preview (net9.0, net10.0). Works with `MinimalCleanArch` 0.1.14-preview and companion packages.
 
 ## What's included
 - `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
@@ -49,3 +49,4 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 ```
 
 When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
+
