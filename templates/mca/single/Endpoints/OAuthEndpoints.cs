@@ -3,6 +3,9 @@ using MCA.Infrastructure.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+#if (UseRateLimiting)
+using MinimalCleanArch.Extensions.RateLimiting;
+#endif
 
 namespace MCA.Endpoints;
 
@@ -68,6 +71,9 @@ public static class OAuthEndpoints
             return Results.Redirect(authorizeUrl);
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.FixedPolicy)
+#endif
         .WithName("OAuthDemoStart")
         .WithTags("OAuth Demo")
         .WithSummary("Start PKCE authorization code flow demo");
@@ -156,6 +162,9 @@ public static class OAuthEndpoints
             });
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.FixedPolicy)
+#endif
         .WithName("OAuthDemoCallback")
         .WithTags("OAuth Demo")
         .WithSummary("Handle PKCE authorization code callback and exchange for tokens");

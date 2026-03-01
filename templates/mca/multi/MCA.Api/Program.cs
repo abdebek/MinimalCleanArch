@@ -31,6 +31,9 @@ using MinimalCleanArch.Security.Extensions;
 #if (UseCaching)
 using MinimalCleanArch.Extensions.Caching;
 #endif
+#if (UseRateLimiting)
+using MinimalCleanArch.Extensions.RateLimiting;
+#endif
 #if (UseMessaging)
 using MinimalCleanArch.Messaging.Extensions;
 #endif
@@ -199,6 +202,14 @@ builder.Services.AddMemoryCache();
 builder.Services.AddMinimalCleanArchCaching();
 #endif
 
+#if (UseRateLimiting)
+// Rate limiting (global + endpoint policies)
+builder.Services.AddMinimalCleanArchRateLimiting(config =>
+{
+    builder.Configuration.GetSection("RateLimiting").Bind(config);
+});
+#endif
+
 #if (UseMessaging)
 // Messaging - Wolverine domain events
 #if (UseSqlServer)
@@ -314,6 +325,10 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
+#endif
+
+#if (UseRateLimiting)
+app.UseMinimalCleanArchRateLimiting();
 #endif
 
 #if (UseHealthChecks)

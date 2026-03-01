@@ -161,7 +161,7 @@ dotnet new mca -n DurableApp --all --db postgres --tests
 ### Presets
 | Option | Description |
 |--------|-------------|
-| `--recommended` | Includes: serilog, healthchecks, validation, security, caching |
+| `--recommended` | Includes: serilog, healthchecks, validation, security, caching, ratelimiting |
 | `--all` | Includes: auth, messaging, audit, opentelemetry, docker, tests (plus recommended set) |
 
 ### Project Structure
@@ -180,6 +180,7 @@ dotnet new mca -n DurableApp --all --db postgres --tests
 | `--auth` | OpenIddict auth (Identity + OAuth2/OIDC) |
 | `--security` | Encryption, security headers, CORS |
 | `--caching` | In-memory and Redis caching |
+| `--ratelimiting` | Global + endpoint-specific rate limiting with 429 ProblemDetails |
 | `--messaging` | Wolverine domain events |
 | `--audit` | Audit logging |
 | `--opentelemetry` | Distributed tracing |
@@ -209,6 +210,9 @@ dotnet new mca -n EnterpriseApp --all --db postgres --tests
 
 # Secure API
 dotnet new mca -n SecureApp --auth --db postgres
+
+# Public API with rate limiting
+dotnet new mca -n PublicApi --single-project --ratelimiting
 ```
 
 ## What Gets Scaffolded

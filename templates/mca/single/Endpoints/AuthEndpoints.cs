@@ -4,6 +4,9 @@ using MCA.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+#if (UseRateLimiting)
+using MinimalCleanArch.Extensions.RateLimiting;
+#endif
 
 namespace MCA.Endpoints;
 
@@ -23,6 +26,9 @@ public static class AuthEndpoints
                 : Results.BadRequest(new { error = result.Error.Message });
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.TokenBucketPolicy)
+#endif
         .WithName("Register")
         .WithSummary("Register a new user");
 
@@ -40,6 +46,9 @@ public static class AuthEndpoints
                 : Results.BadRequest(new { error = result.Error.Message });
         })
         .RequireAuthorization()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.FixedPolicy)
+#endif
         .WithName("ChangePassword")
         .WithSummary("Change the current user's password");
 
@@ -67,6 +76,9 @@ public static class AuthEndpoints
             });
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.TokenBucketPolicy)
+#endif
         .WithName("ForgotPassword")
         .WithSummary("Request a password reset email");
 
@@ -80,6 +92,9 @@ public static class AuthEndpoints
                 : Results.BadRequest(new { error = result.Error.Message });
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.TokenBucketPolicy)
+#endif
         .WithName("ResetPassword")
         .WithSummary("Reset a user's password using a reset token");
 
@@ -112,6 +127,9 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "Signed in" });
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.TokenBucketPolicy)
+#endif
         .WithName("Login")
         .WithSummary("Sign in via cookie (for SSR/authorization code flow)");
 
@@ -190,6 +208,9 @@ public static class AuthEndpoints
                 return Results.Redirect("/");
             })
             .AllowAnonymous()
+#if (UseRateLimiting)
+            .RequireRateLimiting(RateLimitingExtensions.TokenBucketPolicy)
+#endif
             .ExcludeFromDescription();
         }
     }

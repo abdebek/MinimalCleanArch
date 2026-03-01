@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="MinimalCleanArch" Version="__MCA_VERSION__" />
     <PackageReference Include="MinimalCleanArch.DataAccess" Version="__MCA_VERSION__" />
-    <!--#if (UseCaching)-->
+    <!--#if (UseCaching || UseRateLimiting)-->
     <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseSerilog)-->

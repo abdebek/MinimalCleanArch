@@ -9,6 +9,9 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using System.Security.Claims;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+#if (UseRateLimiting)
+using MinimalCleanArch.Extensions.RateLimiting;
+#endif
 
 namespace MCA.Api.Endpoints;
 
@@ -59,6 +62,9 @@ public static class OpenIddictEndpoints
             return Results.SignIn(principal, properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.FixedPolicy)
+#endif
         .WithName("Authorize")
         .WithTags("OpenIddict");
 
@@ -175,6 +181,9 @@ public static class OpenIddictEndpoints
             return Results.Problem("The specified grant type is not supported.");
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.TokenBucketPolicy)
+#endif
         .WithName("Token")
         .WithTags("OpenIddict");
 
@@ -221,6 +230,9 @@ public static class OpenIddictEndpoints
             return Results.Ok(claims);
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.FixedPolicy)
+#endif
         .WithName("UserInfo")
         .WithTags("OpenIddict");
 
@@ -238,6 +250,9 @@ public static class OpenIddictEndpoints
             return Results.SignOut(authenticationSchemes: new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme });
         })
         .AllowAnonymous()
+#if (UseRateLimiting)
+        .RequireRateLimiting(RateLimitingExtensions.FixedPolicy)
+#endif
         .WithName("Logout")
         .WithTags("OpenIddict");
 

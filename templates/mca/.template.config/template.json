@@ -22,7 +22,7 @@
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
-      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching)"
+      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching, rate limiting)"
     },
     "all": {
       "type": "parameter",
@@ -77,6 +77,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Include caching abstractions"
+    },
+    "ratelimiting": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include API rate limiting (global + endpoint policies)"
     },
     "messaging": {
       "type": "parameter",
@@ -160,6 +166,10 @@
     "UseCaching": {
       "type": "computed",
       "value": "(caching || recommended || all)"
+    },
+    "UseRateLimiting": {
+      "type": "computed",
+      "value": "(ratelimiting || recommended || all)"
     },
     "UseMessaging": {
       "type": "computed",
