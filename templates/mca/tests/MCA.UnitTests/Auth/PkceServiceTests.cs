@@ -1,4 +1,3 @@
-#if (UseAuth)
 using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
@@ -68,4 +67,3 @@ public class PkceServiceTests
     private static string Base64UrlEncode(byte[] input) =>
         Convert.ToBase64String(input).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }
-#endif

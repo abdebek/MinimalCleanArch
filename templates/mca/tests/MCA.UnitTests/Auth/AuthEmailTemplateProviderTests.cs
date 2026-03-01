@@ -1,4 +1,3 @@
-#if (UseAuth)
 using FluentAssertions;
 using MCA.Infrastructure.Configuration;
 using MCA.Infrastructure.Providers;
@@ -109,4 +108,3 @@ public class AuthEmailTemplateProviderTests
         email.HtmlBody.Should().NotBeNullOrWhiteSpace();
     }
 }
-#endif

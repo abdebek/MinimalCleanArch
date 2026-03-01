@@ -1,4 +1,3 @@
-#if (UseAuth && !UseMessaging)
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
@@ -436,4 +435,3 @@ internal sealed class InProcessHttpClientFactory : IHttpClientFactory
 
     public HttpClient CreateClient(string name) => _clientFactory();
 }
-#endif

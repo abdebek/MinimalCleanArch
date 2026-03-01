@@ -254,6 +254,8 @@
       "modifiers": [
         { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
+        { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
+        { "condition": "(UseMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.sln", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**"] }
       ]
