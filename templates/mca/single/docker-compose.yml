@@ -1,4 +1,4 @@
-version: '3.8'
+name: ${COMPOSE_PROJECT_NAME:-mca}
 
 services:
   api:
@@ -19,6 +19,7 @@ services:
 #if (UseCaching)
       - Caching__Redis__ConnectionString=redis:6379
 #endif
+#if (UseSqlServer || UsePostgres || UseCaching)
     depends_on:
 #if (UseSqlServer)
       - sqlserver
@@ -28,6 +29,7 @@ services:
 #endif
 #if (UseCaching)
       - redis
+#endif
 #endif
 
 #if (UseSqlServer)
@@ -64,6 +66,7 @@ services:
       - redis-data:/data
 #endif
 
+#if (UseSqlServer || UsePostgres || UseCaching)
 volumes:
 #if (UseSqlServer)
   sqlserver-data:
@@ -73,4 +76,5 @@ volumes:
 #endif
 #if (UseCaching)
   redis-data:
+#endif
 #endif
