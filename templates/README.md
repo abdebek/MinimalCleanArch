@@ -156,6 +156,46 @@ docker run -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWORD=postgres" -e "POSTG
 dotnet new mca -n DurableApp --all --db postgres --tests
 ```
 
+## Deployment Scripts (Generated App)
+
+When you scaffold with `--docker` (or `--all`), the generated app includes `scripts/` for local deployment workflows.
+
+Recommended default: Docker Compose
+
+PowerShell:
+
+```powershell
+pwsh ./scripts/deploy.ps1 -Target compose
+pwsh ./scripts/compose-down.ps1 -RemoveVolumes
+```
+
+Bash:
+
+```bash
+./scripts/deploy.sh --target compose
+./scripts/compose-down.sh --remove-volumes
+```
+
+Optional local Kubernetes smoke path (kind):
+
+PowerShell:
+
+```powershell
+pwsh ./scripts/deploy.ps1 -Target kind -ImageTag myapp:local
+```
+
+Bash:
+
+```bash
+./scripts/deploy.sh --target kind --image-tag myapp:local
+```
+
+Notes:
+- Compose is the fastest way to validate full local dependencies (API + DB + cache from `docker-compose.yml`).
+- The kind smoke path is best for quick API image validation and local cluster checks.
+- For SQL Server/PostgreSQL generated apps, prefer Compose unless you also deploy matching DB services to your cluster.
+- Compose uses `name: ${COMPOSE_PROJECT_NAME:-mca}`; the generated compose scripts automatically set `COMPOSE_PROJECT_NAME` from the app folder name. You can override it explicitly with `COMPOSE_PROJECT_NAME=...`.
+
 ## Template Options
 
 ### Presets
