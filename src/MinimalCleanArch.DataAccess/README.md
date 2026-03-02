@@ -3,12 +3,12 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
--0.1.11-preview (net9.0, net10.0). Works with `MinimalCleanArch`0.1.11-preview and companion packages.
+- 0.1.14-preview (net9.0, net10.0). Works with `MinimalCleanArch` 0.1.14-preview and companion packages.
 
 ## What's included
 - `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
 - `Repository<TEntity,TKey>` and `UnitOfWork` implementations.
-- `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`.
+- `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`, `AsSplitQuery`, and `IgnoreQueryFilters`.
 - DI extensions to register repositories/unit of work.
 
 ## Usage
@@ -49,3 +49,4 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 ```
 
 When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
+

@@ -8,13 +8,21 @@ using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Audit.Entities;
 using MinimalCleanArch.Audit.Extensions;
 #endif
+#if (UseAuth)
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+#endif
 
 namespace MCA.Infrastructure.Data;
 
 /// <summary>
 /// Application database context.
 /// </summary>
+#if (UseAuth)
+public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
+#else
 public class AppDbContext : DbContext
+#endif
 {
 #if (UseSecurity)
     private readonly IEncryptionService? _encryptionService;
@@ -41,6 +49,18 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+#if (UseAuth)
+        // Configure OpenIddict entities
+        modelBuilder.UseOpenIddict<Guid>();
+
+        // Configure ApplicationUser entity
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+        });
+#endif
 
         // Configure Todo entity
         modelBuilder.Entity<Todo>(entity =>

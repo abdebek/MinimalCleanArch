@@ -3,17 +3,17 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
--0.1.11-preview (net9.0, net10.0). Base dependency for all other MinimalCleanArch packages.
+- 0.1.14-preview (net9.0, net10.0). Base dependency for all other MinimalCleanArch packages.
 
 ## Contents
 - Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`.
-- Common types: `Result`/`Result<T>`, `Error`.
+- Common types: `Result`/`Result<T>`, `Error` (status code + metadata support, with `Match`/`Bind` helpers).
 - Repositories: `IRepository<TEntity, TKey>`, `IUnitOfWork`.
-- Specifications: `ISpecification<T>`, `BaseSpecification<T>`, and composable `And/Or/Not` helpers for richer queries.
+- Specifications: `ISpecification<T>`, `BaseSpecification<T>`, composable `And/Or/Not`, `InMemorySpecificationEvaluator`, and query flags (`AsNoTracking`, `AsSplitQuery`, `IgnoreQueryFilters`, `IsCountOnly`).
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch --version0.1.11-preview
+dotnet add package MinimalCleanArch --version 0.1.14-preview
 ```
 
 Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` for typed operation results.
@@ -58,3 +58,4 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 ```
 
 When consuming locally built nupkgs, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
+

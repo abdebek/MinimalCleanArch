@@ -4,14 +4,14 @@
     <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU1608</NoWarn>
+    <NoWarn>$(NoWarn);NU1608;NU1510</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MinimalCleanArch" Version="__MCA_VERSION__" />
     <!--#if (UseValidation)-->
     <PackageReference Include="MinimalCleanArch.Validation" Version="__MCA_VERSION__" />
-    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="__MCA_VERSION__" />

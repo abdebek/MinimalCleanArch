@@ -1,0 +1,600 @@
+using System.Net;
+using System.Net.Http.Json;
+using FluentAssertions;
+using MCA.Application.Interfaces;
+using MCA.Domain.Constants;
+using MCA.Domain.Entities;
+using MCA.Infrastructure.Data;
+#if (SingleProject)
+using MCA.Infrastructure.Configuration;
+#else
+using MCA.Api.Configuration;
+#endif
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+#if (UseMessaging)
+using MinimalCleanArch.Messaging.Extensions;
+#endif
+using Xunit;
+
+namespace MCA.IntegrationTests;
+
+public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
+{
+    private readonly AuthTestApiFactory _factory;
+    private readonly HttpClient _client;
+
+    public AuthEndpointTests(AuthTestApiFactory factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task ScalarUi_LoadsInDevelopment()
+    {
+        var response = await _client.GetAsync("/scalar/v1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+    // --- Register ---
+
+    [Fact]
+    public async Task Register_ValidRequest_ReturnsOkWithUserId()
+    {
+        var request = new { email = UniqueEmail(), password = "Test@1234" };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<RegisterResult>();
+        body!.userId.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Register_ValidRequest_SendsEmailConfirmationLinkAndConfirms()
+    {
+        EmailSender.Clear();
+        var email = UniqueEmail();
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var registerBody = await registerResponse.Content.ReadFromJsonAsync<RegisterResult>();
+        registerBody.Should().NotBeNull();
+
+        var message = EmailSender.GetLatestForRecipient(email, "confirm");
+        var (userId, token) = ExtractAuthLinkParams(message.HtmlBody, "confirm-email");
+
+        userId.Should().Be(registerBody!.userId);
+
+        var confirmResponse = await _client.PostAsJsonAsync("/api/auth/confirm-email", new { userId, token });
+        confirmResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByIdAsync(userId);
+        user.Should().NotBeNull();
+        user!.EmailConfirmed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Register_DuplicateEmail_ReturnsBadRequest()
+    {
+        var email = UniqueEmail();
+        await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        var response = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // --- Forgot password ---
+
+    [Fact]
+    public async Task ForgotPassword_UnknownEmail_ReturnsOkToPreventEnumeration()
+    {
+        var request = new { email = "nobody@example.com" };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/forgot-password", request);
+
+        // Always 200 regardless of whether the email exists (prevents user enumeration)
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ForgotPassword_KnownEmail_DoesNotLeakToken()
+    {
+        var email = UniqueEmail();
+        await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        var response = await _client.PostAsJsonAsync("/api/auth/forgot-password", new { email });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        body.GetProperty("message").GetString().Should().NotBeNullOrWhiteSpace();
+        body.TryGetProperty("token", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ForgotPassword_KnownEmail_ResetLinkAllowsPasswordReset()
+    {
+        EmailSender.Clear();
+        var email = UniqueEmail();
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var forgotResponse = await _client.PostAsJsonAsync("/api/auth/forgot-password", new { email });
+        forgotResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var message = EmailSender.GetLatestForRecipient(email, "reset");
+        var (userId, token) = ExtractAuthLinkParams(message.HtmlBody, "reset-password");
+
+        var newPassword = "Reset!9876";
+        var resetResponse = await _client.PostAsJsonAsync("/api/auth/reset-password", new { userId, token, newPassword });
+        resetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByIdAsync(userId);
+        user.Should().NotBeNull();
+        (await userManager.CheckPasswordAsync(user!, newPassword)).Should().BeTrue();
+    }
+
+    // --- Confirm email ---
+
+    [Fact]
+    public async Task ConfirmEmail_InvalidToken_ReturnsBadRequest()
+    {
+        // Use a valid Guid format — UserManager<Guid> will parse it before looking up the user
+        var request = new { userId = Guid.NewGuid().ToString(), token = "bad-token" };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/confirm-email", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // --- Reset password ---
+
+    [Fact]
+    public async Task ResetPassword_InvalidToken_ReturnsBadRequest()
+    {
+        var email = UniqueEmail();
+        var reg = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+        var regBody = await reg.Content.ReadFromJsonAsync<RegisterResult>();
+
+        var request = new { userId = regBody!.userId, token = "bad-token", newPassword = "NewPass@9876" };
+        var response = await _client.PostAsJsonAsync("/api/auth/reset-password", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // --- SSR login page (development only) ---
+
+    [Fact]
+    public async Task GetLoginPage_ReturnsHtml()
+    {
+        var response = await _client.GetAsync("/auth/login");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("text/html");
+    }
+
+    [Fact]
+    public async Task GetLoginPage_WithErrorParam_RendersErrorMessage()
+    {
+        var response = await _client.GetAsync("/auth/login?error=Invalid+credentials");
+
+        var html = await response.Content.ReadAsStringAsync();
+        html.Should().Contain("Invalid credentials");
+    }
+
+    [Fact]
+    public async Task GetLoginPage_WithReturnUrl_EmbeddsItInForm()
+    {
+        var response = await _client.GetAsync("/auth/login?returnUrl=/connect/authorize%3Fresponse_type%3Dcode");
+
+        var html = await response.Content.ReadAsStringAsync();
+        html.Should().Contain("/connect/authorize");
+    }
+
+    [Fact]
+    public async Task OAuthDemoStart_RedirectsToAuthorizeUrl()
+    {
+        var demoClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        var response = await demoClient.GetAsync("/oauth/demo/start");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var location = response.Headers.Location!.ToString();
+        location.Should().Contain("/connect/authorize");
+        location.Should().Contain("client_id=mca-web-client");
+        location.Should().Contain("code_challenge_method=S256");
+        location.Should().Contain("redirect_uri=http%3A%2F%2Flocalhost%2Foauth%2Fdemo%2Fcallback");
+    }
+
+    [Fact]
+    public async Task AuthorizeEndpoint_Unauthenticated_RedirectsToLogin()
+    {
+        var demoClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        var startResponse = await demoClient.GetAsync("/oauth/demo/start");
+        var authorizeLocation = startResponse.Headers.Location!.ToString();
+
+        var authorizeResponse = await demoClient.GetAsync(authorizeLocation);
+
+        authorizeResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var loginLocation = authorizeResponse.Headers.Location!.ToString();
+        loginLocation.Should().Contain("/auth/login");
+        Uri.UnescapeDataString(loginLocation).Should().Contain("/connect/authorize");
+    }
+
+    [Fact]
+    public async Task OAuthDemoCallback_WithInvalidState_ReturnsBadRequest()
+    {
+        var demoClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        _ = await demoClient.GetAsync("/oauth/demo/start");
+
+        var response = await demoClient.GetAsync("/oauth/demo/callback?code=fake-code&state=wrong-state");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        body.Should().Contain("State mismatch");
+    }
+
+    [Fact]
+    public async Task OAuthDemoEndToEnd_CompletesPkceFlowAndReturnsTokens()
+    {
+        var email = UniqueEmail();
+        await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        var demoClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+
+        var startResponse = await demoClient.GetAsync("/oauth/demo/start");
+        startResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var authorizeLocation = ToRelativePathAndQuery(startResponse.Headers.Location!.ToString());
+
+        var unauthAuthorizeResponse = await demoClient.GetAsync(authorizeLocation);
+        unauthAuthorizeResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var loginLocation = unauthAuthorizeResponse.Headers.Location!.ToString();
+        loginLocation.Should().Contain("/auth/login");
+
+        var loginResponse = await demoClient.PostAsync("/auth/login", new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["email"] = email,
+                ["password"] = "Test@1234",
+                ["returnUrl"] = authorizeLocation
+            }));
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var postLoginLocation = ToRelativePathAndQuery(loginResponse.Headers.Location!.ToString());
+        postLoginLocation.Should().Contain("/connect/authorize");
+
+        var authorizeAfterLoginResponse = await demoClient.GetAsync(postLoginLocation);
+        authorizeAfterLoginResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var callbackLocation = ToRelativePathAndQuery(authorizeAfterLoginResponse.Headers.Location!.ToString());
+        callbackLocation.Should().Contain("/oauth/demo/callback");
+        callbackLocation.Should().Contain("code=");
+        callbackLocation.Should().Contain("state=");
+
+        var callbackResponse = await demoClient.GetAsync(callbackLocation);
+        var callbackBodyText = await callbackResponse.Content.ReadAsStringAsync();
+        callbackResponse.StatusCode.Should().Be(HttpStatusCode.OK, $"callback response body: {callbackBodyText}");
+
+        var body = System.Text.Json.JsonDocument.Parse(callbackBodyText).RootElement;
+        body.GetProperty("message").GetString().Should().Contain("PKCE flow completed successfully");
+        body.TryGetProperty("tokens", out var tokens).Should().BeTrue();
+        tokens.TryGetProperty("access_token", out _).Should().BeTrue();
+        tokens.TryGetProperty("token_type", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BootstrapAdminSeed_CreatesAdminRoleAndUser()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        (await roleManager.RoleExistsAsync(Roles.Admin)).Should().BeTrue();
+
+        var adminUser = await userManager.FindByEmailAsync("admin@example.com");
+        adminUser.Should().NotBeNull();
+        (await userManager.IsInRoleAsync(adminUser!, Roles.Admin)).Should().BeTrue();
+    }
+
+    // --- SSR form login (development only) ---
+
+    [Fact]
+    public async Task FormLogin_InvalidCredentials_RedirectsBackWithError()
+    {
+        var loginClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["email"] = "nobody@example.com",
+            ["password"] = "WrongPassword",
+            ["returnUrl"] = ""
+        });
+
+        var response = await loginClient.PostAsync("/auth/login", form);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Contain("/auth/login");
+        response.Headers.Location!.ToString().Should().Contain("error=");
+    }
+
+    [Fact]
+    public async Task FormLogin_ValidCredentials_RedirectsAndSetsAuthCookie()
+    {
+        var email = UniqueEmail();
+        await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        var loginClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+        var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["email"] = email,
+            ["password"] = "Test@1234",
+            ["returnUrl"] = ""
+        });
+
+        var response = await loginClient.PostAsync("/auth/login", form);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Be("/");
+    }
+
+    // --- Change password ---
+
+    [Fact]
+    public async Task ChangePassword_Unauthenticated_Returns401()
+    {
+        var request = new { currentPassword = "Test@1234", newPassword = "New@5678" };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/change-password", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ChangePassword_Authenticated_ReturnsOk()
+    {
+        var email = UniqueEmail();
+        await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        // The change-password endpoint requires a bearer token (OpenIddict default policy).
+        // Use the password grant to obtain one.
+        var tokenResponse = await _client.PostAsync("/connect/token", new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = "password",
+                ["username"] = email,
+                ["password"] = "Test@1234",
+                ["client_id"] = "mca-web-client",
+                ["client_secret"] = "mca-default-secret-change-me",
+                ["scope"] = "openid profile email"
+            }));
+
+        tokenResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var accessToken = tokenJson.GetProperty("access_token").GetString();
+
+        var changeRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/change-password");
+        changeRequest.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        changeRequest.Content = JsonContent.Create(new { currentPassword = "Test@1234", newPassword = "NewTest@9999" });
+
+        var response = await _client.SendAsync(changeRequest);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private RecordingEmailSender EmailSender => _factory.Services.GetRequiredService<RecordingEmailSender>();
+
+    private static (string UserId, string Token) ExtractAuthLinkParams(string htmlBody, string routeSegment)
+    {
+        var marker = $"/{routeSegment}?";
+        var markerIndex = htmlBody.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        markerIndex.Should().BeGreaterThanOrEqualTo(0, $"Expected link containing '{marker}'.");
+
+        var urlStart = htmlBody.LastIndexOf("http", markerIndex, StringComparison.OrdinalIgnoreCase);
+        urlStart.Should().BeGreaterThanOrEqualTo(0, "Expected absolute URL in email body.");
+
+        var urlEnd = htmlBody.IndexOf('"', urlStart);
+        urlEnd.Should().BeGreaterThan(urlStart, "Expected URL to end with a quote character.");
+
+        var encodedUrl = htmlBody.Substring(urlStart, urlEnd - urlStart);
+        var uri = new Uri(encodedUrl);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        query.TryGetValue("userId", out var userIdValues).Should().BeTrue();
+        query.TryGetValue("token", out var tokenValues).Should().BeTrue();
+
+        var userId = userIdValues.ToString();
+        var token = tokenValues.ToString();
+
+        userId.Should().NotBeNullOrWhiteSpace();
+        token.Should().NotBeNullOrWhiteSpace();
+
+        return (userId, token);
+    }
+
+    private static string UniqueEmail() => $"test{Guid.NewGuid():N}@example.com";
+
+    private static string ToRelativePathAndQuery(string uriOrPath)
+    {
+        if (Uri.TryCreate(uriOrPath, UriKind.Absolute, out var absolute))
+            return absolute.PathAndQuery;
+
+        return uriOrPath;
+    }
+
+    private record RegisterResult(string userId, string message);
+}
+
+public class AuthTestApiFactory : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Development");
+        builder.ConfigureAppConfiguration((_, configBuilder) =>
+        {
+            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                // Intentionally mismatch App:BaseUrl with runtime URLs to verify redirect URI seeding
+                // remains resilient in development when launch profile ports differ.
+                ["App:BaseUrl"] = "https://localhost:7443",
+                ["ASPNETCORE_URLS"] = "http://localhost",
+                ["Database:EnsureCreated"] = "false",
+                ["Seed:EnableBootstrapAdmin"] = "true",
+                ["Seed:AdminEmail"] = "admin@example.com",
+                ["Seed:AdminPassword"] = "SeededAdmin!123",
+                ["Seed:AdminFirstName"] = "System",
+                ["Seed:AdminLastName"] = "Administrator",
+                ["Seed:AdminRole"] = Roles.Admin
+            });
+        });
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
+            services.RemoveAll(typeof(IDbContextOptionsConfiguration<AppDbContext>));
+            services.RemoveAll<AppDbContext>();
+
+            // Use a fresh in-memory DB per factory instance so test classes don't share state
+            var dbName = $"AuthTestDb-{Guid.NewGuid()}";
+            services.AddDbContext<AppDbContext>((sp, options) =>
+            {
+                options.UseInMemoryDatabase(dbName);
+                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+                options.UseOpenIddict<Guid>();
+#if (UseMessaging)
+                options.UseDomainEventPublishing(sp);
+#endif
+            });
+
+            using var bootstrapProvider = services.BuildServiceProvider();
+            using var bootstrapScope = bootstrapProvider.CreateScope();
+            var db = bootstrapScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.EnsureCreated();
+            var configuration = bootstrapScope.ServiceProvider.GetRequiredService<IConfiguration>();
+            bootstrapScope.ServiceProvider
+                .SeedOpenIddictApplicationsAsync(configuration)
+                .GetAwaiter()
+                .GetResult();
+
+            // Replace SMTP sender with an in-memory capture sender for auth flow assertions
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<RecordingEmailSender>();
+            services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<RecordingEmailSender>());
+
+            // Route internally-created HttpClient calls (e.g. OAuth demo callback token exchange)
+            // back into the in-memory TestServer instead of localhost network sockets.
+            services.RemoveAll<IHttpClientFactory>();
+            services.AddSingleton<IHttpClientFactory>(_ =>
+                new InProcessHttpClientFactory(() =>
+                    CreateClient(new WebApplicationFactoryClientOptions
+                    {
+                        AllowAutoRedirect = false,
+                        HandleCookies = true
+                    })));
+        });
+    }
+}
+
+internal sealed class RecordingEmailSender : IEmailSender
+{
+    private readonly ConcurrentQueue<EmailMessage> _messages = new();
+
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        _messages.Enqueue(new EmailMessage
+        {
+            To = message.To,
+            Subject = message.Subject,
+            HtmlBody = message.HtmlBody,
+            TextBody = message.TextBody
+        });
+
+        return Task.CompletedTask;
+    }
+
+    public void Clear()
+    {
+        while (_messages.TryDequeue(out _))
+        {
+        }
+    }
+
+    public EmailMessage GetLatestForRecipient(string email, string? subjectContains = null)
+    {
+        var timeout = TimeSpan.FromSeconds(5);
+        var startedAt = Stopwatch.StartNew();
+        EmailMessage? match = null;
+
+        while (startedAt.Elapsed < timeout)
+        {
+            match = _messages.Reverse().FirstOrDefault(message =>
+                string.Equals(message.To, email, StringComparison.OrdinalIgnoreCase)
+                && (string.IsNullOrWhiteSpace(subjectContains)
+                    || message.Subject.Contains(subjectContains, StringComparison.OrdinalIgnoreCase)));
+
+            if (match is not null)
+            {
+                break;
+            }
+
+            Thread.Sleep(50);
+        }
+
+        match.Should().NotBeNull($"Expected an email for {email}.");
+        return match!;
+    }
+}
+
+internal sealed class InProcessHttpClientFactory : IHttpClientFactory
+{
+    private readonly Func<HttpClient> _clientFactory;
+
+    public InProcessHttpClientFactory(Func<HttpClient> clientFactory)
+    {
+        _clientFactory = clientFactory;
+    }
+
+    public HttpClient CreateClient(string name) => _clientFactory();
+}
+
+
+

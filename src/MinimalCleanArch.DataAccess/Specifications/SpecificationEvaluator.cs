@@ -20,10 +20,10 @@ public static class SpecificationEvaluator<T> where T : class
     {
         var query = inputQuery;
 
-        // Apply soft delete filter if needed
-        if (typeof(ISoftDelete).IsAssignableFrom(typeof(T)) && specification.IgnoreSoftDelete)
+        // Apply query-filter bypasses (generic and soft-delete specific).
+        if (specification.IgnoreQueryFilters ||
+            (typeof(ISoftDelete).IsAssignableFrom(typeof(T)) && specification.IgnoreSoftDelete))
         {
-            // No need to filter on IsDeleted here since we're ignoring the filter
             query = query.IgnoreQueryFilters();
         }
 
@@ -89,6 +89,12 @@ public static class SpecificationEvaluator<T> where T : class
         if (specification.AsNoTracking)
         {
             query = query.AsNoTracking();
+        }
+
+        // Apply split query behavior for include-heavy graphs
+        if (specification.AsSplitQuery)
+        {
+            query = query.AsSplitQuery();
         }
 
         return query;

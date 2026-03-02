@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MCA.Application.Handlers;
 
-#if (UseMessaging)
 public class TodoEventHandler
 {
     private readonly ILogger<TodoEventHandler> _logger;
@@ -37,4 +36,3 @@ public class TodoEventHandler
         return Task.CompletedTask;
     }
 }
-#endif

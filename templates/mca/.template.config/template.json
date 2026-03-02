@@ -22,7 +22,7 @@
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
-      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching)"
+      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching, rate limiting)"
     },
     "all": {
       "type": "parameter",
@@ -78,6 +78,12 @@
       "defaultValue": "false",
       "description": "Include caching abstractions"
     },
+    "ratelimiting": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include API rate limiting (global + endpoint policies)"
+    },
     "messaging": {
       "type": "parameter",
       "datatype": "bool",
@@ -89,6 +95,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Include audit logging"
+    },
+    "auth": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include OpenIddict authentication (Identity + OAuth2/OpenID Connect)"
     },
     "opentelemetry": {
       "type": "parameter",
@@ -116,7 +128,7 @@
     "mcaVersion": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "0.1.11-preview",
+      "defaultValue": "0.1.13-preview",
       "description": "MinimalCleanArch package version to reference",
       "replaces": "__MCA_VERSION__"
     },
@@ -145,11 +157,19 @@
     },
     "UseSecurity": {
       "type": "computed",
-      "value": "(security || recommended || all)"
+      "value": "(security || recommended || all || auth)"
+    },
+    "UseAuth": {
+      "type": "computed",
+      "value": "(auth || all)"
     },
     "UseCaching": {
       "type": "computed",
       "value": "(caching || recommended || all)"
+    },
+    "UseRateLimiting": {
+      "type": "computed",
+      "value": "(ratelimiting || recommended || all)"
     },
     "UseMessaging": {
       "type": "computed",
@@ -244,6 +264,9 @@
       "modifiers": [
         { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
+        { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
+        { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
+        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.sln", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**"] }
       ]
@@ -253,9 +276,10 @@
       "target": "./",
       "condition": "(MultiProject)",
       "modifiers": [
-        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
+        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
-        { "exclude": ["**/bin/**", "**/obj/**"] }
+        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Commands/Auth*.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Handlers/AuthEventHandler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
+        { "exclude": ["**/bin/**", "**/obj/**", "**/Configuration/AuthSettings.cs"] }
       ]
     },
     {
@@ -264,9 +288,10 @@
       "condition": "(SingleProject)",
       "modifiers": [
         { "condition": "(!UseDocker)", "exclude": ["Dockerfile", "docker-compose.yml", ".dockerignore"] },
-        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
+        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
-        { "exclude": ["**/bin/**", "**/obj/**"] }
+        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Commands/Auth*.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Handlers/AuthEventHandler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
+        { "exclude": ["**/bin/**", "**/obj/**", "**/Configuration/AuthSettings.cs"] }
       ]
     }
   ],

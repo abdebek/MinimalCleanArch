@@ -1,6 +1,7 @@
 #if (UseSerilog)
 using Serilog;
 #endif
+using Scalar.AspNetCore;
 using MCA.Application;
 using MCA.Application.Services;
 using MCA.Domain.Interfaces;
@@ -8,7 +9,7 @@ using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Infrastructure.Services;
 using MCA.Application.Commands;
-#if (UseMessaging)
+#if (UseAuth)
 using MCA.Application.Handlers;
 #endif
 using MCA.Api.Endpoints;
@@ -30,6 +31,9 @@ using MinimalCleanArch.Security.Extensions;
 #if (UseCaching)
 using MinimalCleanArch.Extensions.Caching;
 #endif
+#if (UseRateLimiting)
+using MinimalCleanArch.Extensions.RateLimiting;
+#endif
 #if (UseMessaging)
 using MinimalCleanArch.Messaging.Extensions;
 #endif
@@ -42,6 +46,10 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using System;
 #endif
+#if (UseAuth)
+using MCA.Api.Configuration;
+using MCA.Infrastructure.Configuration;
+#endif
 #if (UseMessaging)
 using Wolverine;
 #if (UseValidation)
@@ -53,16 +61,6 @@ using Wolverine.SqlServer;
 #if (UseDurableMessaging && UsePostgres)
 using Wolverine.Postgresql;
 #endif
-#endif
-
-#if (UseSerilog)
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
-
-try
-{
-    Log.Information("Starting MCA application");
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
@@ -106,6 +104,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseNpgsql(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+    options.UseOpenIddict<Guid>();
+#endif
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
 #endif
@@ -119,6 +120,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+    options.UseOpenIddict<Guid>();
+#endif
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
 #endif
@@ -132,6 +136,9 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlite(connectionString);
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+#if (UseAuth)
+    options.UseOpenIddict<Guid>();
+#endif
 #if (UseAudit)
     options.UseAuditInterceptor(sp);
 #endif
@@ -171,10 +178,29 @@ builder.Services.AddCors(options =>
 });
 #endif
 
+#if (UseAuth)
+// Authentication - OpenIddict + ASP.NET Core Identity
+builder.Services.AddAuthServices(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.AddScoped<RegisterUserHandler>();
+builder.Services.AddScoped<ChangePasswordHandler>();
+builder.Services.AddScoped<ConfirmEmailHandler>();
+builder.Services.AddScoped<ForgotPasswordHandler>();
+builder.Services.AddScoped<ResetPasswordHandler>();
+builder.Services.AddHttpClient();
+#endif
+
 #if (UseCaching)
 // Caching
 builder.Services.AddMemoryCache();
 builder.Services.AddMinimalCleanArchCaching();
+#endif
+
+#if (UseRateLimiting)
+// Rate limiting (global + endpoint policies)
+builder.Services.AddMinimalCleanArchRateLimiting(config =>
+{
+    builder.Configuration.GetSection("RateLimiting").Bind(config);
+});
 #endif
 
 #if (UseMessaging)
@@ -243,17 +269,38 @@ builder.Services.AddOpenTelemetry()
         .AddConsoleExporter());
 #endif
 
-// API Explorer for OpenAPI/Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// OpenAPI document generation
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+#if (UseAuth)
+        var webClientSecret = app.Configuration["OpenIddict:Clients:Web:Secret"];
+        var webClientId = app.Configuration["OpenIddict:Clients:Web:ClientId"] ?? "mca-web-client";
+        options.AddPasswordFlow("oauth2", flow =>
+        {
+            flow.TokenUrl = "/connect/token";
+            flow.ClientId = webClientId;
+            flow.ClientSecret = webClientSecret;
+            flow.SelectedScopes = new[]
+            {
+                "openid",
+                "profile",
+                "email",
+                "offline_access",
+                "mca.api"
+            };
+        });
+        options.AddPreferredSecuritySchemes(new[] { "oauth2" });
+        options.WithPersistentAuthentication();
+#endif
+    });
 }
 
 #if (UseSerilog)
@@ -267,6 +314,16 @@ app.UseHttpsRedirection();
 app.UseCors();
 #endif
 
+#if (UseAuth)
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseSession();
+#endif
+
+#if (UseRateLimiting)
+app.UseMinimalCleanArchRateLimiting();
+#endif
+
 #if (UseHealthChecks)
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
@@ -276,28 +333,26 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 
 // Map endpoints
 app.MapTodoEndpoints();
+#if (UseAuth)
+app.MapAuthEndpoints(app.Environment.IsDevelopment());
+app.MapOpenIddictEndpoints(app.Environment.IsDevelopment());
+app.MapExternalAuthEndpoints();
+app.MapOAuthEndpoints(app.Environment.IsDevelopment());
+#endif
 
 // Ensure database is created (development only)
-if (app.Environment.IsDevelopment())
+var ensureCreated = app.Configuration.GetValue("Database:EnsureCreated", true);
+if (app.Environment.IsDevelopment() && ensureCreated)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+#if (UseAuth)
+    await app.Services.SeedOpenIddictApplicationsAsync(builder.Configuration);
+#endif
 }
 
 app.Run();
-
-#if (UseSerilog)
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
-#endif
 
 // Expose Program for integration testing
 public partial class Program;

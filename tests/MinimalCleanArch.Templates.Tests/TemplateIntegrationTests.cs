@@ -71,7 +71,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
         // 1. Start SQL Server Container
         _output.WriteLine("Starting SQL Server...");
-        var sqlContainer = new MsSqlBuilder()
+        var sqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
             .WithPassword("Pass@word1")
             .Build();
 
@@ -128,7 +128,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
         // 1. Start Postgres Container
         _output.WriteLine("Starting Postgres...");
-        var pgContainer = new PostgreSqlBuilder()
+        var pgContainer = new PostgreSqlBuilder("postgres:latest")
             .WithUsername("postgres")
             .WithPassword("postgres")
             .WithDatabase(dbName)
@@ -224,7 +224,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
         // 1. Start Redis Container
         _output.WriteLine("Starting Redis...");
-        var redisContainer = new RedisBuilder().Build();
+        var redisContainer = new RedisBuilder("redis:latest").Build();
         await redisContainer.StartAsync();
 
         try

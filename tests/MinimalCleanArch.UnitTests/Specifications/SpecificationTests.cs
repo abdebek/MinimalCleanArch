@@ -9,6 +9,7 @@ using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Encryption;
 using FluentAssertions;
 using MinimalCleanArch.DataAccess.Repositories;
+using MinimalCleanArch.Specifications;
 
 namespace MinimalCleanArch.UnitTests.Specifications;
 
@@ -308,6 +309,36 @@ public class SpecificationTests : IDisposable
         count.Should().Be(4); // 4 incomplete todos
     }
 
+    [Fact]
+    public async Task Specification_CanIgnoreAllQueryFilters()
+    {
+        // Arrange
+        var todoToDelete = (await _repository.GetAllAsync()).First();
+        await _repository.DeleteAsync(todoToDelete);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Act
+        var defaultVisible = await _repository.GetAsync(new AllTodosSpecification());
+        var includeFiltered = await _repository.GetAsync(new IgnoreFiltersTodosSpecification());
+
+        // Assert
+        defaultVisible.Should().HaveCount(4);
+        includeFiltered.Should().HaveCount(5);
+        includeFiltered.Count(t => t.IsDeleted).Should().Be(1);
+    }
+
+    private sealed class AllTodosSpecification : BaseSpecification<Todo>
+    {
+    }
+
+    private sealed class IgnoreFiltersTodosSpecification : BaseSpecification<Todo>
+    {
+        public IgnoreFiltersTodosSpecification()
+        {
+            IgnoreAllQueryFilters();
+        }
+    }
+
     private static int CompareDueDates(DateTime? date1, DateTime? date2)
     {
         // Null dates are considered "maximum" (last in descending order)
@@ -322,7 +353,7 @@ public class SpecificationTests : IDisposable
     {
         _scope?.Dispose();
         _serviceProvider?.Dispose();
-        
+
         // Clean up test database file
         try
         {

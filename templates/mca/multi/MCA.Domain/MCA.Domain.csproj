@@ -11,4 +11,13 @@
     <PackageReference Include="MinimalCleanArch" Version="__MCA_VERSION__" />
   </ItemGroup>
 
+  <!--#if (UseAuth)-->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.5" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.3" />
+  </ItemGroup>
+  <!--#endif-->
+
 </Project>

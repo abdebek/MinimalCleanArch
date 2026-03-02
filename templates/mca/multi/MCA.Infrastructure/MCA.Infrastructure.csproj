@@ -4,7 +4,7 @@
     <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU1608</NoWarn>
+    <NoWarn>$(NoWarn);NU1608;NU1510</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +15,9 @@
     <!--#endif-->
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
+    <!--#endif-->
+    <!--#if (UseAuth)-->
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.2.0" />
     <!--#endif-->
   </ItemGroup>
 
@@ -31,20 +34,26 @@
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
     <!--#endif-->
+    <!--#if (UseAuth)-->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
+    <!--#endif-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <!--#endif-->
     <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
+    <!--#endif-->
+    <!--#if (UseAuth)-->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
     <!--#endif-->
   </ItemGroup>
 

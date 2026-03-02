@@ -3,7 +3,7 @@
 Validation components for MinimalCleanArch.
 
 ## Version
--0.1.11-preview (net9.0, net10.0). Use with `MinimalCleanArch`0.1.11-preview and `MinimalCleanArch.Extensions`.
+- 0.1.14-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14-preview and `MinimalCleanArch.Extensions`.
 
 ## Overview
 - FluentValidation registration helpers.
@@ -11,7 +11,7 @@ Validation components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Validation --version0.1.11-preview
+dotnet add package MinimalCleanArch.Validation --version 0.1.14-preview
 ```
 
 In Program.cs:
@@ -24,3 +24,4 @@ builder.Services.AddMinimalCleanArchExtensions(); // to hook validation into Min
 
 - ValidationExtensions - Extension methods for registering validators
 - Integration with MinimalCleanArch.Extensions for endpoint validation
+

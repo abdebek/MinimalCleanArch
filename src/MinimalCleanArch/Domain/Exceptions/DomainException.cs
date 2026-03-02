@@ -1,27 +1,56 @@
-﻿namespace MinimalCleanArch.Domain.Exceptions;
+using MinimalCleanArch.Domain.Common;
+
+namespace MinimalCleanArch.Domain.Exceptions;
 
 /// <summary>
-/// Exception for domain validation errors
+/// Exception for domain validation and business-rule errors.
 /// </summary>
 public class DomainException : Exception
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="DomainException"/> class
+    /// Gets the structured error associated with this exception.
     /// </summary>
-    public DomainException() : base() { }
+    public Error Error { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DomainException"/> class with the specified error message
+    /// Initializes a new instance of the <see cref="DomainException"/> class.
     /// </summary>
-    /// <param name="message">The message that describes the error</param>
-    public DomainException(string message) : base(message) { }
+    public DomainException()
+        : this(Error.Failure("DOMAIN_ERROR", "A domain error occurred."))
+    {
+    }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DomainException"/> class with the specified error message
-    /// and a reference to the inner exception that is the cause of this exception
+    /// Initializes a new instance of the <see cref="DomainException"/> class with a message.
     /// </summary>
-    /// <param name="message">The message that describes the error</param>
-    /// <param name="innerException">The exception that is the cause of the current exception</param>
-    public DomainException(string message, Exception innerException) 
-        : base(message, innerException) { }
+    public DomainException(string message)
+        : this(Error.Validation("DOMAIN_ERROR", message))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DomainException"/> class with a message and inner exception.
+    /// </summary>
+    public DomainException(string message, Exception innerException)
+        : this(Error.Failure("DOMAIN_ERROR", message), innerException)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DomainException"/> class with a structured error.
+    /// </summary>
+    public DomainException(Error error)
+        : base((error ?? throw new ArgumentNullException(nameof(error))).Message)
+    {
+        Error = error;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DomainException"/> class with a structured error and inner exception.
+    /// </summary>
+    public DomainException(Error error, Exception innerException)
+        : base((error ?? throw new ArgumentNullException(nameof(error))).Message, innerException)
+    {
+        Error = error;
+    }
 }
