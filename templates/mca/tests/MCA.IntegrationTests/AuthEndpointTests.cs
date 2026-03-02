@@ -5,14 +5,25 @@ using MCA.Application.Interfaces;
 using MCA.Domain.Constants;
 using MCA.Domain.Entities;
 using MCA.Infrastructure.Data;
+#if (SingleProject)
+using MCA.Infrastructure.Configuration;
+#else
+using MCA.Api.Configuration;
+#endif
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+#if (UseMessaging)
+using MinimalCleanArch.Messaging.Extensions;
+#endif
 using Xunit;
 
 namespace MCA.IntegrationTests;
@@ -28,6 +39,13 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
         _client = factory.CreateClient();
     }
 
+    [Fact]
+    public async Task ScalarUi_LoadsInDevelopment()
+    {
+        var response = await _client.GetAsync("/scalar/v1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
     // --- Register ---
 
     [Fact]
@@ -40,6 +58,33 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<RegisterResult>();
         body!.userId.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Register_ValidRequest_SendsEmailConfirmationLinkAndConfirms()
+    {
+        EmailSender.Clear();
+        var email = UniqueEmail();
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var registerBody = await registerResponse.Content.ReadFromJsonAsync<RegisterResult>();
+        registerBody.Should().NotBeNull();
+
+        var message = EmailSender.GetLatestForRecipient(email, "confirm");
+        var (userId, token) = ExtractAuthLinkParams(message.HtmlBody, "confirm-email");
+
+        userId.Should().Be(registerBody!.userId);
+
+        var confirmResponse = await _client.PostAsJsonAsync("/api/auth/confirm-email", new { userId, token });
+        confirmResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByIdAsync(userId);
+        user.Should().NotBeNull();
+        user!.EmailConfirmed.Should().BeTrue();
     }
 
     [Fact]
@@ -78,6 +123,32 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
         var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
         body.GetProperty("message").GetString().Should().NotBeNullOrWhiteSpace();
         body.TryGetProperty("token", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ForgotPassword_KnownEmail_ResetLinkAllowsPasswordReset()
+    {
+        EmailSender.Clear();
+        var email = UniqueEmail();
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var forgotResponse = await _client.PostAsJsonAsync("/api/auth/forgot-password", new { email });
+        forgotResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var message = EmailSender.GetLatestForRecipient(email, "reset");
+        var (userId, token) = ExtractAuthLinkParams(message.HtmlBody, "reset-password");
+
+        var newPassword = "Reset!9876";
+        var resetResponse = await _client.PostAsJsonAsync("/api/auth/reset-password", new { userId, token, newPassword });
+        resetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByIdAsync(userId);
+        user.Should().NotBeNull();
+        (await userManager.CheckPasswordAsync(user!, newPassword)).Should().BeTrue();
     }
 
     // --- Confirm email ---
@@ -351,6 +422,36 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    private RecordingEmailSender EmailSender => _factory.Services.GetRequiredService<RecordingEmailSender>();
+
+    private static (string UserId, string Token) ExtractAuthLinkParams(string htmlBody, string routeSegment)
+    {
+        var marker = $"/{routeSegment}?";
+        var markerIndex = htmlBody.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        markerIndex.Should().BeGreaterThanOrEqualTo(0, $"Expected link containing '{marker}'.");
+
+        var urlStart = htmlBody.LastIndexOf("http", markerIndex, StringComparison.OrdinalIgnoreCase);
+        urlStart.Should().BeGreaterThanOrEqualTo(0, "Expected absolute URL in email body.");
+
+        var urlEnd = htmlBody.IndexOf('"', urlStart);
+        urlEnd.Should().BeGreaterThan(urlStart, "Expected URL to end with a quote character.");
+
+        var encodedUrl = htmlBody.Substring(urlStart, urlEnd - urlStart);
+        var uri = new Uri(encodedUrl);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        query.TryGetValue("userId", out var userIdValues).Should().BeTrue();
+        query.TryGetValue("token", out var tokenValues).Should().BeTrue();
+
+        var userId = userIdValues.ToString();
+        var token = tokenValues.ToString();
+
+        userId.Should().NotBeNullOrWhiteSpace();
+        token.Should().NotBeNullOrWhiteSpace();
+
+        return (userId, token);
+    }
+
     private static string UniqueEmail() => $"test{Guid.NewGuid():N}@example.com";
 
     private static string ToRelativePathAndQuery(string uriOrPath)
@@ -377,6 +478,7 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
                 // remains resilient in development when launch profile ports differ.
                 ["App:BaseUrl"] = "https://localhost:7443",
                 ["ASPNETCORE_URLS"] = "http://localhost",
+                ["Database:EnsureCreated"] = "false",
                 ["Seed:EnableBootstrapAdmin"] = "true",
                 ["Seed:AdminEmail"] = "admin@example.com",
                 ["Seed:AdminPassword"] = "SeededAdmin!123",
@@ -393,16 +495,30 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
 
             // Use a fresh in-memory DB per factory instance so test classes don't share state
             var dbName = $"AuthTestDb-{Guid.NewGuid()}";
-            services.AddDbContext<AppDbContext>(options =>
+            services.AddDbContext<AppDbContext>((sp, options) =>
             {
                 options.UseInMemoryDatabase(dbName);
                 options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
                 options.UseOpenIddict<Guid>();
+#if (UseMessaging)
+                options.UseDomainEventPublishing(sp);
+#endif
             });
 
-            // Replace SMTP sender with a no-op to prevent connection attempts in tests
+            using var bootstrapProvider = services.BuildServiceProvider();
+            using var bootstrapScope = bootstrapProvider.CreateScope();
+            var db = bootstrapScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.EnsureCreated();
+            var configuration = bootstrapScope.ServiceProvider.GetRequiredService<IConfiguration>();
+            bootstrapScope.ServiceProvider
+                .SeedOpenIddictApplicationsAsync(configuration)
+                .GetAwaiter()
+                .GetResult();
+
+            // Replace SMTP sender with an in-memory capture sender for auth flow assertions
             services.RemoveAll<IEmailSender>();
-            services.AddTransient<IEmailSender, NoOpEmailSender>();
+            services.AddSingleton<RecordingEmailSender>();
+            services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<RecordingEmailSender>());
 
             // Route internally-created HttpClient calls (e.g. OAuth demo callback token exchange)
             // back into the in-memory TestServer instead of localhost network sockets.
@@ -418,10 +534,54 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
     }
 }
 
-internal sealed class NoOpEmailSender : IEmailSender
+internal sealed class RecordingEmailSender : IEmailSender
 {
+    private readonly ConcurrentQueue<EmailMessage> _messages = new();
+
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
-        => Task.CompletedTask;
+    {
+        _messages.Enqueue(new EmailMessage
+        {
+            To = message.To,
+            Subject = message.Subject,
+            HtmlBody = message.HtmlBody,
+            TextBody = message.TextBody
+        });
+
+        return Task.CompletedTask;
+    }
+
+    public void Clear()
+    {
+        while (_messages.TryDequeue(out _))
+        {
+        }
+    }
+
+    public EmailMessage GetLatestForRecipient(string email, string? subjectContains = null)
+    {
+        var timeout = TimeSpan.FromSeconds(5);
+        var startedAt = Stopwatch.StartNew();
+        EmailMessage? match = null;
+
+        while (startedAt.Elapsed < timeout)
+        {
+            match = _messages.Reverse().FirstOrDefault(message =>
+                string.Equals(message.To, email, StringComparison.OrdinalIgnoreCase)
+                && (string.IsNullOrWhiteSpace(subjectContains)
+                    || message.Subject.Contains(subjectContains, StringComparison.OrdinalIgnoreCase)));
+
+            if (match is not null)
+            {
+                break;
+            }
+
+            Thread.Sleep(50);
+        }
+
+        match.Should().NotBeNull($"Expected an email for {email}.");
+        return match!;
+    }
 }
 
 internal sealed class InProcessHttpClientFactory : IHttpClientFactory
@@ -435,3 +595,6 @@ internal sealed class InProcessHttpClientFactory : IHttpClientFactory
 
     public HttpClient CreateClient(string name) => _clientFactory();
 }
+
+
+

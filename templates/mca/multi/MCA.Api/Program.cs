@@ -9,7 +9,7 @@ using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Infrastructure.Services;
 using MCA.Application.Commands;
-#if (UseMessaging)
+#if (UseAuth)
 using MCA.Application.Handlers;
 #endif
 using MCA.Api.Endpoints;
@@ -48,7 +48,6 @@ using System;
 #endif
 #if (UseAuth)
 using MCA.Api.Configuration;
-using MCA.Application.Interfaces;
 using MCA.Infrastructure.Configuration;
 #endif
 #if (UseMessaging)
@@ -62,16 +61,6 @@ using Wolverine.SqlServer;
 #if (UseDurableMessaging && UsePostgres)
 using Wolverine.Postgresql;
 #endif
-#endif
-
-#if (UseSerilog)
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
-
-try
-{
-    Log.Information("Starting MCA application");
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
@@ -192,7 +181,11 @@ builder.Services.AddCors(options =>
 #if (UseAuth)
 // Authentication - OpenIddict + ASP.NET Core Identity
 builder.Services.AddAuthServices(builder.Configuration, builder.Environment.IsDevelopment());
-builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<RegisterUserHandler>();
+builder.Services.AddScoped<ChangePasswordHandler>();
+builder.Services.AddScoped<ConfirmEmailHandler>();
+builder.Services.AddScoped<ForgotPasswordHandler>();
+builder.Services.AddScoped<ResetPasswordHandler>();
 builder.Services.AddHttpClient();
 #endif
 
@@ -348,7 +341,8 @@ app.MapOAuthEndpoints(app.Environment.IsDevelopment());
 #endif
 
 // Ensure database is created (development only)
-if (app.Environment.IsDevelopment())
+var ensureCreated = app.Configuration.GetValue("Database:EnsureCreated", true);
+if (app.Environment.IsDevelopment() && ensureCreated)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -359,18 +353,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
-
-#if (UseSerilog)
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
-#endif
 
 // Expose Program for integration testing
 public partial class Program;

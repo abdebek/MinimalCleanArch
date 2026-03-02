@@ -1,9 +1,9 @@
+#if (UseMessaging)
 using MCA.Domain.Events;
 using Microsoft.Extensions.Logging;
 
 namespace MCA.Application.Handlers;
 
-#if (UseMessaging)
 public class TodoEventHandler
 {
     private readonly ILogger<TodoEventHandler> _logger;
