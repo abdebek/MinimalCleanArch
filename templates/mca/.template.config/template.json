@@ -265,7 +265,8 @@
         { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
         { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
-        { "condition": "(UseMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
+        { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
+        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.sln", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**"] }
       ]
@@ -275,9 +276,9 @@
       "target": "./",
       "condition": "(MultiProject)",
       "modifiers": [
-        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
+        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
-        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/ExternalAuthEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddictSettings.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/AuthenticationService.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/SmtpEmailSender.cs", "**/Services/ApiEmailSender.cs", "**/Services/EmailService.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/IAuthenticationService.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
+        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Commands/Auth*.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Handlers/AuthEventHandler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
         { "exclude": ["**/bin/**", "**/obj/**", "**/Configuration/AuthSettings.cs"] }
       ]
     },
@@ -287,9 +288,9 @@
       "condition": "(SingleProject)",
       "modifiers": [
         { "condition": "(!UseDocker)", "exclude": ["Dockerfile", "docker-compose.yml", ".dockerignore"] },
-        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/**"] },
+        { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
-        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/ExternalAuthEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddictSettings.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/AuthenticationService.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/SmtpEmailSender.cs", "**/Services/ApiEmailSender.cs", "**/Services/EmailService.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/IAuthenticationService.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
+        { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Commands/Auth*.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Handlers/AuthEventHandler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
         { "exclude": ["**/bin/**", "**/obj/**", "**/Configuration/AuthSettings.cs"] }
       ]
     }

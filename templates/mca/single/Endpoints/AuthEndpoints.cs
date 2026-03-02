@@ -1,9 +1,14 @@
 #if (UseAuth)
-using MCA.Application.Interfaces;
+using MCA.Application.Commands;
+using MCA.Application.Handlers;
 using MCA.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MinimalCleanArch.Domain.Common;
 using System.Security.Claims;
+#if (UseMessaging)
+using Wolverine;
+#endif
 #if (UseRateLimiting)
 using MinimalCleanArch.Extensions.RateLimiting;
 #endif
@@ -18,9 +23,20 @@ public static class AuthEndpoints
 
         auth.MapPost("/register", async (
             [FromBody] RegisterRequest request,
-            [FromServices] IAuthenticationService authService) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] RegisterUserHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
-            var result = await authService.RegisterAsync(request.Email, request.Password, request.FirstName, request.LastName);
+            var command = new RegisterUserCommand(request.Email, request.Password, request.FirstName, request.LastName);
+#if (UseMessaging)
+            var result = await bus.InvokeAsync<Result<Guid>>(command, cancellationToken);
+#else
+            var result = await handler.Handle(command, cancellationToken);
+#endif
             return result.IsSuccess
                 ? Results.Ok(new { message = "User registered successfully", userId = result.Value })
                 : Results.BadRequest(new { error = result.Error.Message });
@@ -35,12 +51,23 @@ public static class AuthEndpoints
         auth.MapPost("/change-password", async (
             HttpContext httpContext,
             [FromBody] ChangePasswordRequest request,
-            [FromServices] IAuthenticationService authService) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] ChangePasswordHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
             var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var result = await authService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+            var command = new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword);
+#if (UseMessaging)
+            var result = await bus.InvokeAsync<Result>(command, cancellationToken);
+#else
+            var result = await handler.Handle(command, cancellationToken);
+#endif
             return result.IsSuccess
                 ? Results.Ok(new { message = "Password changed successfully" })
                 : Results.BadRequest(new { error = result.Error.Message });
@@ -54,9 +81,20 @@ public static class AuthEndpoints
 
         auth.MapPost("/confirm-email", async (
             [FromBody] ConfirmEmailRequest request,
-            [FromServices] IAuthenticationService authService) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] ConfirmEmailHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
-            var result = await authService.ConfirmEmailAsync(request.UserId, request.Token);
+            var command = new ConfirmEmailCommand(request.UserId, request.Token);
+#if (UseMessaging)
+            var result = await bus.InvokeAsync<Result>(command, cancellationToken);
+#else
+            var result = await handler.Handle(command, cancellationToken);
+#endif
             return result.IsSuccess
                 ? Results.Ok(new { message = "Email confirmed successfully" })
                 : Results.BadRequest(new { error = result.Error.Message });
@@ -67,9 +105,20 @@ public static class AuthEndpoints
 
         auth.MapPost("/forgot-password", async (
             [FromBody] ForgotPasswordRequest request,
-            [FromServices] IAuthenticationService authService) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] ForgotPasswordHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
-            await authService.SendPasswordResetAsync(request.Email);
+            var command = new ForgotPasswordCommand(request.Email);
+#if (UseMessaging)
+            await bus.InvokeAsync<Result<string>>(command, cancellationToken);
+#else
+            await handler.Handle(command, cancellationToken);
+#endif
             return Results.Ok(new
             {
                 message = "If an account exists for that email, a password reset link has been sent."
@@ -84,9 +133,20 @@ public static class AuthEndpoints
 
         auth.MapPost("/reset-password", async (
             [FromBody] ResetPasswordRequest request,
-            [FromServices] IAuthenticationService authService) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] ResetPasswordHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
-            var result = await authService.ResetPasswordAsync(request.UserId, request.Token, request.NewPassword);
+            var command = new ResetPasswordCommand(request.UserId, request.Token, request.NewPassword);
+#if (UseMessaging)
+            var result = await bus.InvokeAsync<Result>(command, cancellationToken);
+#else
+            var result = await handler.Handle(command, cancellationToken);
+#endif
             return result.IsSuccess
                 ? Results.Ok(new { message = "Password reset successfully" })
                 : Results.BadRequest(new { error = result.Error.Message });
@@ -274,3 +334,4 @@ public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string UserId, string Token, string NewPassword);
 public record LoginRequest(string Email, string Password, string? ReturnUrl = null);
 #endif
+

@@ -81,7 +81,6 @@ jobs:
         else
           echo "No test projects found in CI solution, skipping tests"
         fi
-      continue-on-error: true
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
