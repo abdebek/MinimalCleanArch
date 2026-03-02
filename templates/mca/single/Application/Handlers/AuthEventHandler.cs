@@ -1,4 +1,3 @@
-#if (UseAuth && UseMessaging)
 using MCA.Application.Interfaces;
 using MCA.Domain.Entities;
 using MCA.Domain.Events;
@@ -45,4 +44,3 @@ public class AuthEventHandler
         }
     }
 }
-#endif

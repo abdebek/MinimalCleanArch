@@ -1,4 +1,3 @@
-#if (UseMessaging)
 using MCA.Domain.Events;
 using Microsoft.Extensions.Logging;
 
@@ -37,4 +36,3 @@ public class TodoEventHandler
         return Task.CompletedTask;
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if (UseAuth)
 using MCA.Application.Commands;
 using MCA.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -29,4 +28,3 @@ public class ChangePasswordHandler
             : Result.Failure(new Error("CHANGE_FAILED", string.Join("; ", result.Errors.Select(e => e.Description))));
     }
 }
-#endif

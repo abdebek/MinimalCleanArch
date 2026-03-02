@@ -1,4 +1,3 @@
-#if (UseAuth)
 namespace MCA.Application.Commands;
 
 public record RegisterUserCommand(
@@ -14,4 +13,3 @@ public record ConfirmEmailCommand(string UserId, string Token);
 public record ForgotPasswordCommand(string Email);
 
 public record ResetPasswordCommand(string UserId, string Token, string NewPassword);
-#endif

@@ -1,4 +1,3 @@
-#if (UseAuth)
 using MCA.Application.Commands;
 using MCA.Application.Interfaces;
 using MCA.Domain.Entities;
@@ -52,4 +51,3 @@ public class RegisterUserHandler
         return Result.Success(user.Id);
     }
 }
-#endif
