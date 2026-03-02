@@ -48,6 +48,7 @@ Use the auth walkthrough in [`templates/README.md`](templates/README.md).
 
 ## Documentation Map
 - Templates: [`templates/README.md`](templates/README.md)
+- Generated app architecture: [`templates/README.md#architecture-overview`](templates/README.md#architecture-overview)
 - Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
 - Core: [`src/MinimalCleanArch/README.md`](src/MinimalCleanArch/README.md)
 - DataAccess: [`src/MinimalCleanArch.DataAccess/README.md`](src/MinimalCleanArch.DataAccess/README.md)
