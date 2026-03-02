@@ -3,7 +3,7 @@
 Audit logging components for MinimalCleanArch.
 
 ## Version
-- 0.1.14-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14-preview and companions.
+- 0.1.14 (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14 and companions.
 
 ## What's included
 - Audit logging services and helpers.
@@ -11,7 +11,7 @@ Audit logging components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Audit --version 0.1.14-preview
+dotnet add package MinimalCleanArch.Audit --version 0.1.14
 ```
 
 When using a local feed, add a `nuget.config` pointing to your local packages folder (e.g., `artifacts/nuget`) before restoring.
