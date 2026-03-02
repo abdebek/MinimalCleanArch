@@ -3,7 +3,7 @@
 Minimal API extensions for MinimalCleanArch.
 
 ## Version
-- 0.1.14-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14-preview.
+- 0.1.14 (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14.
 
 ## Overview
 - Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
@@ -15,7 +15,7 @@ Minimal API extensions for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Extensions --version 0.1.14-preview
+dotnet add package MinimalCleanArch.Extensions --version 0.1.14
 ```
 
 Register in your API:
