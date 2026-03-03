@@ -256,7 +256,7 @@ jobs:
         if-no-files-found: ignore
 
   publish:
-    needs: pack
+    needs: [pack, security-scan]
     runs-on: ubuntu-latest
     if: |
       (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true') && 
@@ -418,11 +418,7 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'push' &&
-       (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
-      github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
 
     steps:
     - name: Checkout code
