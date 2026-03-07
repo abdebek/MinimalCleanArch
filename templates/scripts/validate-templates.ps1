@@ -53,6 +53,34 @@ $($sources -join "`n")
     Set-Content -Path $ConfigPath -Value $configContent -Encoding UTF8
 }
 
+function Clear-LocalMinimalCleanArchPackageCache {
+    param(
+        [string]$Version
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        return
+    }
+
+    $globalPackages = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
+        $env:NUGET_PACKAGES
+    } else {
+        Join-Path $env:USERPROFILE ".nuget/packages"
+    }
+
+    if (-not (Test-Path -Path $globalPackages -PathType Container)) {
+        return
+    }
+
+    Get-ChildItem -Path $globalPackages -Directory -Filter "minimalcleanarch*" -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $versionPath = Join-Path $_.FullName $Version
+            if (Test-Path -Path $versionPath -PathType Container) {
+                Remove-Item -Path $versionPath -Recurse -Force
+            }
+        }
+}
+
 $resolvedFeed = Resolve-Path -Path $LocalFeedPath -ErrorAction SilentlyContinue
 if (-not $resolvedFeed) {
     throw "Local feed path not found: $LocalFeedPath"
@@ -86,6 +114,8 @@ if (-not [string]::IsNullOrWhiteSpace($Framework)) {
 if ($IncludeNugetOrg) {
     Write-Host "==> Using nuget.org in restore sources"
 }
+
+Clear-LocalMinimalCleanArchPackageCache -Version $McaVersion
 
 # Clean template cache and uninstall any installed package
 Invoke-Checked -Description "Uninstalling previous template package (if installed)" -AllowFailure -Action {

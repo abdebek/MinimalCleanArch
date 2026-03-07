@@ -1,6 +1,10 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using MinimalCleanArch.Execution;
+using MinimalCleanArch.Messaging.Execution;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.SqlServer;
@@ -27,7 +31,7 @@ public static class MessagingExtensions
         var options = new MessagingOptions();
         configure?.Invoke(options);
 
-        builder.Services.AddSingleton(options);
+        RegisterMessagingServices(builder.Services, options);
 
         var serviceName = options.ServiceName
             ?? Assembly.GetEntryAssembly()?.GetName().Name
@@ -63,7 +67,7 @@ public static class MessagingExtensions
         var options = new MessagingOptions();
         configure?.Invoke(options);
 
-        builder.Services.AddSingleton(options);
+        RegisterMessagingServices(builder.Services, options);
 
         var serviceName = options.ServiceName
             ?? Assembly.GetEntryAssembly()?.GetName().Name
@@ -82,6 +86,7 @@ public static class MessagingExtensions
             // Durable mode for SQL Server - enables outbox pattern
             opts.Durability.Mode = DurabilityMode.Balanced;
             opts.Durability.ScheduledJobPollingTime = options.DurabilityPollingInterval;
+            ApplyDurabilityOptions(opts, options);
         });
 
         // Register domain event services
@@ -106,7 +111,7 @@ public static class MessagingExtensions
         var options = new MessagingOptions();
         configure?.Invoke(options);
 
-        builder.Services.AddSingleton(options);
+        RegisterMessagingServices(builder.Services, options);
 
         var serviceName = options.ServiceName
             ?? Assembly.GetEntryAssembly()?.GetName().Name
@@ -125,6 +130,7 @@ public static class MessagingExtensions
             // Durable mode for PostgreSQL - enables outbox pattern
             opts.Durability.Mode = DurabilityMode.Balanced;
             opts.Durability.ScheduledJobPollingTime = options.DurabilityPollingInterval;
+            ApplyDurabilityOptions(opts, options);
         });
 
         // Register domain event services
@@ -148,7 +154,7 @@ public static class MessagingExtensions
         var options = new MessagingOptions();
         configureOptions(options);
 
-        builder.Services.AddSingleton(options);
+        RegisterMessagingServices(builder.Services, options);
 
         var serviceName = options.ServiceName
             ?? Assembly.GetEntryAssembly()?.GetName().Name
@@ -193,10 +199,34 @@ public static class MessagingExtensions
         }
 
         // Configure local queue for domain events with parallelism
-        opts.LocalQueue("domain-events")
+        opts.LocalQueue(options.GetEffectiveLocalQueueName())
             .MaximumParallelMessages(options.LocalQueueParallelism);
 
         // Auto-apply transactions
         opts.Policies.AutoApplyTransactions();
+
+        options.ConfigurePolicies?.Invoke(opts.Policies);
+        options.ConfigureFailurePolicies?.Invoke(opts);
+    }
+
+    private static void RegisterMessagingServices(
+        IServiceCollection services,
+        MessagingOptions options)
+    {
+        services.AddHttpContextAccessor();
+        services.AddOptions<ExecutionContextOptions>();
+        services.AddSingleton(options);
+        services.Replace(ServiceDescriptor.Scoped<IExecutionContext, MessagingExecutionContext>());
+    }
+
+    private static void ApplyDurabilityOptions(
+        WolverineOptions opts,
+        MessagingOptions options)
+    {
+        opts.Durability.DeadLetterQueueExpirationEnabled = options.DeadLetterQueueExpirationEnabled;
+        if (options.DeadLetterQueueExpiration.HasValue)
+        {
+            opts.Durability.DeadLetterQueueExpiration = options.DeadLetterQueueExpiration.Value;
+        }
     }
 }

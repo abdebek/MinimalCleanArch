@@ -29,6 +29,16 @@ public class MessagingOptionsTests
     }
 
     [Fact]
+    public void MessagingOptions_ShouldHaveDefaultLocalQueueName()
+    {
+        // Arrange & Act
+        var options = new MessagingOptions();
+
+        // Assert
+        options.LocalQueueName.Should().Be("domain-events");
+    }
+
+    [Fact]
     public void MessagingOptions_ShouldHaveDefaultLocalQueueParallelism()
     {
         // Arrange & Act
@@ -46,6 +56,17 @@ public class MessagingOptionsTests
 
         // Assert
         options.DurabilityPollingInterval.Should().Be(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void MessagingOptions_ShouldHaveDeadLetterExpirationDisabledByDefault()
+    {
+        // Arrange & Act
+        var options = new MessagingOptions();
+
+        // Assert
+        options.DeadLetterQueueExpirationEnabled.Should().BeFalse();
+        options.DeadLetterQueueExpiration.Should().BeNull();
     }
 
     [Fact]
@@ -89,6 +110,32 @@ public class MessagingOptionsTests
     }
 
     [Fact]
+    public void MessagingOptions_LocalQueueName_ShouldBeSettable()
+    {
+        // Arrange
+        var options = new MessagingOptions();
+
+        // Act
+        options.LocalQueueName = "orders";
+
+        // Assert
+        options.LocalQueueName.Should().Be("orders");
+    }
+
+    [Fact]
+    public void MessagingOptions_QueuePrefix_ShouldBeSettable()
+    {
+        // Arrange
+        var options = new MessagingOptions();
+
+        // Act
+        options.QueuePrefix = "sales-";
+
+        // Assert
+        options.QueuePrefix.Should().Be("sales-");
+    }
+
+    [Fact]
     public void MessagingOptions_LocalQueueParallelism_ShouldBeSettable()
     {
         // Arrange
@@ -112,6 +159,21 @@ public class MessagingOptionsTests
 
         // Assert
         options.DurabilityPollingInterval.Should().Be(TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public void MessagingOptions_DeadLetterExpiration_ShouldBeSettable()
+    {
+        // Arrange
+        var options = new MessagingOptions();
+
+        // Act
+        options.DeadLetterQueueExpirationEnabled = true;
+        options.DeadLetterQueueExpiration = TimeSpan.FromDays(7);
+
+        // Assert
+        options.DeadLetterQueueExpirationEnabled.Should().BeTrue();
+        options.DeadLetterQueueExpiration.Should().Be(TimeSpan.FromDays(7));
     }
 
     #endregion
@@ -254,8 +316,12 @@ public class MessagingOptionsTests
         {
             ServiceName = "OrderService",
             SchemaName = "orders",
+            LocalQueueName = "orders-events",
+            QueuePrefix = "svc-",
             LocalQueueParallelism = 8,
-            DurabilityPollingInterval = TimeSpan.FromSeconds(10)
+            DurabilityPollingInterval = TimeSpan.FromSeconds(10),
+            DeadLetterQueueExpirationEnabled = true,
+            DeadLetterQueueExpiration = TimeSpan.FromDays(5)
         };
 
         options.IncludeAssemblyContaining<MessagingOptionsTests>();
@@ -263,9 +329,36 @@ public class MessagingOptionsTests
         // Assert
         options.ServiceName.Should().Be("OrderService");
         options.SchemaName.Should().Be("orders");
+        options.LocalQueueName.Should().Be("orders-events");
+        options.QueuePrefix.Should().Be("svc-");
         options.LocalQueueParallelism.Should().Be(8);
         options.DurabilityPollingInterval.Should().Be(TimeSpan.FromSeconds(10));
+        options.DeadLetterQueueExpirationEnabled.Should().BeTrue();
+        options.DeadLetterQueueExpiration.Should().Be(TimeSpan.FromDays(5));
         options.HandlerAssemblies.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void GetEffectiveLocalQueueName_ShouldApplyPrefix_WhenPresent()
+    {
+        var options = new MessagingOptions
+        {
+            QueuePrefix = "svc-",
+            LocalQueueName = "domain-events"
+        };
+
+        options.GetEffectiveLocalQueueName().Should().Be("svc-domain-events");
+    }
+
+    [Fact]
+    public void GetEffectiveLocalQueueName_ShouldReturnBaseName_WhenPrefixMissing()
+    {
+        var options = new MessagingOptions
+        {
+            LocalQueueName = "domain-events"
+        };
+
+        options.GetEffectiveLocalQueueName().Should().Be("domain-events");
     }
 
     [Fact]

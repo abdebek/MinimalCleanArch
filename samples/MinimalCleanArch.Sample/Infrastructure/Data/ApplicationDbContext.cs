@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Sample.Domain.Entities;
+using MinimalCleanArch.Execution;
 using MinimalCleanArch.Security.Encryption;
 using MinimalCleanArch.Security.EntityEncryption;
-using System.Security.Claims;
 using System.Linq.Expressions;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Audit.Configuration;
@@ -17,11 +17,10 @@ namespace MinimalCleanArch.Sample.Infrastructure.Data;
 /// <summary>
 /// Application DbContext with Identity API endpoints and MinimalCleanArch features
 /// </summary>
-public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string>
+public class ApplicationDbContext : IdentityDbContextBase<User, IdentityRole, string>
 {
     private readonly IEncryptionService _encryptionService;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly AuditOptions? _auditOptions;
 
     /// <summary>
@@ -31,13 +30,12 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
         DbContextOptions<ApplicationDbContext> options,
         IEncryptionService encryptionService,
         IServiceProvider serviceProvider,
-        IHttpContextAccessor? httpContextAccessor = null,
+        IExecutionContext? executionContext = null,
         AuditOptions? auditOptions = null)
-        : base(options)
+        : base(options, executionContext)
     {
         _encryptionService = encryptionService;
         _serviceProvider = serviceProvider;
-        _httpContextAccessor = httpContextAccessor;
         _auditOptions = auditOptions;
     }
 
@@ -54,9 +52,6 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply soft delete query filters
-        ApplySoftDeleteQueryFilters(modelBuilder);
-
         // Configure Identity entities with custom table names
         ConfigureIdentityEntities(modelBuilder);
 
@@ -70,25 +65,6 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
         if (_auditOptions != null)
         {
             modelBuilder.UseAuditLog(_auditOptions);
-        }
-    }
-
-    /// <summary>
-    /// Applies soft delete query filters to all entities that implement ISoftDelete
-    /// </summary>
-    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
-    {
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
-            {
-                var parameter = Expression.Parameter(entityType.ClrType, "p");
-                var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
-                var condition = Expression.Equal(property, Expression.Constant(false));
-                var lambda = Expression.Lambda(condition, parameter);
-
-                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
-            }
         }
     }
 
@@ -160,74 +136,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
         });
     }
 
-    /// <summary>
-    /// Saves all changes made in this context to the database with audit information
-    /// </summary>
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        ApplyAuditInfo();
-        return await base.SaveChangesAsync(cancellationToken);
-    }
-
-    /// <summary>
-    /// Saves all changes made in this context to the database with audit information
-    /// </summary>
-    public override int SaveChanges()
-    {
-        ApplyAuditInfo();
-        return base.SaveChanges();
-    }
-
-    /// <summary>
-    /// Applies audit information to entities that implement IAuditableEntity
-    /// </summary>
-    private void ApplyAuditInfo()
-    {
-        var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is IAuditableEntity && 
-                       (e.State == EntityState.Added || e.State == EntityState.Modified))
-            .ToList();
-
-        if (!entries.Any())
-            return;
-
-        string? userId = GetCurrentUserId();
-        DateTime now = DateTime.UtcNow;
-
-        foreach (var entityEntry in entries)
-        {
-            if (entityEntry.Entity is IAuditableEntity auditableEntity)
-            {
-                if (entityEntry.State == EntityState.Added)
-                {
-                    auditableEntity.CreatedAt = now;
-                    auditableEntity.CreatedBy = userId;
-                }
-                else if (entityEntry.State == EntityState.Modified)
-                {
-                    Entry(auditableEntity).Property(x => x.CreatedAt).IsModified = false;
-                    Entry(auditableEntity).Property(x => x.CreatedBy).IsModified = false;
-                }
-
-                auditableEntity.LastModifiedAt = now;
-                auditableEntity.LastModifiedBy = userId;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the current user ID from the HTTP context
-    /// </summary>
-    private string? GetCurrentUserId()
-    {
-        var user = _httpContextAccessor?.HttpContext?.User;
-        if (user?.Identity?.IsAuthenticated == true)
-        {
-            return user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        }
-        
-        return "system";
-    }
+    protected override string? GetCurrentUserId() => base.GetCurrentUserId() ?? "system";
 }
 
 /// <summary>

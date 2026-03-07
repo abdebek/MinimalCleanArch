@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MinimalCleanArch.Domain.Entities;
+using MinimalCleanArch.Execution;
 
 namespace MinimalCleanArch.DataAccess;
 
@@ -15,13 +16,26 @@ namespace MinimalCleanArch.DataAccess;
 public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser> 
     where TUser : IdentityUser
 {
+    private readonly IExecutionContext? _executionContext;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="IdentityDbContextBase{TUser}"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
-    protected IdentityDbContextBase(DbContextOptions options) 
+    protected IdentityDbContextBase(DbContextOptions options)
+        : this(options, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IdentityDbContextBase{TUser}"/> class.
+    /// </summary>
+    /// <param name="options">The options to be used by the DbContext.</param>
+    /// <param name="executionContext">The execution context for audit stamping.</param>
+    protected IdentityDbContextBase(DbContextOptions options, IExecutionContext? executionContext)
         : base(options)
     {
+        _executionContext = executionContext;
     }
 
     /// <summary>
@@ -151,12 +165,13 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     /// Gets the current user ID from the application context
     /// </summary>
     /// <returns>The current user ID</returns>
-    protected virtual string? GetCurrentUserId()
-    {
-        // This should be overridden in derived classes to get the actual user ID
-        // from the application's authentication system
-        return null;
-    }
+    protected virtual string? GetCurrentUserId() => _executionContext?.UserId;
+
+    /// <summary>
+    /// Gets the current tenant ID from the application context.
+    /// </summary>
+    /// <returns>The current tenant ID.</returns>
+    protected virtual string? GetCurrentTenantId() => _executionContext?.TenantId;
 }
 
 /// <summary>
@@ -171,13 +186,26 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     where TRole : IdentityRole<TKey>
     where TKey : IEquatable<TKey>
 {
+    private readonly IExecutionContext? _executionContext;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="IdentityDbContextBase{TUser, TRole, TKey}"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
-    protected IdentityDbContextBase(DbContextOptions options) 
+    protected IdentityDbContextBase(DbContextOptions options)
+        : this(options, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IdentityDbContextBase{TUser, TRole, TKey}"/> class.
+    /// </summary>
+    /// <param name="options">The options to be used by the DbContext.</param>
+    /// <param name="executionContext">The execution context for audit stamping.</param>
+    protected IdentityDbContextBase(DbContextOptions options, IExecutionContext? executionContext)
         : base(options)
     {
+        _executionContext = executionContext;
     }
 
     /// <summary>
@@ -279,23 +307,36 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// Configures Identity tables with performance optimizations
     /// </summary>
     /// <param name="modelBuilder">The model builder</param>
-    private static void ConfigureIdentityTablesOptimized(ModelBuilder modelBuilder)
+    private void ConfigureIdentityTablesOptimized(ModelBuilder modelBuilder)
     {
-        // Configure additional indexes for performance
+        var useSqlServerFilters = string.Equals(Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal);
+
         modelBuilder.Entity<TUser>(entity =>
         {
-            entity.HasIndex(e => e.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
-            entity.HasIndex(e => e.UserName).IsUnique().HasFilter("[UserName] IS NOT NULL");
-            entity.HasIndex(e => e.NormalizedEmail).HasFilter("[NormalizedEmail] IS NOT NULL");
-            entity.HasIndex(e => e.NormalizedUserName).IsUnique().HasFilter("[NormalizedUserName] IS NOT NULL");
+            var emailIndex = entity.HasIndex(e => e.Email).IsUnique();
+            var userNameIndex = entity.HasIndex(e => e.UserName).IsUnique();
+            var normalizedEmailIndex = entity.HasIndex(e => e.NormalizedEmail);
+            var normalizedUserNameIndex = entity.HasIndex(e => e.NormalizedUserName).IsUnique();
+
+            if (useSqlServerFilters)
+            {
+                emailIndex.HasFilter("[Email] IS NOT NULL");
+                userNameIndex.HasFilter("[UserName] IS NOT NULL");
+                normalizedEmailIndex.HasFilter("[NormalizedEmail] IS NOT NULL");
+                normalizedUserNameIndex.HasFilter("[NormalizedUserName] IS NOT NULL");
+            }
         });
 
         modelBuilder.Entity<TRole>(entity =>
         {
-            entity.HasIndex(e => e.NormalizedName).IsUnique().HasFilter("[NormalizedName] IS NOT NULL");
+            var normalizedNameIndex = entity.HasIndex(e => e.NormalizedName).IsUnique();
+
+            if (useSqlServerFilters)
+            {
+                normalizedNameIndex.HasFilter("[NormalizedName] IS NOT NULL");
+            }
         });
 
-        // Configure relationship tables with indexes
         modelBuilder.Entity<IdentityUserRole<TKey>>(entity =>
         {
             entity.HasIndex(e => e.UserId);
@@ -389,8 +430,11 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// Gets the current user ID from the application context
     /// </summary>
     /// <returns>The current user ID</returns>
-    protected virtual string? GetCurrentUserId()
-    {
-        return null;
-    }
+    protected virtual string? GetCurrentUserId() => _executionContext?.UserId;
+
+    /// <summary>
+    /// Gets the current tenant ID from the application context
+    /// </summary>
+    /// <returns>The current tenant ID</returns>
+    protected virtual string? GetCurrentTenantId() => _executionContext?.TenantId;
 }

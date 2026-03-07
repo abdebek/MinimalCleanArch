@@ -44,3 +44,13 @@ app.UseMinimalCleanArchApiDefaults(options =>
 
 `AddMinimalCleanArchApi(...)` is the preferred entry point when you want a single bootstrap method. Use the explicit registrations when you need tighter control over the service graph.
 
+Execution-context claim mapping can be customized without replacing `IExecutionContext`:
+
+```csharp
+builder.Services.Configure<ExecutionContextOptions>(options =>
+{
+    options.TenantIdClaimTypes.Clear();
+    options.TenantIdClaimTypes.Add("business_id");
+});
+```
+

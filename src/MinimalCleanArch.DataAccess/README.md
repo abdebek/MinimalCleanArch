@@ -11,6 +11,7 @@ Entity Framework Core implementation for MinimalCleanArch (repositories, unit of
 - `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`, `AsSplitQuery`, and `IgnoreQueryFilters`.
 - DI extensions to register repositories/unit of work.
 - Common repository query methods such as `AnyAsync`, `SingleOrDefaultAsync`, and `CountAsync(ISpecification<T>)`.
+- optional execution-context-aware base constructors for user and tenant-aware stamping
 
 ## Usage
 ```csharp
@@ -28,6 +29,22 @@ builder.Services.AddMinimalCleanArch<AppDbContext, AppDbContext>((sp, options) =
     options.UseSqlite("Data Source=app.db");
 });
 ```
+
+Recommended DbContext base usage:
+
+```csharp
+public sealed class AppDbContext : DbContextBase
+{
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        IExecutionContext? executionContext = null)
+        : base(options, executionContext)
+    {
+    }
+}
+```
+
+Use the constructor overload that accepts `IExecutionContext` when you want audit stamping to flow from the current HTTP request or message-handler scope without overriding `GetCurrentUserId()`.
 
 ### Recommended specification usage
 ```csharp

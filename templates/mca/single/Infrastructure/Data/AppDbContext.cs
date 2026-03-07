@@ -1,5 +1,7 @@
 using MCA.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using MinimalCleanArch.DataAccess;
+using MinimalCleanArch.Execution;
 #if (UseSecurity)
 using MinimalCleanArch.Security.Encryption;
 #endif
@@ -18,9 +20,9 @@ namespace MCA.Infrastructure.Data;
 /// Application database context.
 /// </summary>
 #if (UseAuth)
-public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
+public class AppDbContext : IdentityDbContextBase<ApplicationUser, IdentityRole<Guid>, Guid>
 #else
-public class AppDbContext : DbContext
+public class AppDbContext : DbContextBase
 #endif
 {
 #if (UseSecurity)
@@ -33,14 +35,19 @@ public class AppDbContext : DbContext
 #endif
 
 #if (UseSecurity)
-    public AppDbContext(DbContextOptions<AppDbContext> options, IEncryptionService? encryptionService = null)
-        : base(options)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        IEncryptionService? encryptionService = null,
+        IExecutionContext? executionContext = null)
+        : base(options, executionContext)
     {
         _encryptionService = encryptionService;
     }
 #else
-    public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        IExecutionContext? executionContext = null)
+        : base(options, executionContext)
     {
     }
 #endif
@@ -66,38 +73,10 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
 #if (UseAudit)
         modelBuilder.UseAuditLog();
 #endif
-    }
-
-    public override int SaveChanges()
-    {
-        UpdateTimestamps();
-        return base.SaveChanges();
-    }
-
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        UpdateTimestamps();
-        return base.SaveChangesAsync(cancellationToken);
-    }
-
-    private void UpdateTimestamps()
-    {
-        var entries = ChangeTracker.Entries<Todo>()
-            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-
-        foreach (var entry in entries)
-        {
-            if (entry.State == EntityState.Added)
-            {
-                entry.Entity.CreatedAt = DateTime.UtcNow;
-            }
-            entry.Entity.LastModifiedAt = DateTime.UtcNow;
-        }
     }
 }
