@@ -57,5 +57,7 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 }
 ```
 
+Use specifications through `IRepository<TEntity, TKey>` in application code. Treat `SpecificationEvaluator` as infrastructure-level plumbing for repository implementations and advanced EF integration points.
+
 When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
 

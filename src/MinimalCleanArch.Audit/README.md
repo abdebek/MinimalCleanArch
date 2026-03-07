@@ -58,5 +58,8 @@ public sealed class AppAuditContextProvider : IAuditContextProvider
 }
 ```
 
-When using a local feed, add a `nuget.config` pointing to your local packages folder (e.g., `artifacts/nuget`) before restoring.
+Notes:
+- `TenantId` is a first-class field on `AuditLog`, so tenant filtering does not need to be pushed into metadata.
+- `IAuditLogService` supports tenant-aware queries in addition to user and correlation-based lookups.
+- When using a local feed, add a `nuget.config` pointing to your local packages folder and keep `nuget.org` available unless your feed mirrors all external dependencies.
 

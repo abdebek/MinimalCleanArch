@@ -118,6 +118,13 @@ MinimalCleanArch.Sample/
 1. `Infrastructure/Specifications/` for filtering logic.
 1. `Infrastructure/Seeders/` for startup data seeding.
 
+## What the sample is meant to show
+- specifications composed in application-facing query paths
+- validators registered once and reused by endpoints
+- result-to-HTTP mapping without controller-specific plumbing
+- encrypted properties and audit support without leaking infrastructure into the domain model
+- a concrete reference for how the packages fit together in one app
+
 ## Notes
 
 - SQLite is used by default (`Data Source=minimalcleanarch.db`).
