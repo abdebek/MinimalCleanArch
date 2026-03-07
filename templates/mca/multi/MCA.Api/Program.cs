@@ -48,6 +48,8 @@ using System;
 #endif
 #if (UseAuth)
 using MCA.Api.Configuration;
+using MCA.Api.Services;
+using MCA.Application.Interfaces;
 using MCA.Infrastructure.Configuration;
 #endif
 #if (UseMessaging)
@@ -181,11 +183,15 @@ builder.Services.AddCors(options =>
 #if (UseAuth)
 // Authentication - OpenIddict + ASP.NET Core Identity
 builder.Services.AddAuthServices(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
 builder.Services.AddScoped<RegisterUserHandler>();
 builder.Services.AddScoped<ChangePasswordHandler>();
 builder.Services.AddScoped<ConfirmEmailHandler>();
 builder.Services.AddScoped<ForgotPasswordHandler>();
 builder.Services.AddScoped<ResetPasswordHandler>();
+builder.Services.AddScoped<AuthLoginHandler>();
+builder.Services.AddScoped<AuthLogoutHandler>();
+builder.Services.AddScoped<ExternalAuthSignInHandler>();
 builder.Services.AddHttpClient();
 #endif
 

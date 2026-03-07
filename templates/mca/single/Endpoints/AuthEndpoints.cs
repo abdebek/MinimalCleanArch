@@ -1,8 +1,6 @@
 #if (UseAuth)
 using MCA.Application.Commands;
 using MCA.Application.Handlers;
-using MCA.Domain.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MinimalCleanArch.Domain.Common;
 using System.Security.Claims;
@@ -159,32 +157,32 @@ public static class AuthEndpoints
         .WithSummary("Reset a user's password using a reset token");
 
         auth.MapPost("/login", async (
-            HttpContext httpContext,
             [FromBody] LoginRequest request,
-            [FromServices] SignInManager<ApplicationUser> signInManager,
-            [FromServices] UserManager<ApplicationUser> userManager) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] AuthLoginHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
-            var user = await userManager.FindByEmailAsync(request.Email)
-                ?? await userManager.FindByNameAsync(request.Email);
+            var command = new AuthLoginCommand(request.Email, request.Password, request.ReturnUrl);
+#if (UseMessaging)
+            var result = await bus.InvokeAsync<Result<AuthLoginResult>>(command, cancellationToken);
+#else
+            var result = await handler.Handle(command, cancellationToken);
+#endif
+            if (result.IsSuccess)
+            {
+                return string.IsNullOrWhiteSpace(result.Value.RedirectUrl)
+                    ? Results.Ok(new { message = "Signed in" })
+                    : Results.Ok(new { message = "Signed in", redirectUrl = result.Value.RedirectUrl });
+            }
 
-            if (user == null)
-                return Results.Unauthorized();
-
-            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-
-            if (result.IsLockedOut)
+            if (result.Error.Code == "LOCKED_OUT")
                 return Results.Problem("Account is locked out.", statusCode: 423);
 
-            if (!result.Succeeded)
-                return Results.Unauthorized();
-
-            await signInManager.SignInAsync(user, isPersistent: false);
-
-            var returnUrl = request.ReturnUrl;
-            if (!string.IsNullOrEmpty(returnUrl) && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative))
-                return Results.Ok(new { message = "Signed in", redirectUrl = returnUrl });
-
-            return Results.Ok(new { message = "Signed in" });
+            return Results.Unauthorized();
         })
         .AllowAnonymous()
 #if (UseRateLimiting)
@@ -194,10 +192,19 @@ public static class AuthEndpoints
         .WithSummary("Sign in via cookie (for SSR/authorization code flow)");
 
         auth.MapPost("/logout", async (
-            HttpContext httpContext,
-            [FromServices] SignInManager<ApplicationUser> signInManager) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] AuthLogoutHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
-            await signInManager.SignOutAsync();
+#if (UseMessaging)
+            await bus.InvokeAsync<Result>(new AuthLogoutCommand(), cancellationToken);
+#else
+            await handler.Handle(new AuthLogoutCommand(), cancellationToken);
+#endif
             return Results.Ok(new { message = "Signed out" });
         })
         .AllowAnonymous()
@@ -236,36 +243,35 @@ public static class AuthEndpoints
             // SSR login form handler — POST /auth/login (development only)
             app.MapPost("/auth/login", async (
                 HttpContext context,
-                [FromServices] SignInManager<ApplicationUser> signInManager,
-                [FromServices] UserManager<ApplicationUser> userManager) =>
+#if (UseMessaging)
+                IMessageBus bus,
+                CancellationToken cancellationToken) =>
+#else
+                [FromServices] AuthLoginHandler handler,
+                CancellationToken cancellationToken) =>
+#endif
             {
                 var form = await context.Request.ReadFormAsync();
                 var email = form["email"].ToString();
                 var password = form["password"].ToString();
                 var returnUrl = form["returnUrl"].ToString();
 
-                var user = await userManager.FindByEmailAsync(email)
-                    ?? await userManager.FindByNameAsync(email);
+                var command = new AuthLoginCommand(email, password, returnUrl);
+#if (UseMessaging)
+                var result = await bus.InvokeAsync<Result<AuthLoginResult>>(command, cancellationToken);
+#else
+                var result = await handler.Handle(command, cancellationToken);
+#endif
+                if (result.IsSuccess)
+                {
+                    return Results.Redirect(result.Value.RedirectUrl ?? "/");
+                }
 
-                if (user == null)
-                    return Results.Redirect(
-                        $"/auth/login?error=Invalid+credentials&returnUrl={Uri.EscapeDataString(returnUrl)}");
-
-                var result = await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
-
-                if (result.IsLockedOut)
+                if (result.Error.Code == "LOCKED_OUT")
                     return Results.Redirect("/auth/login?error=Account+is+locked+out");
 
-                if (!result.Succeeded)
-                    return Results.Redirect(
-                        $"/auth/login?error=Invalid+credentials&returnUrl={Uri.EscapeDataString(returnUrl)}");
-
-                await signInManager.SignInAsync(user, isPersistent: false);
-
-                if (!string.IsNullOrEmpty(returnUrl) && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative))
-                    return Results.Redirect(returnUrl);
-
-                return Results.Redirect("/");
+                return Results.Redirect(
+                    $"/auth/login?error=Invalid+credentials&returnUrl={Uri.EscapeDataString(returnUrl)}");
             })
             .AllowAnonymous()
 #if (UseRateLimiting)

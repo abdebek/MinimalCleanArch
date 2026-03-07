@@ -244,6 +244,32 @@ MyApp/
 |- Endpoints/
 ```
 
+## Architecture Overview
+
+Generated apps follow Clean Architecture with DDD-style domain modeling and CQRS-style handlers.
+
+### Layer Responsibilities
+
+- `Domain`: entities, value objects, domain events, repository contracts, core rules. No infrastructure dependencies.
+- `Application`: commands/queries, handlers, and orchestration of use-cases using domain contracts.
+- `Infrastructure`: EF Core, Identity/OpenIddict wiring, email providers, repository implementations, external integrations.
+- `Api` (multi-project) or `Endpoints` + `Program.cs` (single-project): HTTP transport, endpoint mapping, auth policies, middleware.
+
+### Dependency Direction
+
+- `Domain` depends on nothing else.
+- `Application` depends on `Domain`.
+- `Infrastructure` depends on `Application` and `Domain`.
+- `Api` depends on all required layers and composes the app at startup.
+
+### Typical Request Flow
+
+1. Endpoint receives HTTP request and maps payload to command/query.
+2. Application handler executes use-case through domain contracts/repositories.
+3. Domain entities enforce invariants and may raise domain events.
+4. Infrastructure persists state and publishes/handles events.
+5. Result is mapped to consistent HTTP responses/ProblemDetails.
+
 ## Auth and Security Notes
 
 - `--auth` automatically enables `--security`.

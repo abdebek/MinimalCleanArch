@@ -1,9 +1,13 @@
 #if (UseAuth)
-using MCA.Domain.Entities;
+using MCA.Application.Commands;
+using MCA.Application.Handlers;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MinimalCleanArch.Domain.Common;
 using System.Security.Claims;
+#if (UseMessaging)
+using Wolverine;
+#endif
 
 namespace MCA.Endpoints;
 
@@ -33,8 +37,13 @@ public static class ExternalAuthEndpoints
             string provider,
             [FromQuery] string? returnUrl,
             HttpContext context,
-            [FromServices] SignInManager<ApplicationUser> signInManager,
-            [FromServices] UserManager<ApplicationUser> userManager) =>
+#if (UseMessaging)
+            IMessageBus bus,
+            CancellationToken cancellationToken) =>
+#else
+            [FromServices] ExternalAuthSignInHandler handler,
+            CancellationToken cancellationToken) =>
+#endif
         {
             var result = await context.AuthenticateAsync("ExternalCookie");
             if (!result.Succeeded)
@@ -54,37 +63,30 @@ public static class ExternalAuthEndpoints
                 return Results.BadRequest(new { error = message });
             }
 
-            var user = await userManager.FindByEmailAsync(email);
-            if (user == null)
-            {
-                var firstName = externalUser.FindFirstValue(ClaimTypes.GivenName) ?? string.Empty;
-                var lastName = externalUser.FindFirstValue(ClaimTypes.Surname) ?? string.Empty;
+            var command = new ExternalAuthSignInCommand(
+                email,
+                provider,
+                externalUser.FindFirstValue(ClaimTypes.GivenName),
+                externalUser.FindFirstValue(ClaimTypes.Surname),
+                returnUrl);
+#if (UseMessaging)
+            var signInResult = await bus.InvokeAsync<Result<ExternalAuthSignInResult>>(command, cancellationToken);
+#else
+            var signInResult = await handler.Handle(command, cancellationToken);
+#endif
+            if (!signInResult.IsSuccess)
+                return Results.BadRequest(new { error = signInResult.Error.Message });
 
-                user = new ApplicationUser(firstName, lastName, email);
-                var createResult = await userManager.CreateAsync(user);
-                if (!createResult.Succeeded)
-                {
-                    var errors = string.Join("; ", createResult.Errors.Select(e => e.Description));
-                    return Results.BadRequest(new { error = errors });
-                }
-            }
-
-            await signInManager.SignInAsync(user, isPersistent: false);
             await context.SignOutAsync("ExternalCookie");
 
-            var redirect = !string.IsNullOrEmpty(returnUrl) && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
-                ? returnUrl
-                : "/";
-
-            return Results.Redirect(redirect);
+            return Results.Redirect(signInResult.Value.RedirectUrl);
         })
         .AllowAnonymous()
         .WithName("ExternalLoginCallback")
         .WithTags("Authentication")
         .WithSummary("Handle external provider OAuth callback");
 
-        app.MapGet("/api/auth/external/providers", (
-            [FromServices] IAuthenticationSchemeProvider schemeProvider) =>
+        app.MapGet("/api/auth/external/providers", () =>
         {
             var providers = new[] { "Google", "Microsoft", "GitHub" };
             return Results.Ok(new { providers });
