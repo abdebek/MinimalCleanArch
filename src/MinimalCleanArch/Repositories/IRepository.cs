@@ -45,20 +45,34 @@ public interface IRepository<TEntity, TKey>
     /// </summary>
     /// <param name="filter">The filter expression.</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it with an efficient translated query.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task<bool> AnyAsync(
+    async Task<bool> AnyAsync(
         Expression<Func<TEntity, bool>> filter,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+    {
+        return await GetFirstAsync(filter, cancellationToken).ConfigureAwait(false) is not null;
+    }
 
     /// <summary>
     /// Determines whether any entity matches the specified specification.
     /// </summary>
     /// <param name="specification">The specification.</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it with an efficient translated query.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task<bool> AnyAsync(
+    async Task<bool> AnyAsync(
         ISpecification<TEntity> specification,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+    {
+        return await GetFirstAsync(specification, cancellationToken).ConfigureAwait(false) is not null;
+    }
     
     /// <summary>
     /// Gets a single entity by its key
@@ -94,10 +108,23 @@ public interface IRepository<TEntity, TKey>
     /// </summary>
     /// <param name="filter">The filter expression.</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it with an efficient translated query.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task<TEntity?> SingleOrDefaultAsync(
+    async Task<TEntity?> SingleOrDefaultAsync(
         Expression<Func<TEntity, bool>> filter,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+    {
+        var results = await GetAsync(filter, cancellationToken).ConfigureAwait(false);
+        return results.Count switch
+        {
+            0 => default,
+            1 => results[0],
+            _ => throw new InvalidOperationException("Sequence contains more than one matching element.")
+        };
+    }
 
     /// <summary>
     /// Gets a single entity that matches the specified specification, or null if none exists.
@@ -105,10 +132,23 @@ public interface IRepository<TEntity, TKey>
     /// </summary>
     /// <param name="specification">The specification.</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it with an efficient translated query.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task<TEntity?> SingleOrDefaultAsync(
+    async Task<TEntity?> SingleOrDefaultAsync(
         ISpecification<TEntity> specification,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+    {
+        var results = await GetAsync(specification, cancellationToken).ConfigureAwait(false);
+        return results.Count switch
+        {
+            0 => default,
+            1 => results[0],
+            _ => throw new InvalidOperationException("Sequence contains more than one matching element.")
+        };
+    }
     
     /// <summary>
     /// Counts entities that match the filter
@@ -125,10 +165,18 @@ public interface IRepository<TEntity, TKey>
     /// </summary>
     /// <param name="specification">The specification.</param>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it with an efficient translated query.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task<int> CountAsync(
+    async Task<int> CountAsync(
         ISpecification<TEntity> specification,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+    {
+        var results = await GetAsync(specification, cancellationToken).ConfigureAwait(false);
+        return results.Count;
+    }
     
     /// <summary>
     /// Adds an entity (does not save to database until SaveChanges is called)

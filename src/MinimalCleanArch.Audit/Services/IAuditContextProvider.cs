@@ -19,7 +19,7 @@ public interface IAuditContextProvider
     /// <summary>
     /// Gets the current tenant or organization identifier.
     /// </summary>
-    string? GetTenantId();
+    string? GetTenantId() => null;
 
     /// <summary>
     /// Gets the current correlation ID for request tracing.

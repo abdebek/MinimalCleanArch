@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using FluentValidation;
 using System.Reflection;
+using MinimalCleanArch.Execution;
+using MinimalCleanArch.Extensions.Execution;
 using MinimalCleanArch.Extensions.HealthChecks;
 using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Extensions.RateLimiting;
@@ -25,7 +28,9 @@ public static class ServiceCollectionExtensions
 
         // Register correlation ID accessor
         services.AddHttpContextAccessor();
+        services.AddOptions<ExecutionContextOptions>();
         services.AddScoped<ICorrelationIdAccessor, CorrelationIdAccessor>();
+        services.TryAddScoped<IExecutionContext, HttpExecutionContext>();
 
         // Register startup health check as singleton so it can be marked complete
         services.AddSingleton<StartupHealthCheck>();

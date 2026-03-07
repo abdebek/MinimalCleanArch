@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MinimalCleanArch.Domain.Entities;
+using MinimalCleanArch.Execution;
 
 namespace MinimalCleanArch.DataAccess;
 
@@ -10,13 +11,26 @@ namespace MinimalCleanArch.DataAccess;
 /// </summary>
 public abstract class DbContextBase : DbContext
 {
+    private readonly IExecutionContext? _executionContext;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DbContextBase"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
-    protected DbContextBase(DbContextOptions options) 
+    protected DbContextBase(DbContextOptions options)
+        : this(options, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DbContextBase"/> class
+    /// </summary>
+    /// <param name="options">The options to be used by the DbContext</param>
+    /// <param name="executionContext">The execution context for audit stamping.</param>
+    protected DbContextBase(DbContextOptions options, IExecutionContext? executionContext)
         : base(options)
     {
+        _executionContext = executionContext;
     }
 
     /// <summary>
@@ -97,10 +111,11 @@ public abstract class DbContextBase : DbContext
     /// Gets the current user ID from the application context
     /// </summary>
     /// <returns>The current user ID</returns>
-    protected virtual string? GetCurrentUserId()
-    {
-        // This should be overridden in derived classes to get the actual user ID
-        // from the application's authentication system
-        return null;
-    }
+    protected virtual string? GetCurrentUserId() => _executionContext?.UserId;
+
+    /// <summary>
+    /// Gets the current tenant ID from the application context
+    /// </summary>
+    /// <returns>The current tenant ID</returns>
+    protected virtual string? GetCurrentTenantId() => _executionContext?.TenantId;
 }
