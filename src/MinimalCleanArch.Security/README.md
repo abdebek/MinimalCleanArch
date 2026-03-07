@@ -3,7 +3,7 @@
 Security components for MinimalCleanArch.
 
 ## Version
-- 0.1.14 (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14.
+- 0.1.16-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.16-preview.
 
 ## Overview
 - Column-level encryption for EF Core.
@@ -13,7 +13,7 @@ Security components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Security --version 0.1.14
+dotnet add package MinimalCleanArch.Security --version 0.1.16-preview
 ```
 
 In Program.cs:
@@ -21,6 +21,23 @@ In Program.cs:
 builder.Services.AddDataProtectionEncryptionForDevelopment("YourApp");
 // Or: builder.Services.AddEncryption(new EncryptionOptions { Key = "YOUR_SECURE_AES_KEY" });
 ```
+
+In `OnModelCreating`:
+
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+    modelBuilder.UseEncryption(encryptionService);
+}
+```
+
+Recommended guidance:
+
+- use Data Protection-based encryption for new application development
+- use `AddDataProtectionEncryptionForDevelopment(...)` only for local development
+- use persistent key storage in production
+- use the hybrid Data Protection + AES support when migrating legacy encrypted data
 
 ## Key Components
 

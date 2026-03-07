@@ -43,6 +43,18 @@ public class HttpContextAuditContextProvider : IAuditContextProvider
     }
 
     /// <inheritdoc />
+    public string? GetTenantId()
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user?.Identity?.IsAuthenticated != true)
+            return null;
+
+        return user.FindFirst("tenant_id")?.Value
+            ?? user.FindFirst("business_id")?.Value
+            ?? user.FindFirst("organization_id")?.Value;
+    }
+
+    /// <inheritdoc />
     public string? GetCorrelationId()
     {
         var context = _httpContextAccessor.HttpContext;

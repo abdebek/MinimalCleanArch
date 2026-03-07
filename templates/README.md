@@ -44,7 +44,7 @@ This is the quickest way to validate OpenIddict + user auth + global Bearer reus
 1. Scaffold and run:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.14
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.16-preview
 cd QuickAuth
 dotnet run
 ```
@@ -196,7 +196,7 @@ dotnet new mca -n DurableApp --all --db postgres --tests
 ### Versions
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--mcaVersion <version>` | 0.1.14 | MinimalCleanArch package version |
+| `--mcaVersion <version>` | 0.1.16-preview | MinimalCleanArch package version |
 | `--framework <tfm>` | net10.0 | Target framework (`net9.0` or `net10.0`) |
 
 ## Common Examples
@@ -333,7 +333,7 @@ dotnet add package AspNet.Security.OAuth.GitHub
 pwsh ./templates/scripts/validate-templates.ps1 `
   -TemplatePackagePath ./artifacts/packages `
   -LocalFeedPath ./artifacts/packages `
-  -McaVersion 0.1.14 `
+  -McaVersion 0.1.16-preview `
   -Framework net10.0 `
   -IncludeNugetOrg
 ```

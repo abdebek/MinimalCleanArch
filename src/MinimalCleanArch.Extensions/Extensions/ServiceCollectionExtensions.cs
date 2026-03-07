@@ -3,6 +3,7 @@ using FluentValidation;
 using System.Reflection;
 using MinimalCleanArch.Extensions.HealthChecks;
 using MinimalCleanArch.Extensions.Middlewares;
+using MinimalCleanArch.Extensions.RateLimiting;
 
 namespace MinimalCleanArch.Extensions.Extensions;
 
@@ -28,6 +29,40 @@ public static class ServiceCollectionExtensions
 
         // Register startup health check as singleton so it can be marked complete
         services.AddSingleton<StartupHealthCheck>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds the standard MinimalCleanArch API service registrations with an opinionated default shape.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Optional configuration for API defaults.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddMinimalCleanArchApi(
+        this IServiceCollection services,
+        Action<MinimalCleanArchApiOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var options = new MinimalCleanArchApiOptions();
+        configure?.Invoke(options);
+
+        services.AddMinimalCleanArchExtensions();
+
+        foreach (var assembly in options.ValidatorAssemblies.Distinct())
+        {
+            services.AddValidatorsFromAssembly(assembly);
+        }
+
+        if (options.ConfigureRateLimiting != null)
+        {
+            services.AddMinimalCleanArchRateLimiting(options.ConfigureRateLimiting);
+        }
+        else if (options.EnableRateLimiting)
+        {
+            services.AddMinimalCleanArchRateLimiting();
+        }
 
         return services;
     }
@@ -82,4 +117,47 @@ public static class ServiceCollectionExtensions
 /// </summary>
 internal class ServiceCollectionExtensionsMarker
 {
+}
+
+/// <summary>
+/// Options for the standard MinimalCleanArch API bootstrap registration.
+/// </summary>
+public sealed class MinimalCleanArchApiOptions
+{
+    /// <summary>
+    /// Gets a list of assemblies to scan for validators.
+    /// </summary>
+    public List<Assembly> ValidatorAssemblies { get; } = new();
+
+    /// <summary>
+    /// Gets or sets whether rate limiting should be added using default settings.
+    /// </summary>
+    public bool EnableRateLimiting { get; set; }
+
+    /// <summary>
+    /// Gets or sets optional custom rate limiting configuration.
+    /// </summary>
+    public Action<RateLimitingConfiguration>? ConfigureRateLimiting { get; set; }
+
+    /// <summary>
+    /// Adds an assembly to scan for validators.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <returns>The options instance.</returns>
+    public MinimalCleanArchApiOptions AddValidatorsFromAssembly(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        ValidatorAssemblies.Add(assembly);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the assembly containing the specified type to the validator scan list.
+    /// </summary>
+    /// <typeparam name="T">A type from the assembly to scan.</typeparam>
+    /// <returns>The options instance.</returns>
+    public MinimalCleanArchApiOptions AddValidatorsFromAssemblyContaining<T>()
+    {
+        return AddValidatorsFromAssembly(typeof(T).Assembly);
+    }
 }

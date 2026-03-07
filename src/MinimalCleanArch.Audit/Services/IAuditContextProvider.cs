@@ -17,6 +17,11 @@ public interface IAuditContextProvider
     string? GetUserName();
 
     /// <summary>
+    /// Gets the current tenant or organization identifier.
+    /// </summary>
+    string? GetTenantId();
+
+    /// <summary>
     /// Gets the current correlation ID for request tracing.
     /// </summary>
     string? GetCorrelationId();

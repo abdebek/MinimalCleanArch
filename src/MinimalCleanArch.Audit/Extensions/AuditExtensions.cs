@@ -123,6 +123,9 @@ public static class AuditExtensions
             entity.Property(e => e.UserName)
                 .HasMaxLength(256);
 
+            entity.Property(e => e.TenantId)
+                .HasMaxLength(256);
+
             entity.Property(e => e.CorrelationId)
                 .HasMaxLength(64);
 
@@ -136,6 +139,8 @@ public static class AuditExtensions
             entity.HasIndex(e => e.EntityType);
             entity.HasIndex(e => new { e.EntityType, e.EntityId });
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => new { e.TenantId, e.Timestamp });
             entity.HasIndex(e => e.Timestamp);
             entity.HasIndex(e => e.CorrelationId);
             entity.HasIndex(e => e.Operation);

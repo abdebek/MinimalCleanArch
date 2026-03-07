@@ -46,6 +46,20 @@ public interface IAuditLogService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets audit logs for a specific tenant or organization.
+    /// </summary>
+    /// <param name="tenantId">The tenant or organization identifier.</param>
+    /// <param name="skip">Number of records to skip.</param>
+    /// <param name="take">Number of records to take.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of audit log entries for the tenant.</returns>
+    Task<IReadOnlyList<AuditLog>> GetByTenantAsync(
+        string tenantId,
+        int skip = 0,
+        int take = 50,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets audit logs within a date range.
     /// </summary>
     /// <param name="from">Start date (inclusive).</param>
@@ -135,6 +149,11 @@ public class AuditLogQuery
     /// Filter by user ID.
     /// </summary>
     public string? UserId { get; set; }
+
+    /// <summary>
+    /// Filter by tenant or organization identifier.
+    /// </summary>
+    public string? TenantId { get; set; }
 
     /// <summary>
     /// Filter by operation type.

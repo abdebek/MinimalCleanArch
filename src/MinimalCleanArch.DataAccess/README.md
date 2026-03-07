@@ -3,13 +3,14 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
-- 0.1.14 (net9.0, net10.0). Works with `MinimalCleanArch` 0.1.14 and companion packages.
+- 0.1.16-preview (net9.0, net10.0). Works with `MinimalCleanArch` 0.1.16-preview and companion packages.
 
 ## What's included
 - `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
 - `Repository<TEntity,TKey>` and `UnitOfWork` implementations.
 - `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`, `AsSplitQuery`, and `IgnoreQueryFilters`.
 - DI extensions to register repositories/unit of work.
+- Common repository query methods such as `AnyAsync`, `SingleOrDefaultAsync`, and `CountAsync(ISpecification<T>)`.
 
 ## Usage
 ```csharp
@@ -19,9 +20,17 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 ```
 
-### Using specifications with EF Core
+If you need a custom unit of work and access to `IServiceProvider` while configuring the DbContext:
+
 ```csharp
-// Define a spec
+builder.Services.AddMinimalCleanArch<AppDbContext, AppDbContext>((sp, options) =>
+{
+    options.UseSqlite("Data Source=app.db");
+});
+```
+
+### Recommended specification usage
+```csharp
 public sealed class IncompleteHighPrioritySpec : BaseSpecification<Todo>
 {
     public IncompleteHighPrioritySpec()
@@ -36,9 +45,9 @@ public sealed class IncompleteHighPrioritySpec : BaseSpecification<Todo>
 var dueToday = new DueTodaySpec();
 var spec = new IncompleteHighPrioritySpec().And(dueToday);
 
-var todos = await SpecificationEvaluator<Todo>
-    .GetQuery(dbContext.Set<Todo>(), spec)
-    .ToListAsync(cancellationToken);
+var todos = await repository.GetAsync(spec, cancellationToken);
+var hasAny = await repository.AnyAsync(spec, cancellationToken);
+var total = await repository.CountAsync(spec, cancellationToken);
 
 public sealed class DueTodaySpec : BaseSpecification<Todo>
 {

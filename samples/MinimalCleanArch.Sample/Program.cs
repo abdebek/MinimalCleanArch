@@ -21,6 +21,7 @@ using MinimalCleanArch.Sample.Infrastructure.Seeders;
 using MinimalCleanArch.Sample.Infrastructure.Services;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
+using MinimalCleanArch.Validation.Extensions;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -171,7 +172,7 @@ try
     }
 
     // Add validation services
-    builder.Services.AddValidatorsFromAssemblyContaining<Todo>();
+    builder.Services.AddValidationFromAssemblyContaining<Todo>();
 
     // Add caching services (in-memory by default)
     builder.Services.AddMinimalCleanArchCaching(options =>
