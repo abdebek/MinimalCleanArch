@@ -10,6 +10,7 @@ Audit logging components for MinimalCleanArch.
 - DI extensions to plug audit logging into your MinimalCleanArch app.
 - Tenant-aware audit context support through `IAuditContextProvider`.
 - Audit query service support for user, tenant, correlation ID, and flexible search queries.
+- default audit-context bridging from `IExecutionContext` when available
 
 ## Usage
 ```bash
@@ -22,6 +23,8 @@ Register services:
 builder.Services.AddAuditLogging();
 builder.Services.AddAuditLogService<AppDbContext>();
 ```
+
+If `IExecutionContext` is registered, `AddAuditLogging()` uses it automatically. Existing `IAuditContextProvider` customizations still work.
 
 Configure the DbContext:
 
@@ -61,5 +64,6 @@ public sealed class AppAuditContextProvider : IAuditContextProvider
 Notes:
 - `TenantId` is a first-class field on `AuditLog`, so tenant filtering does not need to be pushed into metadata.
 - `IAuditLogService` supports tenant-aware queries in addition to user and correlation-based lookups.
+- `IAuditContextProvider.GetTenantId()` now defaults to `null`, so existing custom providers do not need to implement tenant support immediately.
 - When using a local feed, add a `nuget.config` pointing to your local packages folder and keep `nuget.org` available unless your feed mirrors all external dependencies.
 

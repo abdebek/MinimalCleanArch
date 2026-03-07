@@ -1,4 +1,6 @@
 using System.Reflection;
+using Wolverine.ErrorHandling;
+using Wolverine;
 
 namespace MinimalCleanArch.Messaging.Extensions;
 
@@ -15,10 +17,22 @@ public class MessagingOptions
 
     /// <summary>
     /// Gets or sets the database schema name for message persistence tables.
-    /// Only used with SQL Server persistence.
+    /// Used with SQL Server and PostgreSQL persistence.
     /// Default: "wolverine".
     /// </summary>
     public string SchemaName { get; set; } = "wolverine";
+
+    /// <summary>
+    /// Gets or sets the base local queue name used for in-process domain event handling.
+    /// Default: "domain-events".
+    /// </summary>
+    public string LocalQueueName { get; set; } = "domain-events";
+
+    /// <summary>
+    /// Gets or sets an optional prefix applied to generated local queue names.
+    /// Default: no prefix.
+    /// </summary>
+    public string? QueuePrefix { get; set; }
 
     /// <summary>
     /// Gets or sets the number of parallel listeners for the local queue.
@@ -31,6 +45,28 @@ public class MessagingOptions
     /// Default: 5 seconds.
     /// </summary>
     public TimeSpan DurabilityPollingInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether persisted dead-letter messages expire automatically.
+    /// Default: false.
+    /// </summary>
+    public bool DeadLetterQueueExpirationEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets how long persisted dead-letter messages are retained when expiration is enabled.
+    /// Default: Wolverine default.
+    /// </summary>
+    public TimeSpan? DeadLetterQueueExpiration { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional hook for configuring message failure policies.
+    /// </summary>
+    public Action<IWithFailurePolicies>? ConfigureFailurePolicies { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional hook for configuring Wolverine policies without dropping to the full options callback.
+    /// </summary>
+    public Action<IPolicies>? ConfigurePolicies { get; set; }
 
     /// <summary>
     /// Gets or sets assemblies to scan for message handlers.
@@ -58,5 +94,16 @@ public class MessagingOptions
     {
         HandlerAssemblies.Add(typeof(T).Assembly);
         return this;
+    }
+
+    /// <summary>
+    /// Gets the effective local queue name after applying the optional prefix.
+    /// </summary>
+    /// <returns>The effective queue name.</returns>
+    public string GetEffectiveLocalQueueName()
+    {
+        return string.IsNullOrWhiteSpace(QueuePrefix)
+            ? LocalQueueName
+            : $"{QueuePrefix}{LocalQueueName}";
     }
 }

@@ -104,7 +104,6 @@ public static class ApplicationBuilderExtensions
         configure?.Invoke(options);
 
         app.UseCorrelationId(options.CorrelationHeaderName);
-        app.UseGlobalErrorHandling();
 
         if (options.UseApiSecurityHeaders)
         {
@@ -114,6 +113,8 @@ public static class ApplicationBuilderExtensions
         {
             app.UseSecurityHeaders(options.SecurityHeadersOptions);
         }
+
+        app.UseGlobalErrorHandling();
 
         if (options.UseRateLimiting)
         {

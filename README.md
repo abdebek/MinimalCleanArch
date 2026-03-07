@@ -63,6 +63,7 @@ Preferred defaults:
 - use `AddValidationFromAssemblyContaining<T>()` for validator registration
 - use `AddMinimalCleanArchMessaging...` extensions instead of wiring Wolverine from scratch
 - use Data Protection-based encryption for new development
+- use `IExecutionContext` as the shared source for user, tenant, and correlation data across HTTP and message-handler flows
 
 ## Packages
 | Package | Description |

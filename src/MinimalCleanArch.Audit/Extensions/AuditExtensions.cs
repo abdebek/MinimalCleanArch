@@ -4,6 +4,7 @@ using MinimalCleanArch.Audit.Configuration;
 using MinimalCleanArch.Audit.Entities;
 using MinimalCleanArch.Audit.Interceptors;
 using MinimalCleanArch.Audit.Services;
+using MinimalCleanArch.Execution;
 
 namespace MinimalCleanArch.Audit.Extensions;
 
@@ -27,7 +28,18 @@ public static class AuditExtensions
         configure?.Invoke(options);
 
         services.AddSingleton(options);
-        services.AddScoped<IAuditContextProvider, HttpContextAuditContextProvider>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<IAuditContextProvider>(sp =>
+        {
+            var executionContext = sp.GetService<IExecutionContext>();
+            if (executionContext is not null)
+            {
+                return new ExecutionContextAuditContextProvider(executionContext);
+            }
+
+            return new HttpContextAuditContextProvider(
+                sp.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>());
+        });
         services.AddScoped<AuditSaveChangesInterceptor>();
 
         return services;
