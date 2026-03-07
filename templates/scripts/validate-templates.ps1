@@ -4,7 +4,7 @@ param(
     [string]$McaVersion = "0.1.16-preview",
     [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
-    [switch]$IncludeNugetOrg = $false
+    [bool]$IncludeNugetOrg = $true
 )
 
 set-strictmode -version latest

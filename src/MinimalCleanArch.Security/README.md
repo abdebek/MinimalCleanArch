@@ -16,13 +16,21 @@ Security components for MinimalCleanArch.
 dotnet add package MinimalCleanArch.Security --version 0.1.16-preview
 ```
 
-In Program.cs:
+Recommended service registration:
 ```csharp
 builder.Services.AddDataProtectionEncryptionForDevelopment("YourApp");
-// Or: builder.Services.AddEncryption(new EncryptionOptions { Key = "YOUR_SECURE_AES_KEY" });
 ```
 
-In `OnModelCreating`:
+Production-style registration:
+
+```csharp
+builder.Services.AddEncryption(new EncryptionOptions
+{
+    Key = "YOUR_SECURE_AES_KEY"
+});
+```
+
+Model configuration:
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -33,11 +41,11 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 ```
 
 Recommended guidance:
-
 - use Data Protection-based encryption for new application development
 - use `AddDataProtectionEncryptionForDevelopment(...)` only for local development
 - use persistent key storage in production
-- use the hybrid Data Protection + AES support when migrating legacy encrypted data
+- use the hybrid Data Protection and AES support when migrating legacy encrypted data
+- keep encryption registration in infrastructure, not in domain or application layers
 
 ## Key Components
 
@@ -45,5 +53,4 @@ Recommended guidance:
 - IEncryptionService - Interface for encryption services
 - AesEncryptionService - AES implementation of IEncryptionService
 - EncryptedConverter - Value converter for encrypted properties
-- ModelBuilderExtensions - Extensions for configuring encryption
 

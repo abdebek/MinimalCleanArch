@@ -334,9 +334,14 @@ pwsh ./templates/scripts/validate-templates.ps1 `
   -TemplatePackagePath ./artifacts/packages `
   -LocalFeedPath ./artifacts/packages `
   -McaVersion 0.1.16-preview `
-  -Framework net10.0 `
-  -IncludeNugetOrg
+  -Framework net10.0
 ```
+
+Validation behavior:
+- The script uses the local feed for `MinimalCleanArch.*` packages and `nuget.org` for third-party packages by default.
+- This keeps validation deterministic on clean machines and CI agents.
+- Pass `-IncludeNugetOrg:$false` only if your local feed also contains every external package referenced by the generated templates.
+- Pass `-RunDockerE2E` when you want durable SQL Server and PostgreSQL integration tests to run instead of being skipped.
 
 ## Uninstall
 
