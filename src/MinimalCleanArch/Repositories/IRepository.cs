@@ -39,6 +39,26 @@ public interface IRepository<TEntity, TKey>
     Task<IReadOnlyList<TEntity>> GetAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Determines whether any entity matches the specified filter.
+    /// </summary>
+    /// <param name="filter">The filter expression.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task<bool> AnyAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Determines whether any entity matches the specified specification.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task<bool> AnyAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Gets a single entity by its key
@@ -67,6 +87,28 @@ public interface IRepository<TEntity, TKey>
     Task<TEntity?> GetFirstAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a single entity that matches the specified filter, or null if none exists.
+    /// Throws if more than one entity matches.
+    /// </summary>
+    /// <param name="filter">The filter expression.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task<TEntity?> SingleOrDefaultAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a single entity that matches the specified specification, or null if none exists.
+    /// Throws if more than one entity matches.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task<TEntity?> SingleOrDefaultAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Counts entities that match the filter
@@ -76,6 +118,16 @@ public interface IRepository<TEntity, TKey>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<int> CountAsync(
         Expression<Func<TEntity, bool>>? filter = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts entities that match the specified specification.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task<int> CountAsync(
+        ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default);
     
     /// <summary>

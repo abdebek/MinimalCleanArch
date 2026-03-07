@@ -3,7 +3,7 @@
 Minimal API extensions for MinimalCleanArch.
 
 ## Version
-- 0.1.14 (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14.
+- 0.1.16-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.16-preview.
 
 ## Overview
 - Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
@@ -15,21 +15,24 @@ Minimal API extensions for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Extensions --version 0.1.14
+dotnet add package MinimalCleanArch.Extensions --version 0.1.16-preview
 ```
 
 Register in your API:
 ```csharp
-builder.Services.AddMinimalCleanArchExtensions();
+builder.Services.AddMinimalCleanArchApi(options =>
+{
+    options.AddValidatorsFromAssemblyContaining<Program>();
+    options.EnableRateLimiting = true;
+});
 // Optionally add validators:
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
-// Optional rate limiting
-builder.Services.AddMinimalCleanArchRateLimiting();
 ```
 
 Then enable middleware:
 ```csharp
-app.UseMinimalCleanArchRateLimiting();
+app.UseMinimalCleanArchApiDefaults(options =>
+{
+    options.UseRateLimiting = true;
+});
 ```
 

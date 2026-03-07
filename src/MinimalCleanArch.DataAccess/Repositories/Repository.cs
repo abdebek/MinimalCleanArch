@@ -72,6 +72,22 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         return await ApplySpecification(specification).ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
+    public virtual async Task<bool> AnyAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet.AnyAsync(filter, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public virtual async Task<bool> AnyAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).AnyAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Gets a single entity by its key
     /// </summary>
@@ -109,6 +125,22 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
+    public virtual async Task<TEntity?> SingleOrDefaultAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet.SingleOrDefaultAsync(filter, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public virtual async Task<TEntity?> SingleOrDefaultAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).SingleOrDefaultAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Counts entities that match the filter
     /// </summary>
@@ -122,6 +154,14 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         if (filter == null)
             return await DbSet.CountAsync(cancellationToken);
         return await DbSet.CountAsync(filter, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public virtual async Task<int> CountAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).CountAsync(cancellationToken);
     }
 
     /// <summary>

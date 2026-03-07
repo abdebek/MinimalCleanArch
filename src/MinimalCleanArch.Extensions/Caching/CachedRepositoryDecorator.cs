@@ -65,6 +65,22 @@ public class CachedRepositoryDecorator<TEntity, TKey> : IRepository<TEntity, TKe
     }
 
     /// <inheritdoc />
+    public Task<bool> AnyAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.AnyAsync(filter, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<bool> AnyAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.AnyAsync(specification, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
         var key = CacheKeyExtensions.EntityKey<TEntity>(id);
@@ -95,12 +111,36 @@ public class CachedRepositoryDecorator<TEntity, TKey> : IRepository<TEntity, TKe
     }
 
     /// <inheritdoc />
+    public Task<TEntity?> SingleOrDefaultAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.SingleOrDefaultAsync(filter, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<TEntity?> SingleOrDefaultAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.SingleOrDefaultAsync(specification, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> CountAsync(
         Expression<Func<TEntity, bool>>? filter = null,
         CancellationToken cancellationToken = default)
     {
         // Don't cache counts - they can change frequently
         return _innerRepository.CountAsync(filter, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<int> CountAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.CountAsync(specification, cancellationToken);
     }
 
     /// <inheritdoc />

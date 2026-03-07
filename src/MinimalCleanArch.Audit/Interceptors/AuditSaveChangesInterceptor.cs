@@ -148,6 +148,7 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
             Timestamp = timestamp,
             UserId = _contextProvider.GetUserId(),
             UserName = _contextProvider.GetUserName(),
+            TenantId = _contextProvider.GetTenantId(),
             CorrelationId = _contextProvider.GetCorrelationId()
         };
 
@@ -332,6 +333,7 @@ internal class AuditEntry
     public DateTime Timestamp { get; set; }
     public string? UserId { get; set; }
     public string? UserName { get; set; }
+    public string? TenantId { get; set; }
     public string? CorrelationId { get; set; }
     public string? ClientIpAddress { get; set; }
     public string? UserAgent { get; set; }
@@ -365,6 +367,7 @@ internal class AuditEntry
             Timestamp = Timestamp,
             UserId = UserId,
             UserName = UserName,
+            TenantId = TenantId,
             CorrelationId = CorrelationId,
             ClientIpAddress = ClientIpAddress,
             UserAgent = UserAgent,

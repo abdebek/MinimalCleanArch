@@ -52,4 +52,62 @@ public static class ServiceCollectionExtensions
     {
         return services.AddValidatorsFromAssembly(typeof(T).Assembly);
     }
+
+    /// <summary>
+    /// Adds validation services and registers validators from the specified assemblies.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="assemblies">Assemblies to scan for validators.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddValidation(
+        this IServiceCollection services,
+        params Assembly[] assemblies)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(assemblies);
+
+        foreach (var assembly in assemblies.Where(a => a != null).Distinct())
+        {
+            services.AddValidatorsFromAssembly(assembly);
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds validation services and registers validators from the assembly containing the specified type.
+    /// </summary>
+    /// <typeparam name="T">A type from the assembly to scan.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddValidationFromAssemblyContaining<T>(
+        this IServiceCollection services)
+    {
+        return services.AddValidation(typeof(T).Assembly);
+    }
+
+    /// <summary>
+    /// Adds MinimalCleanArch validation services and registers validators from the specified assemblies.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="assemblies">Assemblies to scan for validators.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddMinimalCleanArchValidation(
+        this IServiceCollection services,
+        params Assembly[] assemblies)
+    {
+        return services.AddValidation(assemblies);
+    }
+
+    /// <summary>
+    /// Adds MinimalCleanArch validation services and registers validators from the assembly containing the specified type.
+    /// </summary>
+    /// <typeparam name="T">A type from the assembly to scan.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddMinimalCleanArchValidationFromAssemblyContaining<T>(
+        this IServiceCollection services)
+    {
+        return services.AddValidationFromAssemblyContaining<T>();
+    }
 }

@@ -141,4 +141,28 @@ public static class ServiceCollectionExtensions
         
         return services;
     }
+
+    /// <summary>
+    /// Adds MinimalCleanArch services with a specific DbContext and custom Unit of Work implementation.
+    /// Use this overload when the DbContext configuration needs access to the service provider.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="optionsAction">The DbContext options action with IServiceProvider access.</param>
+    /// <typeparam name="TContext">The type of the DbContext.</typeparam>
+    /// <typeparam name="TUnitOfWork">The type of the Unit of Work implementation.</typeparam>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddMinimalCleanArch<TContext, TUnitOfWork>(
+        this IServiceCollection services,
+        Action<IServiceProvider, DbContextOptionsBuilder> optionsAction)
+        where TContext : DbContext
+        where TUnitOfWork : class, IUnitOfWork
+    {
+        services.AddDbContext<TContext>((sp, options) => optionsAction(sp, options));
+        services.AddScoped<DbContext>(provider => provider.GetRequiredService<TContext>());
+        services.AddScoped<IUnitOfWork, TUnitOfWork>();
+        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+        return services;
+    }
 }

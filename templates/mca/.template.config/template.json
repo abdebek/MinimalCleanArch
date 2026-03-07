@@ -128,7 +128,7 @@
     "mcaVersion": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "0.1.14",
+      "defaultValue": "0.1.16-preview",
       "description": "MinimalCleanArch package version to reference",
       "replaces": "__MCA_VERSION__"
     },
@@ -265,8 +265,9 @@
         { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
         { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
+        { "condition": "(!UseDurableMessaging)", "exclude": ["tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
-        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs"] },
+        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.sln", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**"] }
       ]
