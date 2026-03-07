@@ -66,6 +66,21 @@ public class AuditLogService : IAuditLogService
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<AuditLog>> GetByTenantAsync(
+        string tenantId,
+        int skip = 0,
+        int take = 50,
+        CancellationToken cancellationToken = default)
+    {
+        return await AuditLogs
+            .Where(a => a.TenantId == tenantId)
+            .OrderByDescending(a => a.Timestamp)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<AuditLog>> GetByDateRangeAsync(
         DateTime from,
         DateTime to,
@@ -156,6 +171,9 @@ public class AuditLogService : IAuditLogService
 
         if (!string.IsNullOrEmpty(query.UserId))
             queryable = queryable.Where(a => a.UserId == query.UserId);
+
+        if (!string.IsNullOrEmpty(query.TenantId))
+            queryable = queryable.Where(a => a.TenantId == query.TenantId);
 
         if (query.Operation.HasValue)
             queryable = queryable.Where(a => a.Operation == query.Operation.Value);

@@ -36,6 +36,11 @@ public class AuditLog
     public string? UserName { get; set; }
 
     /// <summary>
+    /// Optional tenant or organization identifier associated with the change.
+    /// </summary>
+    public string? TenantId { get; set; }
+
+    /// <summary>
     /// UTC timestamp when the change occurred.
     /// </summary>
     public DateTime Timestamp { get; set; }

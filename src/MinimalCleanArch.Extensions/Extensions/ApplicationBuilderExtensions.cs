@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MinimalCleanArch.Extensions.Middlewares;
+using MinimalCleanArch.Extensions.RateLimiting;
 
 namespace MinimalCleanArch.Extensions.Extensions;
 
@@ -88,6 +89,41 @@ public static class ApplicationBuilderExtensions
     }
 
     /// <summary>
+    /// Adds the standard MinimalCleanArch API middleware pipeline with API-oriented defaults.
+    /// </summary>
+    /// <param name="app">The web application.</param>
+    /// <param name="configure">Optional pipeline configuration.</param>
+    /// <returns>The web application for chaining.</returns>
+    public static WebApplication UseMinimalCleanArchApiDefaults(
+        this WebApplication app,
+        Action<MinimalCleanArchApiPipelineOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        var options = new MinimalCleanArchApiPipelineOptions();
+        configure?.Invoke(options);
+
+        app.UseCorrelationId(options.CorrelationHeaderName);
+        app.UseGlobalErrorHandling();
+
+        if (options.UseApiSecurityHeaders)
+        {
+            app.UseApiSecurityHeaders();
+        }
+        else
+        {
+            app.UseSecurityHeaders(options.SecurityHeadersOptions);
+        }
+
+        if (options.UseRateLimiting)
+        {
+            app.UseMinimalCleanArchRateLimiting();
+        }
+
+        return app;
+    }
+
+    /// <summary>
     /// Marks the application startup as complete for health checks.
     /// Call this after all startup operations are complete.
     /// </summary>
@@ -99,4 +135,30 @@ public static class ApplicationBuilderExtensions
         startupHealthCheck?.MarkStartupComplete();
         return app;
     }
+}
+
+/// <summary>
+/// Options for the standard MinimalCleanArch API middleware pipeline.
+/// </summary>
+public sealed class MinimalCleanArchApiPipelineOptions
+{
+    /// <summary>
+    /// Gets or sets an optional custom correlation ID header name.
+    /// </summary>
+    public string? CorrelationHeaderName { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether API-specific security headers should be used.
+    /// </summary>
+    public bool UseApiSecurityHeaders { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets optional custom security header options used when API defaults are disabled.
+    /// </summary>
+    public SecurityHeadersOptions? SecurityHeadersOptions { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the standard rate limiting middleware should be enabled.
+    /// </summary>
+    public bool UseRateLimiting { get; set; }
 }

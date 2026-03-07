@@ -1,10 +1,10 @@
 param(
     [string]$LocalFeedPath = "$PSScriptRoot/../../artifacts/packages",
     [string]$TemplatePackagePath = "$PSScriptRoot/../../artifacts/packages",
-    [string]$McaVersion = "0.1.14",
+    [string]$McaVersion = "0.1.16-preview",
     [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
-    [switch]$IncludeNugetOrg = $false
+    [bool]$IncludeNugetOrg = $true
 )
 
 set-strictmode -version latest
@@ -121,6 +121,8 @@ $runStamp = Get-Date -Format "yyyyMMddHHmmssfff"
 $workRoot = Join-Path $PSScriptRoot "../../temp/validate/$runStamp"
 New-Item -ItemType Directory -Force -Path $workRoot | Out-Null
 Write-Host "==> Validation output: $workRoot"
+$restoreConfigPath = Join-Path $workRoot "NuGet.Config"
+New-RestoreConfig -ConfigPath $restoreConfigPath -FeedPath $localFeed -UseNugetOrg:$IncludeNugetOrg
 
 $buildProps = @(
     "-p:UseSharedCompilation=false",
@@ -142,7 +144,6 @@ foreach ($scenario in $scenarios) {
     $scenarioArgs = $scenario.Args
     $projName = "App_" + ($name -replace '[^A-Za-z0-9]', '_')
     $outDir = Join-Path $workRoot $name
-    $tempRestoreConfig = Join-Path $outDir "NuGet.Temp.config"
 
     try {
         Invoke-Checked -Description "Scaffolding $name" -Action {
@@ -151,7 +152,6 @@ foreach ($scenario in $scenarios) {
 
         Push-Location $outDir
         try {
-            New-RestoreConfig -ConfigPath $tempRestoreConfig -FeedPath $localFeed -UseNugetOrg:$IncludeNugetOrg
             $solution = Get-ChildItem -Path $outDir -Filter "*.sln" -ErrorAction SilentlyContinue | Select-Object -First 1
             $restoreTarget = $null
             if ($solution) {
@@ -166,7 +166,7 @@ foreach ($scenario in $scenarios) {
             }
 
             Invoke-Checked -Description "Restore $name" -Action {
-                dotnet restore $restoreTarget --configfile $tempRestoreConfig
+                dotnet restore $restoreTarget --configfile $restoreConfigPath
             }
 
             Invoke-Checked -Description "Build $name" -Action {
@@ -192,7 +192,6 @@ foreach ($scenario in $scenarios) {
         }
         finally {
             Pop-Location
-            Remove-Item -Path $tempRestoreConfig -Force -ErrorAction SilentlyContinue
         }
     }
     catch {

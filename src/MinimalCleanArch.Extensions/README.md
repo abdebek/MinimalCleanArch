@@ -3,7 +3,7 @@
 Minimal API extensions for MinimalCleanArch.
 
 ## Version
-- 0.1.14 (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.14.
+- 0.1.16-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.16-preview.
 
 ## Overview
 - Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
@@ -15,21 +15,32 @@ Minimal API extensions for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Extensions --version 0.1.14
+dotnet add package MinimalCleanArch.Extensions --version 0.1.16-preview
 ```
 
-Register in your API:
+Recommended API bootstrap:
+```csharp
+builder.Services.AddMinimalCleanArchApi(options =>
+{
+    options.AddValidatorsFromAssemblyContaining<CreateTodoCommandValidator>();
+    options.EnableRateLimiting = true;
+});
+```
+
+Equivalent explicit registration:
 ```csharp
 builder.Services.AddMinimalCleanArchExtensions();
-// Optionally add validators:
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
-// Optional rate limiting
+builder.Services.AddValidationFromAssemblyContaining<CreateTodoCommandValidator>();
 builder.Services.AddMinimalCleanArchRateLimiting();
 ```
 
-Then enable middleware:
+Middleware:
 ```csharp
-app.UseMinimalCleanArchRateLimiting();
+app.UseMinimalCleanArchApiDefaults(options =>
+{
+    options.UseRateLimiting = true;
+});
 ```
+
+`AddMinimalCleanArchApi(...)` is the preferred entry point when you want a single bootstrap method. Use the explicit registrations when you need tighter control over the service graph.
 

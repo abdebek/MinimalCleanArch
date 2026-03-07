@@ -17,8 +17,8 @@ using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
 #if (UseValidation)
-using FluentValidation;
 using MCA.Application.Validation;
+using MinimalCleanArch.Validation.Extensions;
 #endif
 #if (UseHealthChecks)
 using HealthChecks.UI.Client;
@@ -160,8 +160,7 @@ builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddHttpContextAccessor();
 #endif
 #if (UseValidation)
-// Validators (used by endpoints and Wolverine handlers)
-builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoCommandValidator>();
+builder.Services.AddValidationFromAssemblyContaining<CreateTodoCommandValidator>();
 #endif
 
 #if (UseSecurity)

@@ -9,9 +9,24 @@ A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10.
 - Soft delete and auditing support
 - EF Core integration with specification evaluation
 
+## Recommended Package Sets
+- Core domain and repository abstractions: `MinimalCleanArch`
+- EF Core repositories and specifications: `MinimalCleanArch.DataAccess`
+- Minimal API bootstrap, error mapping, OpenAPI, rate limiting: `MinimalCleanArch.Extensions`
+- FluentValidation registration: `MinimalCleanArch.Validation`
+- Domain events and Wolverine integration: `MinimalCleanArch.Messaging`
+- Audit interception and audit queries: `MinimalCleanArch.Audit`
+- Encrypted EF properties and encryption services: `MinimalCleanArch.Security`
+- Project scaffolding: `MinimalCleanArch.Templates`
+
 ## Versions
 - Stable packages/templates: `0.1.14`
-- Next preview line: `0.1.15-preview`
+- Next preview line: `0.1.16-preview`
+
+## Local Validation
+- Template validation uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
+- This is required because generated projects reference both `MinimalCleanArch.*` packages and pinned third-party packages.
+- Use local-feed-only validation only if your feed mirrors every external dependency used by the templates.
 
 ## Try It Fast
 
@@ -27,12 +42,27 @@ Then open `https://localhost:<port>/scalar/v1`.
 For auth + OpenIddict + Scalar password flow:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.14
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.16-preview
 cd QuickAuth
 dotnet run
 ```
 
 Use the auth walkthrough in [`templates/README.md`](templates/README.md).
+
+## Preferred Integration Path
+For new applications, the recommended order is:
+1. Model entities, repository contracts, and specifications with `MinimalCleanArch`.
+2. Add EF Core repositories and unit of work with `MinimalCleanArch.DataAccess`.
+3. Add API bootstrap with `MinimalCleanArch.Extensions`.
+4. Register application validators with `MinimalCleanArch.Validation`.
+5. Add `MinimalCleanArch.Messaging`, `MinimalCleanArch.Audit`, and `MinimalCleanArch.Security` only when the app actually needs them.
+
+Preferred defaults:
+- use specifications through `IRepository<TEntity, TKey>`
+- use `AddMinimalCleanArchApi(...)` as the main API bootstrap method
+- use `AddValidationFromAssemblyContaining<T>()` for validator registration
+- use `AddMinimalCleanArchMessaging...` extensions instead of wiring Wolverine from scratch
+- use Data Protection-based encryption for new development
 
 ## Packages
 | Package | Description |
