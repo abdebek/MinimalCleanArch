@@ -11,7 +11,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 - carry execution-context data such as correlation and tenant information into message handlers
 
 ## When to Use It
-- use it when the application has domain events, asynchronous workflows, integration messages, or background jobs
+- use it when the application has domain events, asynchronous workflows, integration messages, or background jobs and Wolverine is an acceptable host-side dependency
 - keep it in infrastructure or host composition code where transports and message handlers are wired
 - skip it for synchronous CRUD-style applications that do not need messaging yet
 

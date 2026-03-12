@@ -7,11 +7,11 @@ Security components for MinimalCleanArch.
 
 ## What This Helps You Achieve
 - encrypt sensitive values at the infrastructure layer instead of leaking encryption logic into entities or handlers
-- support both development-friendly Data Protection encryption and production-oriented key management
+- support both development-friendly ASP.NET Core Data Protection encryption and production-oriented key management
 - apply encrypted EF property conversions consistently across your data model
 
 ## When to Use It
-- use it when the application stores secrets or sensitive fields that should be encrypted at rest
+- use it when the application stores secrets or sensitive fields that should be encrypted at rest, especially in EF-backed persistence models
 - keep it in infrastructure where encryption services, key management, and EF model configuration belong
 - skip it when the application has no encrypted persistence requirements
 

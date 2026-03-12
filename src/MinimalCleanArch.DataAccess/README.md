@@ -11,7 +11,7 @@ Entity Framework Core implementation for MinimalCleanArch (repositories, unit of
 - execute MCA specifications against EF Core without leaking query logic into handlers or controllers
 
 ## When to Use It
-- use it when your application persists MCA domain models through EF Core
+- use it when your application persists MCA domain models through EF Core and you want MCA repository/specification support on top
 - keep it in the infrastructure project where DbContext, migrations, and repository implementations live
 - skip it if you are using another persistence technology or you want to implement repository abstractions yourself
 

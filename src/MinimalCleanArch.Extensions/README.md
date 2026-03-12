@@ -6,12 +6,12 @@ Minimal API extensions for MinimalCleanArch.
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
 
 ## What This Helps You Achieve
-- bootstrap a Minimal API host with a consistent pipeline instead of wiring validation, errors, OpenAPI, rate limiting, and related concerns by hand
+- bootstrap a Minimal API host with a consistent pipeline instead of wiring validation, errors, OpenAPI/Scalar, rate limiting, Serilog, and related concerns by hand
 - keep HTTP-specific concerns out of your domain and infrastructure packages
 - standardize API behavior across generated and hand-built MCA applications
 
 ## When to Use It
-- use it in the API/host project when you want the MCA HTTP pipeline and service-registration defaults
+- use it in the API/host project when you want the MCA HTTP pipeline and service-registration defaults over ASP.NET Core Minimal APIs
 - choose it when your app exposes Minimal API endpoints and you want structured error mapping and endpoint conventions
 - skip it in non-HTTP projects or when you intentionally want to assemble the host without MCA API helpers
 

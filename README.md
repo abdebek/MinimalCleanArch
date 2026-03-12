@@ -102,6 +102,7 @@ Preferred defaults:
 - Templates: [`templates/README.md`](templates/README.md)
 - Generated app architecture: [`templates/README.md#architecture-overview`](templates/README.md#architecture-overview)
 - Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
+- Third-party notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 - Core: [`src/MinimalCleanArch/README.md`](src/MinimalCleanArch/README.md)
 - DataAccess: [`src/MinimalCleanArch.DataAccess/README.md`](src/MinimalCleanArch.DataAccess/README.md)
 - Extensions: [`src/MinimalCleanArch.Extensions/README.md`](src/MinimalCleanArch.Extensions/README.md)
