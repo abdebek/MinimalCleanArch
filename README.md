@@ -32,6 +32,7 @@ dotnet run
 ```
 
 Use the auth walkthrough in [`templates/README.md`](templates/README.md).
+For template options, generated structure, and architecture details, see [`templates/README.md`](templates/README.md).
 
 ## Why Use It
 - keep domain rules, repository contracts, and specifications separate from infrastructure concerns

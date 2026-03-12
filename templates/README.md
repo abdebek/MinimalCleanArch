@@ -69,6 +69,37 @@ dotnet new mca -n SecureApp --auth --db postgres
 dotnet new mca -n PublicApi --single-project --ratelimiting
 ```
 
+For template flags, architecture details, auth notes, and deployment workflows, use the sections below after choosing a starting point.
+
+## What Gets Scaffolded
+
+Multi-project (default):
+
+```text
+MyApp/
+|- MyApp.sln
+|- src/
+|  |- MyApp.Domain/
+|  |- MyApp.Application/
+|  |- MyApp.Infrastructure/
+|  |- MyApp.Api/
+|- tests/
+|- Dockerfile
+|- docker-compose.yml
+```
+
+Single project:
+
+```text
+MyApp/
+|- MyApp.csproj
+|- Program.cs
+|- Domain/
+|- Application/
+|- Infrastructure/
+|- Endpoints/
+```
+
 ## Try Auth + Scalar Password Flow (5 Minutes)
 
 This is the quickest way to validate OpenIddict + user auth + global Bearer reuse in Scalar.
@@ -291,35 +322,6 @@ Notes:
 |--------|---------|-------------|
 | `--mcaVersion <version>` | 0.1.17 | MinimalCleanArch package version |
 | `--framework <tfm>` | net10.0 | Target framework (`net9.0` or `net10.0`) |
-
-## What Gets Scaffolded
-
-Multi-project (default):
-
-```text
-MyApp/
-|- MyApp.sln
-|- src/
-|  |- MyApp.Domain/
-|  |- MyApp.Application/
-|  |- MyApp.Infrastructure/
-|  |- MyApp.Api/
-|- tests/
-|- Dockerfile
-|- docker-compose.yml
-```
-
-Single project:
-
-```text
-MyApp/
-|- MyApp.csproj
-|- Program.cs
-|- Domain/
-|- Application/
-|- Infrastructure/
-|- Endpoints/
-```
 
 ## Architecture Overview
 

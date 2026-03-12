@@ -16,7 +16,13 @@
 		<Company>Waanfeetan</Company>
 		<Product>MinimalCleanArch</Product>
 		<Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
-		<PackageProjectUrl>https://github.com/abdebek/MinimalCleanArch</PackageProjectUrl>
+		<!-- Allow CI/manual pack to override the docs branch explicitly. -->
+		<PackageDocsBranch Condition="'$(PackageDocsBranch)' == '' and ('$(GITHUB_REF_NAME)' == 'master' or '$(GITHUB_REF_NAME)' == 'dev')">$(GITHUB_REF_NAME)</PackageDocsBranch>
+		<!-- Preview packages should point at dev docs by default. -->
+		<PackageDocsBranch Condition="'$(PackageDocsBranch)' == '' and $([System.String]::Copy('$(PackageVersion)').Contains('-'))">dev</PackageDocsBranch>
+		<!-- Stable packages should point at the published docs branch. -->
+		<PackageDocsBranch Condition="'$(PackageDocsBranch)' == ''">master</PackageDocsBranch>
+		<PackageProjectUrl>https://github.com/abdebek/MinimalCleanArch/tree/$(PackageDocsBranch)/src/$(MSBuildProjectName)</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/abdebek/MinimalCleanArch</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -32,7 +38,7 @@
 
 	<!-- Include README and icon for all packages -->
 	<ItemGroup>
-		<None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" />
+		<None Include="$(MSBuildProjectDirectory)\README.md" Pack="true" PackagePath="\" />
 		<None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
 	</ItemGroup>
 </Project>
