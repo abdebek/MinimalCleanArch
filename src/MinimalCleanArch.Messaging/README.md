@@ -5,7 +5,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17 and companions.
 
-## What This Helps You Achieve
+## Why Use It
 - publish and handle domain events through Wolverine without building the integration layer from scratch
 - add outbox-capable messaging and background processing to an MCA application
 - carry execution-context data such as correlation and tenant information into message handlers

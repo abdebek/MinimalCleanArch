@@ -5,7 +5,7 @@ Security components for MinimalCleanArch.
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
 
-## What This Helps You Achieve
+## Why Use It
 - encrypt sensitive values at the infrastructure layer instead of leaking encryption logic into entities or handlers
 - support both development-friendly ASP.NET Core Data Protection encryption and production-oriented key management
 - apply encrypted EF property conversions consistently across your data model

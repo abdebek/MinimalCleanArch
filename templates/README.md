@@ -2,24 +2,32 @@
 
 Project templates for bootstrapping Clean Architecture APIs with MinimalCleanArch, using vertical-slice-style use-case organization inside clean dependency boundaries.
 
-## What This Template Helps You Build
+## Quick Start
+
+Default multi-project app (SQLite):
+
+```bash
+dotnet new install MinimalCleanArch.Templates
+dotnet new mca -n MyApp
+cd MyApp
+dotnet run --project src/MyApp.Api
+```
+
+Recommended single-project app:
+
+```bash
+dotnet new mca -n MyApp --single-project --recommended
+cd MyApp
+dotnet run
+```
+
+Open Scalar at `https://localhost:<port>/scalar/v1`.
+
+## What It Builds
 - a Minimal API application that starts with MCA package boundaries already in place instead of leaving architecture decisions implicit
 - either a layered multi-project solution or a pragmatic single-project application with the same conceptual separation
 - an application where domain, application, infrastructure, and host concerns already follow the intended dependency direction
 - optional capabilities such as auth, audit logging, messaging, caching, telemetry, and deployment scripts without hand-assembling the baseline
-
-## Architectural Style
-- Clean Architecture for dependency direction and framework isolation
-- vertical-slice/CQRS-style organization for commands, queries, handlers, and endpoints
-- not a classic “service layer per entity” template; the generated app is intended to group behavior around use cases
-
-## Generated Dependency Direction
-- `Domain` depends on nothing else in the generated solution.
-- `Application` depends on `Domain`.
-- `Infrastructure` depends on `Application` and `Domain`.
-- `Api` depends on `Application`, `Infrastructure`, and `Domain`.
-- In single-project mode, folders stay separated by responsibility even though they compile into one project.
-- HTTP, persistence, messaging, and encryption concerns stay out of `Domain`.
 
 ## Choosing a Shape
 - Default multi-project template: best when you want strict project boundaries and independent domain/application/infrastructure assemblies.
@@ -42,25 +50,24 @@ dotnet new uninstall MinimalCleanArch.Templates
 dotnet new install ./artifacts/packages
 ```
 
-## Fastest Start
-
-Default multi-project app (SQLite):
+## Common Examples
 
 ```bash
-dotnet new mca -n MyApp
-cd MyApp
-dotnet run --project src/MyApp.Api
+# Default multi-project app
+dotnet new mca -n OrderService
+
+# Production-ready API
+dotnet new mca -n OrderService --recommended --db sqlserver --docker
+
+# Full-featured app
+dotnet new mca -n EnterpriseApp --all --db postgres --tests
+
+# Secure API
+dotnet new mca -n SecureApp --auth --db postgres
+
+# Public API with rate limiting
+dotnet new mca -n PublicApi --single-project --ratelimiting
 ```
-
-Recommended single-project app:
-
-```bash
-dotnet new mca -n MyApp --single-project --recommended
-cd MyApp
-dotnet run
-```
-
-Open Scalar at `https://localhost:<port>/scalar/v1`.
 
 ## Try Auth + Scalar Password Flow (5 Minutes)
 
@@ -285,22 +292,6 @@ Notes:
 | `--mcaVersion <version>` | 0.1.17 | MinimalCleanArch package version |
 | `--framework <tfm>` | net10.0 | Target framework (`net9.0` or `net10.0`) |
 
-## Common Examples
-
-```bash
-# Production-ready API
-dotnet new mca -n OrderService --recommended --db sqlserver --docker
-
-# Full-featured app
-dotnet new mca -n EnterpriseApp --all --db postgres --tests
-
-# Secure API
-dotnet new mca -n SecureApp --auth --db postgres
-
-# Public API with rate limiting
-dotnet new mca -n PublicApi --single-project --ratelimiting
-```
-
 ## What Gets Scaffolded
 
 Multi-project (default):
@@ -333,6 +324,21 @@ MyApp/
 ## Architecture Overview
 
 Generated apps follow a hybrid approach: Clean Architecture for dependency direction and DDD-style domain modeling, plus vertical-slice/CQRS-style handlers for use-case organization.
+
+### Architectural Style
+
+- Clean Architecture for dependency direction and framework isolation
+- vertical-slice/CQRS-style organization for commands, queries, handlers, and endpoints
+- not a classic “service layer per entity” template; the generated app is intended to group behavior around use cases
+
+### Generated Dependency Direction
+
+- `Domain` depends on nothing else in the generated solution.
+- `Application` depends on `Domain`.
+- `Infrastructure` depends on `Application` and `Domain`.
+- `Api` depends on `Application`, `Infrastructure`, and `Domain`.
+- In single-project mode, folders stay separated by responsibility even though they compile into one project.
+- HTTP, persistence, messaging, and encryption concerns stay out of `Domain`.
 
 ## What Stays Where
 - `Domain`: business entities, invariants, repository contracts, specifications, value objects, domain events, and no infrastructure frameworks.

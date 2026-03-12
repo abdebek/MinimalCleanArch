@@ -5,7 +5,7 @@ Entity Framework Core implementation for MinimalCleanArch (repositories, unit of
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Works with `MinimalCleanArch` 0.1.17 and companion packages.
 
-## What This Helps You Achieve
+## Why Use It
 - implement repository and unit-of-work patterns with EF Core instead of hand-rolling the infrastructure layer
 - use audited and soft-delete-aware base DbContexts that line up with the MCA domain abstractions
 - execute MCA specifications against EF Core without leaking query logic into handlers or controllers

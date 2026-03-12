@@ -5,7 +5,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Base dependency for all other MinimalCleanArch packages.
 
-## What This Helps You Achieve
+## Why Use It
 - define entities, repository contracts, specifications, and result types without taking a dependency on EF Core, HTTP, or messaging frameworks
 - keep business rules in the domain layer while allowing infrastructure packages to plug in later
 - share a stable contract layer across application, infrastructure, and API projects

@@ -5,7 +5,7 @@ Minimal API extensions for MinimalCleanArch.
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
 
-## What This Helps You Achieve
+## Why Use It
 - bootstrap a Minimal API host with a consistent pipeline instead of wiring validation, errors, OpenAPI/Scalar, rate limiting, Serilog, and related concerns by hand
 - keep HTTP-specific concerns out of your domain and infrastructure packages
 - standardize API behavior across generated and hand-built MCA applications

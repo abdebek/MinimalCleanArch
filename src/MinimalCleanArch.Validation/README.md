@@ -5,7 +5,7 @@ Validation components for MinimalCleanArch.
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17 and `MinimalCleanArch.Extensions`.
 
-## What This Helps You Achieve
+## Why Use It
 - register FluentValidation validators with short, MCA-oriented extension methods
 - plug validators into the MCA Minimal API pipeline without repeating setup code across hosts
 - keep validator discovery and registration consistent between generated apps and hand-built applications

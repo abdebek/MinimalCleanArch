@@ -2,7 +2,38 @@
 
 A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10, with vertical-slice-style application organization inside clean dependency boundaries.
 
-## What This Helps You Achieve
+## Quick Start
+
+Default multi-project app:
+
+```bash
+dotnet new install MinimalCleanArch.Templates
+dotnet new mca -n MyApp
+cd MyApp
+dotnet run --project src/MyApp.Api
+```
+
+Recommended single-project app:
+
+```bash
+dotnet new mca -n MyApp --single-project --recommended
+cd MyApp
+dotnet run
+```
+
+Then open `https://localhost:<port>/scalar/v1`.
+
+For auth + OpenIddict + Scalar password flow:
+
+```bash
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.17
+cd QuickAuth
+dotnet run
+```
+
+Use the auth walkthrough in [`templates/README.md`](templates/README.md).
+
+## Why Use It
 - keep domain rules, repository contracts, and specifications separate from infrastructure concerns
 - add EF Core persistence without pushing EF types into the domain layer
 - bootstrap Minimal API applications with consistent validation, error handling, OpenAPI, rate limiting, and operational defaults
@@ -39,27 +70,6 @@ A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10, with vertic
 - Template validation uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
 - This is required because generated projects reference both `MinimalCleanArch.*` packages and pinned third-party packages.
 - Use local-feed-only validation only if your feed mirrors every external dependency used by the templates.
-
-## Try It Fast
-
-```bash
-dotnet new install MinimalCleanArch.Templates
-dotnet new mca -n QuickStart --single-project --recommended
-cd QuickStart
-dotnet run
-```
-
-Then open `https://localhost:<port>/scalar/v1`.
-
-For auth + OpenIddict + Scalar password flow:
-
-```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.17
-cd QuickAuth
-dotnet run
-```
-
-Use the auth walkthrough in [`templates/README.md`](templates/README.md).
 
 ## Preferred Integration Path
 For new applications, the recommended order is:
@@ -98,18 +108,9 @@ Preferred defaults:
 | [`MinimalCleanArch.Audit`](src/MinimalCleanArch.Audit/README.md) | audit interception, audit storage, audit queries | `MinimalCleanArch` | Infrastructure |
 | [`MinimalCleanArch.Templates`](templates/README.md) | scaffold new MCA-based applications | packaged templates | Project scaffolding |
 
-## Documentation Map
-- Templates: [`templates/README.md`](templates/README.md)
-- Generated app architecture: [`templates/README.md#architecture-overview`](templates/README.md#architecture-overview)
+Additional docs:
 - Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
 - Third-party notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
-- Core: [`src/MinimalCleanArch/README.md`](src/MinimalCleanArch/README.md)
-- DataAccess: [`src/MinimalCleanArch.DataAccess/README.md`](src/MinimalCleanArch.DataAccess/README.md)
-- Extensions: [`src/MinimalCleanArch.Extensions/README.md`](src/MinimalCleanArch.Extensions/README.md)
-- Validation: [`src/MinimalCleanArch.Validation/README.md`](src/MinimalCleanArch.Validation/README.md)
-- Security: [`src/MinimalCleanArch.Security/README.md`](src/MinimalCleanArch.Security/README.md)
-- Messaging: [`src/MinimalCleanArch.Messaging/README.md`](src/MinimalCleanArch.Messaging/README.md)
-- Audit: [`src/MinimalCleanArch.Audit/README.md`](src/MinimalCleanArch.Audit/README.md)
 
 ## Contributing
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
