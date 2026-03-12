@@ -2,6 +2,11 @@
 
 set -e
 
+DOTNET_CMD=(dotnet)
+if command -v dotnet.exe >/dev/null 2>&1; then
+    DOTNET_CMD=(dotnet.exe)
+fi
+
 # Default values
 API_KEY="${NUGET_API_KEY}"
 SOURCE="https://api.nuget.org/v3/index.json"
@@ -89,6 +94,7 @@ print_color $GREEN "Publishing MinimalCleanArch packages..."
 print_color $CYAN "Source: $SOURCE"
 print_color $CYAN "Packages Path: $PACKAGES_PATH"
 print_color $CYAN "What-If Mode: $WHAT_IF"
+print_color $CYAN "Dotnet Command: ${DOTNET_CMD[*]}"
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
@@ -150,7 +156,7 @@ for package in "${packages[@]}"; do
     
     if [ "$WHAT_IF" = true ]; then
         print_color $CYAN "  WHAT-IF: Would publish $package"
-        ((success_count++))
+        ((success_count+=1))
         continue
     fi
     
@@ -166,17 +172,17 @@ for package in "${packages[@]}"; do
     fi
     
     # Capture output and exit code
-    if output=$(dotnet "${push_args[@]}" 2>&1); then
+    if output=$("${DOTNET_CMD[@]}" "${push_args[@]}" 2>&1); then
         print_color $GREEN "  Published successfully"
-        ((success_count++))
+        ((success_count+=1))
     else
         exit_code=$?
         if [ $exit_code -eq 409 ] && [ "$SKIP_DUPLICATE" = true ]; then
             print_color $YELLOW "  Package already exists (skipped)"
-            ((skipped_count++))
+            ((skipped_count+=1))
         else
             print_color $RED "  Failed: $output"
-            ((error_count++))
+            ((error_count+=1))
             
             if [ "$SKIP_DUPLICATE" = false ]; then
                 print_color $RED "Failed to publish $basename_pkg"

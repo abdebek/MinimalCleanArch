@@ -3,7 +3,7 @@
 Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Version
-- 0.1.16-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.16-preview and companions.
+- 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17 and companions.
 
 ## What's included
 - Domain event contracts and helpers.
@@ -12,7 +12,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Messaging --version 0.1.16-preview
+dotnet add package MinimalCleanArch.Messaging --version 0.1.17
 ```
 
 Recommended bootstrap:

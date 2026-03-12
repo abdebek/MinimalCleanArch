@@ -3,7 +3,7 @@
 Security components for MinimalCleanArch.
 
 ## Version
-- 0.1.16-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.16-preview.
+- 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
 
 ## Overview
 - Column-level encryption for EF Core.
@@ -13,7 +13,7 @@ Security components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Security --version 0.1.16-preview
+dotnet add package MinimalCleanArch.Security --version 0.1.17
 ```
 
 Recommended service registration:
@@ -53,4 +53,3 @@ Recommended guidance:
 - IEncryptionService - Interface for encryption services
 - AesEncryptionService - AES implementation of IEncryptionService
 - EncryptedConverter - Value converter for encrypted properties
-

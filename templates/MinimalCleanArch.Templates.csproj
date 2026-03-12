@@ -15,11 +15,11 @@
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <NoDefaultExcludes>true</NoDefaultExcludes>
-    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <NoWarn>$(NoWarn);NU5128;NU5110;NU5111</NoWarn>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <MinVerSkip>true</MinVerSkip>
 
-    <Version>0.1.16-preview</Version>
+    <Version>0.1.17</Version>
   </PropertyGroup>
 
   <ItemGroup>
