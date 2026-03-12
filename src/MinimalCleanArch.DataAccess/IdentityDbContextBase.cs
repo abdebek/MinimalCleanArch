@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Execution;
 
@@ -16,6 +17,10 @@ namespace MinimalCleanArch.DataAccess;
 public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser> 
     where TUser : IdentityUser
 {
+    private const string EmailIndexName = "EmailIndex";
+    private const string RoleNameIndexName = "RoleNameIndex";
+    private const string SqlServerProviderName = "Microsoft.EntityFrameworkCore.SqlServer";
+    private const string UserNameIndexName = "UserNameIndex";
     private readonly IExecutionContext? _executionContext;
 
     /// <summary>
@@ -45,6 +50,7 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        NormalizeIdentityIndexFilters(modelBuilder, typeof(TUser), typeof(IdentityRole));
 
         // Apply global query filter for soft delete to all entities that implement ISoftDelete
         ApplySoftDeleteQueryFilters(modelBuilder);
@@ -99,6 +105,28 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
                 entity.HasIndex("IsDeleted");
             });
         }
+    }
+
+    private void NormalizeIdentityIndexFilters(ModelBuilder modelBuilder, Type userType, Type roleType)
+    {
+        var useSqlServerFilters = string.Equals(Database.ProviderName, SqlServerProviderName, StringComparison.Ordinal);
+
+        NormalizeIdentityIndexFilter(modelBuilder, userType, EmailIndexName,
+            useSqlServerFilters ? "[NormalizedEmail] IS NOT NULL" : null);
+        NormalizeIdentityIndexFilter(modelBuilder, userType, UserNameIndexName,
+            useSqlServerFilters ? "[NormalizedUserName] IS NOT NULL" : null);
+        NormalizeIdentityIndexFilter(modelBuilder, roleType, RoleNameIndexName,
+            useSqlServerFilters ? "[NormalizedName] IS NOT NULL" : null);
+    }
+
+    private static void NormalizeIdentityIndexFilter(ModelBuilder modelBuilder, Type entityType, string indexName, string? filter)
+    {
+        var index = modelBuilder.Entity(entityType)
+            .Metadata
+            .GetIndexes()
+            .SingleOrDefault(i => string.Equals(i.GetDatabaseName(), indexName, StringComparison.Ordinal));
+
+        index?.SetFilter(filter);
     }
 
     /// <summary>
@@ -186,6 +214,10 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     where TRole : IdentityRole<TKey>
     where TKey : IEquatable<TKey>
 {
+    private const string EmailIndexName = "EmailIndex";
+    private const string RoleNameIndexName = "RoleNameIndex";
+    private const string SqlServerProviderName = "Microsoft.EntityFrameworkCore.SqlServer";
+    private const string UserNameIndexName = "UserNameIndex";
     private readonly IExecutionContext? _executionContext;
 
     /// <summary>
@@ -215,6 +247,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        NormalizeIdentityIndexFilters(modelBuilder, typeof(TUser), typeof(TRole));
 
         // Apply global query filter for soft delete
         ApplySoftDeleteQueryFilters(modelBuilder);
@@ -303,13 +336,35 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
         }
     }
 
+    private void NormalizeIdentityIndexFilters(ModelBuilder modelBuilder, Type userType, Type roleType)
+    {
+        var useSqlServerFilters = string.Equals(Database.ProviderName, SqlServerProviderName, StringComparison.Ordinal);
+
+        NormalizeIdentityIndexFilter(modelBuilder, userType, EmailIndexName,
+            useSqlServerFilters ? "[NormalizedEmail] IS NOT NULL" : null);
+        NormalizeIdentityIndexFilter(modelBuilder, userType, UserNameIndexName,
+            useSqlServerFilters ? "[NormalizedUserName] IS NOT NULL" : null);
+        NormalizeIdentityIndexFilter(modelBuilder, roleType, RoleNameIndexName,
+            useSqlServerFilters ? "[NormalizedName] IS NOT NULL" : null);
+    }
+
+    private static void NormalizeIdentityIndexFilter(ModelBuilder modelBuilder, Type entityType, string indexName, string? filter)
+    {
+        var index = modelBuilder.Entity(entityType)
+            .Metadata
+            .GetIndexes()
+            .SingleOrDefault(i => string.Equals(i.GetDatabaseName(), indexName, StringComparison.Ordinal));
+
+        index?.SetFilter(filter);
+    }
+
     /// <summary>
     /// Configures Identity tables with performance optimizations
     /// </summary>
     /// <param name="modelBuilder">The model builder</param>
     private void ConfigureIdentityTablesOptimized(ModelBuilder modelBuilder)
     {
-        var useSqlServerFilters = string.Equals(Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal);
+        var useSqlServerFilters = string.Equals(Database.ProviderName, SqlServerProviderName, StringComparison.Ordinal);
 
         modelBuilder.Entity<TUser>(entity =>
         {

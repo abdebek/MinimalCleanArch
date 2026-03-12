@@ -3,7 +3,7 @@
 Security components for MinimalCleanArch.
 
 ## Version
-- 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
+- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
 
 ## Why Use It
 - encrypt sensitive values at the infrastructure layer instead of leaking encryption logic into entities or handlers
@@ -29,7 +29,7 @@ Security components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Security --version 0.1.17
+dotnet add package MinimalCleanArch.Security --version 0.1.18-preview
 ```
 
 Recommended service registration:

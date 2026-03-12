@@ -26,7 +26,7 @@ Then open `https://localhost:<port>/scalar/v1`.
 For auth + OpenIddict + Scalar password flow:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.17
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.18-preview
 cd QuickAuth
 dotnet run
 ```
@@ -64,8 +64,8 @@ For template options, generated structure, and architecture details, see [`templ
 - Project scaffolding: `MinimalCleanArch.Templates`
 
 ## Versions
-- Stable packages/templates: `0.1.17`
-- Next preview line: `0.1.18-preview`
+- Latest stable packages/templates: `0.1.17`
+- Current preview packages/templates: `0.1.18-preview`
 
 ## Local Validation
 - Template validation uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.

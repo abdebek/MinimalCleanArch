@@ -6,6 +6,10 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed
+- made `IdentityDbContextBase` provider-aware for standard Identity nullable index filters so SQL Server keeps them and PostgreSQL/non-SQL Server providers do not inherit SQL Server filter SQL
+- added provider-backed unit coverage for SQL Server and PostgreSQL Identity index filter behavior
+
 ## [0.1.17] - 2026-03-12
 
 ### Added

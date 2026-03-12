@@ -3,7 +3,7 @@
 Minimal API extensions for MinimalCleanArch.
 
 ## Version
-- 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
+- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
 
 ## Why Use It
 - bootstrap a Minimal API host with a consistent pipeline instead of wiring validation, errors, OpenAPI/Scalar, rate limiting, Serilog, and related concerns by hand
@@ -31,7 +31,7 @@ Minimal API extensions for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Extensions --version 0.1.17
+dotnet add package MinimalCleanArch.Extensions --version 0.1.18-preview
 ```
 
 Recommended API bootstrap:
