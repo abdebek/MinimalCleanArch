@@ -77,7 +77,7 @@ Multi-project (default):
 
 ```text
 MyApp/
-|- MyApp.sln
+|- MyApp.slnx
 |- src/
 |  |- MyApp.Domain/
 |  |- MyApp.Application/

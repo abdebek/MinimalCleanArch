@@ -12,6 +12,8 @@ The format is based on Keep a Changelog.
 - unified API error, validation, and rate-limit responses around ASP.NET Core `ProblemDetails`
 - `AddMinimalCleanArchExtensions()` now registers ASP.NET Core problem-details services and enriches them with MCA trace and correlation metadata
 - `MinimalCleanArch.Validation` now delegates validator scanning to the `MinimalCleanArch.Extensions` implementation so the registration logic has a single source of truth while preserving the existing public APIs
+- migrated the repo-owned root solutions and CI references from `.sln` to `.slnx`
+- switched generated multi-project template solutions from `.sln` to `.slnx`
 
 ### Fixed
 - made `IdentityDbContextBase` provider-aware for standard Identity nullable index filters so SQL Server keeps them and PostgreSQL/non-SQL Server providers do not inherit SQL Server filter SQL

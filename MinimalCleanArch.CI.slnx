@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj" />
+  <Project Path="src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj" />
+  <Project Path="src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj" />
+  <Project Path="src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj" />
+  <Project Path="src/MinimalCleanArch/MinimalCleanArch.csproj" />
+</Solution>

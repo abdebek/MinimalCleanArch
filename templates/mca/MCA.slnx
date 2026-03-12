@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="MCA.Api/MCA.Api.csproj" />
+    <Project Path="MCA.Application/MCA.Application.csproj" />
+    <Project Path="MCA.Domain/MCA.Domain.csproj" />
+    <Project Path="MCA.Infrastructure/MCA.Infrastructure.csproj" />
+  </Folder>
+  <!--#if (UseTests)-->
+  <Folder Name="/tests/">
+    <Project Path="tests/MCA.IntegrationTests/MCA.IntegrationTests.csproj" />
+    <Project Path="tests/MCA.UnitTests/MCA.UnitTests.csproj" />
+  </Folder>
+  <!--#endif-->
+</Solution>

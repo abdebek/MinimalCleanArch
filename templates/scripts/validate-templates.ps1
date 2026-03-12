@@ -182,7 +182,10 @@ foreach ($scenario in $scenarios) {
 
         Push-Location $outDir
         try {
-            $solution = Get-ChildItem -Path $outDir -Filter "*.sln" -ErrorAction SilentlyContinue | Select-Object -First 1
+            $solution = Get-ChildItem -Path $outDir -Filter "*.slnx" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $solution) {
+                $solution = Get-ChildItem -Path $outDir -Filter "*.sln" -ErrorAction SilentlyContinue | Select-Object -First 1
+            }
             $restoreTarget = $null
             if ($solution) {
                 $restoreTarget = $solution.FullName

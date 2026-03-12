@@ -337,9 +337,9 @@ if (!$WhatIf) {
         Write-Host "  Clean and restore completed" -ForegroundColor Green
         
         # Try building CI solution first
-        if (Test-Path "MinimalCleanArch.CI.sln") {
+        if (Test-Path "MinimalCleanArch.CI.slnx") {
             Write-Host "  Building CI solution..." -ForegroundColor Gray
-            $buildOutput = dotnet build MinimalCleanArch.CI.sln --no-restore --verbosity quiet 2>&1
+            $buildOutput = dotnet build MinimalCleanArch.CI.slnx --no-restore --verbosity quiet 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "  CI solution build successful" -ForegroundColor Green
             } else {
@@ -351,9 +351,9 @@ if (!$WhatIf) {
         }
         
         # Try building main solution
-        if (Test-Path "MinimalCleanArch.sln") {
+        if (Test-Path "MinimalCleanArch.slnx") {
             Write-Host "  Building main solution..." -ForegroundColor Gray
-            $buildOutput = dotnet build MinimalCleanArch.sln --no-restore --verbosity quiet 2>&1
+            $buildOutput = dotnet build MinimalCleanArch.slnx --no-restore --verbosity quiet 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "  Main solution build successful" -ForegroundColor Green
             } else {

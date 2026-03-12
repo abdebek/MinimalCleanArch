@@ -14,7 +14,7 @@
   "sourceName": "MCA",
   "defaultName": "MyApp",
   "primaryOutputs": [
-    { "path": "MCA.sln", "condition": "(MultiProject)" },
+    { "path": "MCA.slnx", "condition": "(MultiProject)" },
     { "path": "MCA.csproj", "condition": "(SingleProject)" }
   ],
   "symbols": {
@@ -268,7 +268,7 @@
         { "condition": "(!UseDurableMessaging)", "exclude": ["tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
         { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
-        { "condition": "(SingleProject)", "exclude": ["MCA.sln", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
+        { "condition": "(SingleProject)", "exclude": ["MCA.slnx", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**"] }
       ]
     },

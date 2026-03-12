@@ -69,17 +69,17 @@ jobs:
 
     - name: Restore dependencies
       run: |
-        dotnet restore MinimalCleanArch.sln
+        dotnet restore MinimalCleanArch.slnx
         dotnet restore templates/MinimalCleanArch.Templates.csproj
 
     - name: Build solution
-      run: dotnet build MinimalCleanArch.CI.sln --configuration Release --no-restore --verbosity minimal
+      run: dotnet build MinimalCleanArch.CI.slnx --configuration Release --no-restore --verbosity minimal
 
     - name: Run tests (if any exist)
       run: |
         if find . -name "*.Test*.csproj" -o -name "*Test.csproj" -o -name "*Tests.csproj" | grep -q .; then
           echo "Running tests..."
-          dotnet test MinimalCleanArch.CI.sln --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
+          dotnet test MinimalCleanArch.CI.slnx --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
         else
           echo "No test projects found in CI solution, skipping tests"
         fi
@@ -129,7 +129,7 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
-      run: dotnet restore MinimalCleanArch.CI.sln
+      run: dotnet restore MinimalCleanArch.CI.slnx
 
     - name: Determine version
       id: get-version
@@ -422,11 +422,11 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore MinimalCleanArch.CI.sln
+      run: dotnet restore MinimalCleanArch.CI.slnx
 
     - name: Run security scan
       run: |
-        dotnet list MinimalCleanArch.CI.sln package --vulnerable --include-transitive 2>&1 | tee security-scan.txt
+        dotnet list MinimalCleanArch.CI.slnx package --vulnerable --include-transitive 2>&1 | tee security-scan.txt
         if grep -q "has the following vulnerable packages" security-scan.txt; then
           echo "::warning::Vulnerable packages detected"
           cat security-scan.txt

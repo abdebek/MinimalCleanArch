@@ -1,0 +1,28 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/docs/">
+    <Project Path="docs/MinimalCleanArch.Docs/MinimalCleanArch.Docs.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/MinimalCleanArch.Sample/MinimalCleanArch.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj" />
+    <Project Path="src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj" />
+    <Project Path="src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj" />
+    <Project Path="src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj" />
+    <Project Path="src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj" />
+    <Project Path="src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj" />
+    <Project Path="src/MinimalCleanArch/MinimalCleanArch.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MinimalCleanArch.Benchmarks/MinimalCleanArch.Benchmarks.csproj" />
+    <Project Path="tests/MinimalCleanArch.IntegrationTests/MinimalCleanArch.IntegrationTests.csproj" />
+    <Project Path="tests/MinimalCleanArch.Templates.Tests/MinimalCleanArch.Templates.Tests.csproj" />
+    <Project Path="tests/MinimalCleanArch.UnitTests/MinimalCleanArch.UnitTests.csproj" />
+  </Folder>
+</Solution>
