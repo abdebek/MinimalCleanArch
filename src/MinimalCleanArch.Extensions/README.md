@@ -5,6 +5,22 @@ Minimal API extensions for MinimalCleanArch.
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
 
+## What This Helps You Achieve
+- bootstrap a Minimal API host with a consistent pipeline instead of wiring validation, errors, OpenAPI, rate limiting, and related concerns by hand
+- keep HTTP-specific concerns out of your domain and infrastructure packages
+- standardize API behavior across generated and hand-built MCA applications
+
+## When to Use It
+- use it in the API/host project when you want the MCA HTTP pipeline and service-registration defaults
+- choose it when your app exposes Minimal API endpoints and you want structured error mapping and endpoint conventions
+- skip it in non-HTTP projects or when you intentionally want to assemble the host without MCA API helpers
+
+## Dependency Direction
+- Depends on: `MinimalCleanArch`
+- Typically referenced by: API/host projects
+- Used by: `MinimalCleanArch.Validation` for validation integration
+- Do not reference from: domain projects; infrastructure projects should not need it except in very host-specific composition code
+
 ## Overview
 - Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
 - Error handling: standard error pipeline middleware helpers, including structured `DomainException`/`Error` mapping to RFC 7807.
