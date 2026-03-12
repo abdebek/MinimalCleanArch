@@ -3,7 +3,7 @@
 Audit logging components for MinimalCleanArch.
 
 ## Version
-- 0.1.16-preview (net9.0, net10.0). Use with `MinimalCleanArch` 0.1.16-preview and companions.
+- 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17 and companions.
 
 ## What's included
 - Audit logging services and helpers.
@@ -14,7 +14,7 @@ Audit logging components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Audit --version 0.1.16-preview
+dotnet add package MinimalCleanArch.Audit --version 0.1.17
 ```
 
 Register services:

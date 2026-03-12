@@ -20,8 +20,8 @@ A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10.
 - Project scaffolding: `MinimalCleanArch.Templates`
 
 ## Versions
-- Stable packages/templates: `0.1.14`
-- Next preview line: `0.1.16-preview`
+- Stable packages/templates: `0.1.17`
+- Next preview line: `0.1.18-preview`
 
 ## Local Validation
 - Template validation uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
@@ -42,7 +42,7 @@ Then open `https://localhost:<port>/scalar/v1`.
 For auth + OpenIddict + Scalar password flow:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.16-preview
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.17
 cd QuickAuth
 dotnet run
 ```

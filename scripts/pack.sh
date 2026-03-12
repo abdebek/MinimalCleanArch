@@ -2,6 +2,11 @@
 
 set -e
 
+DOTNET_CMD=(dotnet)
+if command -v dotnet.exe >/dev/null 2>&1; then
+    DOTNET_CMD=(dotnet.exe)
+fi
+
 # Default values
 CONFIGURATION="Release"
 OUTPUT_PATH="./artifacts/packages"
@@ -40,6 +45,7 @@ echo "Skip Build: $SKIP_BUILD"
 if [ -n "$PACKAGE_VERSION" ]; then
     echo "Package Version: $PACKAGE_VERSION"
 fi
+echo "Dotnet Command: ${DOTNET_CMD[*]}"
 
 # Create output directory
 mkdir -p "$OUTPUT_PATH"
@@ -96,7 +102,7 @@ for project in "${projects[@]}"; do
             build_args+=("/p:PackageVersion=$PACKAGE_VERSION")
         fi
 
-        if ! dotnet build "${build_args[@]}"; then
+        if ! "${DOTNET_CMD[@]}" build "${build_args[@]}"; then
             echo "  Build failed for $project - skipping"
             continue
         fi
@@ -124,12 +130,12 @@ for project in "${projects[@]}"; do
         pack_args+=("--no-build")
     fi
     
-    if ! dotnet "${pack_args[@]}"; then
+    if ! "${DOTNET_CMD[@]}" "${pack_args[@]}"; then
         echo "  Pack failed for $project - skipping"
         continue
     fi
     
-    ((success_count++))
+    ((success_count+=1))
     echo "  Success"
 done
 

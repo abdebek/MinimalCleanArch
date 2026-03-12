@@ -60,6 +60,7 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+KUBECTL_CONTEXT="kind-$CLUSTER_NAME"
 
 if [[ "$SKIP_BUILD" != "true" ]]; then
   docker build -t "$IMAGE_TAG" "$PROJECT_ROOT"
@@ -71,7 +72,7 @@ fi
 
 kind load docker-image "$IMAGE_TAG" --name "$CLUSTER_NAME"
 
-kubectl apply -f - <<EOF
+kubectl --context "$KUBECTL_CONTEXT" apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -116,20 +117,43 @@ spec:
     targetPort: 8080
 EOF
 
-kubectl -n "$NAMESPACE" rollout status "deployment/$DEPLOYMENT_NAME" --timeout="${TIMEOUT_SECONDS}s"
+kubectl --context "$KUBECTL_CONTEXT" -n "$NAMESPACE" rollout status "deployment/$DEPLOYMENT_NAME" --timeout="${TIMEOUT_SECONDS}s"
 
 if [[ "$SKIP_SMOKE" == "true" ]]; then
   echo "Kubernetes deployment completed (smoke test skipped)."
   exit 0
 fi
 
-kubectl -n "$NAMESPACE" port-forward "service/$DEPLOYMENT_NAME" "${LOCAL_PORT}:80" >/dev/null 2>&1 &
+PORT_FORWARD_LOG="$(mktemp)"
+kubectl --context "$KUBECTL_CONTEXT" -n "$NAMESPACE" port-forward "service/$DEPLOYMENT_NAME" "${LOCAL_PORT}:80" >"$PORT_FORWARD_LOG" 2>&1 &
 PORT_FORWARD_PID=$!
 cleanup() {
   kill "$PORT_FORWARD_PID" >/dev/null 2>&1 || true
+  rm -f "$PORT_FORWARD_LOG"
 }
 trap cleanup EXIT
 
-sleep 3
+PORT_READY="false"
+for _ in $(seq 1 30); do
+  if ! kill -0 "$PORT_FORWARD_PID" >/dev/null 2>&1; then
+    echo "kubectl port-forward exited before becoming ready." >&2
+    cat "$PORT_FORWARD_LOG" >&2 || true
+    exit 1
+  fi
+
+  if (echo >/dev/tcp/127.0.0.1/"$LOCAL_PORT") >/dev/null 2>&1; then
+    PORT_READY="true"
+    break
+  fi
+
+  sleep 1
+done
+
+if [[ "$PORT_READY" != "true" ]]; then
+  echo "kubectl port-forward did not become ready on localhost:$LOCAL_PORT." >&2
+  cat "$PORT_FORWARD_LOG" >&2 || true
+  exit 1
+fi
+
 "$SCRIPT_DIR/smoke-test.sh" --base-url "http://localhost:$LOCAL_PORT" --path "/api/todos" --timeout-seconds "$TIMEOUT_SECONDS"
 echo "Kind smoke deployment completed."

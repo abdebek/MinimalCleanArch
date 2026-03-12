@@ -70,7 +70,7 @@ jobs:
     - name: Restore dependencies
       run: |
         dotnet restore MinimalCleanArch.sln
-        dotnet restore templates/MinimalCleanArch.Templates.csproj /p:PackageVersion=${{ steps.get-version.outputs.version }}
+        dotnet restore templates/MinimalCleanArch.Templates.csproj
 
     - name: Build solution
       run: dotnet build MinimalCleanArch.CI.sln --configuration Release --no-restore --verbosity minimal
@@ -148,14 +148,6 @@ jobs:
         fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Package version: $VERSION"
-
-    - name: Update version in Directory.Build.props
-      if: steps.get-version.outputs.version != ''
-      run: |
-        if [ -f "src/Directory.Build.props" ]; then
-          sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${{ steps.get-version.outputs.version }}<\/PackageVersion>/" src/Directory.Build.props
-          echo "Updated version to ${{ steps.get-version.outputs.version }}"
-        fi
 
     - name: Create packages
       run: |

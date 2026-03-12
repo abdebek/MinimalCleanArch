@@ -26,6 +26,8 @@ Assert-CommandExists -Name "docker"
 Assert-CommandExists -Name "kind"
 Assert-CommandExists -Name "kubectl"
 
+$kubectlContext = "kind-$ClusterName"
+
 if (-not $SkipBuild) {
     & docker build -t $ImageTag $projectRoot
     if ($LASTEXITCODE -ne 0) {
@@ -93,13 +95,13 @@ spec:
   - name: http
     port: 80
     targetPort: 8080
-"@ | kubectl apply -f -
+"@ | kubectl --context $kubectlContext apply -f -
 
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to apply Kubernetes resources."
 }
 
-& kubectl -n $Namespace rollout status "deployment/$DeploymentName" --timeout="$($TimeoutSeconds)s"
+& kubectl --context $kubectlContext -n $Namespace rollout status "deployment/$DeploymentName" --timeout="$($TimeoutSeconds)s"
 if ($LASTEXITCODE -ne 0) {
     throw "Deployment rollout did not complete successfully."
 }
@@ -110,13 +112,52 @@ if ($SkipSmokeTest) {
 }
 
 $portForward = $null
+$portForwardStdOut = [System.IO.Path]::GetTempFileName()
+$portForwardStdErr = [System.IO.Path]::GetTempFileName()
 try {
     $portForward = Start-Process -FilePath "kubectl" `
-        -ArgumentList @("-n", $Namespace, "port-forward", "service/$DeploymentName", "$LocalPort`:80") `
+        -ArgumentList @("--context", $kubectlContext, "-n", $Namespace, "port-forward", "service/$DeploymentName", "$LocalPort`:80") `
         -PassThru `
+        -RedirectStandardOutput $portForwardStdOut `
+        -RedirectStandardError $portForwardStdErr `
         -WindowStyle Hidden
 
-    Start-Sleep -Seconds 3
+    $portForwardDeadline = (Get-Date).AddSeconds([Math]::Min(30, $TimeoutSeconds))
+    $portReady = $false
+
+    while ((Get-Date) -lt $portForwardDeadline) {
+        if ($portForward.HasExited) {
+            break
+        }
+
+        $tcpClient = [System.Net.Sockets.TcpClient]::new()
+        try {
+            $tcpClient.Connect("127.0.0.1", $LocalPort)
+            $portReady = $true
+            break
+        }
+        catch {
+        }
+        finally {
+            $tcpClient.Dispose()
+        }
+
+        Start-Sleep -Seconds 1
+    }
+
+    if (-not $portReady) {
+        $portForwardError = if (Test-Path $portForwardStdErr) {
+            (Get-Content $portForwardStdErr -Raw).Trim()
+        } else {
+            ""
+        }
+
+        if ([string]::IsNullOrWhiteSpace($portForwardError)) {
+            throw "kubectl port-forward did not become ready on localhost:$LocalPort."
+        }
+
+        throw "kubectl port-forward did not become ready on localhost:$LocalPort. $portForwardError"
+    }
 
     & (Join-Path $scriptDir "smoke-test.ps1") `
         -BaseUrl "http://localhost:$LocalPort" `
@@ -127,6 +168,8 @@ finally {
     if ($null -ne $portForward -and -not $portForward.HasExited) {
         Stop-Process -Id $portForward.Id -Force -ErrorAction SilentlyContinue
     }
+
+    Remove-Item $portForwardStdOut, $portForwardStdErr -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "Kind smoke deployment completed." -ForegroundColor Green
