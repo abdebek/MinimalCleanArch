@@ -5,6 +5,22 @@ Audit logging components for MinimalCleanArch.
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17 and companions.
 
+## What This Helps You Achieve
+- persist entity change history and audit metadata without duplicating audit plumbing in each DbContext
+- query audit history by user, tenant, correlation ID, and other operational criteria
+- bridge MCA execution-context data into audit logging automatically when available
+
+## When to Use It
+- use it when the application needs traceability, compliance history, or administrative audit views
+- keep it in infrastructure, near EF Core and persistence concerns
+- skip it in small applications where audit storage is unnecessary overhead
+
+## Dependency Direction
+- Depends on: `MinimalCleanArch`
+- Typically referenced by: infrastructure projects
+- Used by: API/host projects indirectly through infrastructure registration
+- Do not reference from: domain projects
+
 ## What's included
 - Audit logging services and helpers.
 - DI extensions to plug audit logging into your MinimalCleanArch app.

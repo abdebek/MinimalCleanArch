@@ -1,6 +1,18 @@
 # MinimalCleanArch
 
-A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10.
+A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10, with vertical-slice-style application organization inside clean dependency boundaries.
+
+## What This Helps You Achieve
+- keep domain rules, repository contracts, and specifications separate from infrastructure concerns
+- add EF Core persistence without pushing EF types into the domain layer
+- bootstrap Minimal API applications with consistent validation, error handling, OpenAPI, rate limiting, and operational defaults
+- opt into messaging, audit logging, and encryption only when the application actually needs them
+- scaffold new applications with a package set that already follows the intended dependency direction
+
+## Architectural Style
+- project and package boundaries follow Clean Architecture dependency direction
+- application use cases are organized in a vertical-slice/CQRS-friendly style rather than around large layered service classes
+- the intent is not “pure vertical slices with no shared layers”; it is clean boundaries plus feature-oriented handlers and endpoints
 
 ## Core Features
 - Domain building blocks (entities, repositories, unit of work, specifications, result pattern)
@@ -65,17 +77,26 @@ Preferred defaults:
 - use Data Protection-based encryption for new development
 - use `IExecutionContext` as the shared source for user, tenant, and correlation data across HTTP and message-handler flows
 
+## Dependency Direction
+- `MinimalCleanArch` is the foundation. Other MCA packages can depend on it; your domain layer can depend on it.
+- `MinimalCleanArch.DataAccess` depends on `MinimalCleanArch` and belongs in infrastructure.
+- `MinimalCleanArch.Extensions` depends on `MinimalCleanArch` and belongs in the API/host layer.
+- `MinimalCleanArch.Validation` depends on `MinimalCleanArch` and `MinimalCleanArch.Extensions`; use it where API validation registration happens.
+- `MinimalCleanArch.Messaging` and `MinimalCleanArch.Audit` depend on `MinimalCleanArch` and are optional infrastructure/application-host add-ons.
+- `MinimalCleanArch.Security` is an optional infrastructure package for encryption concerns.
+- Domain projects should not reference `DataAccess`, `Extensions`, `Validation`, `Messaging`, `Audit`, or `Security`.
+
 ## Packages
-| Package | Description |
-| :-- | :-- |
-| [`MinimalCleanArch`](src/MinimalCleanArch/README.md) | Core abstractions and domain primitives. |
-| [`MinimalCleanArch.DataAccess`](src/MinimalCleanArch.DataAccess/README.md) | EF Core repository/unit of work implementation. |
-| [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | Minimal API extensions (validation, errors, responses). |
-| [`MinimalCleanArch.Validation`](src/MinimalCleanArch.Validation/README.md) | FluentValidation integration components. |
-| [`MinimalCleanArch.Security`](src/MinimalCleanArch.Security/README.md) | Encryption and security utilities. |
-| [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | Messaging/domain event helpers. |
-| [`MinimalCleanArch.Audit`](src/MinimalCleanArch.Audit/README.md) | Audit logging components. |
-| [`MinimalCleanArch.Templates`](templates/README.md) | `dotnet new mca` templates. |
+| Package | Helps achieve | Depends on | Typical layer |
+| :-- | :-- | :-- | :-- |
+| [`MinimalCleanArch`](src/MinimalCleanArch/README.md) | domain model, contracts, specifications, result types | none | Domain |
+| [`MinimalCleanArch.DataAccess`](src/MinimalCleanArch.DataAccess/README.md) | EF Core repositories, unit of work, audited DbContext base types | `MinimalCleanArch` | Infrastructure |
+| [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | API bootstrap, validation pipeline, error mapping, OpenAPI, rate limiting | `MinimalCleanArch` | API/Host |
+| [`MinimalCleanArch.Validation`](src/MinimalCleanArch.Validation/README.md) | validator registration and API validation integration | `MinimalCleanArch`, `MinimalCleanArch.Extensions` | API/Host or composition root |
+| [`MinimalCleanArch.Security`](src/MinimalCleanArch.Security/README.md) | encryption services and encrypted EF property support | no MCA package dependency | Infrastructure |
+| [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | domain events, Wolverine integration, outbox-capable messaging | `MinimalCleanArch` | Infrastructure or host |
+| [`MinimalCleanArch.Audit`](src/MinimalCleanArch.Audit/README.md) | audit interception, audit storage, audit queries | `MinimalCleanArch` | Infrastructure |
+| [`MinimalCleanArch.Templates`](templates/README.md) | scaffold new MCA-based applications | packaged templates | Project scaffolding |
 
 ## Documentation Map
 - Templates: [`templates/README.md`](templates/README.md)

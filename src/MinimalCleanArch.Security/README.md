@@ -5,6 +5,22 @@ Security components for MinimalCleanArch.
 ## Version
 - 0.1.17 (stable, net9.0, net10.0). Use with `MinimalCleanArch` 0.1.17.
 
+## What This Helps You Achieve
+- encrypt sensitive values at the infrastructure layer instead of leaking encryption logic into entities or handlers
+- support both development-friendly Data Protection encryption and production-oriented key management
+- apply encrypted EF property conversions consistently across your data model
+
+## When to Use It
+- use it when the application stores secrets or sensitive fields that should be encrypted at rest
+- keep it in infrastructure where encryption services, key management, and EF model configuration belong
+- skip it when the application has no encrypted persistence requirements
+
+## Dependency Direction
+- Depends on: no other MCA package
+- Typically referenced by: infrastructure projects
+- Can be used with: MCA apps or independently of the rest of MCA
+- Do not reference from: domain projects; encryption concerns should stay outside the domain model
+
 ## Overview
 - Column-level encryption for EF Core.
 - AES and Data Protection implementations of `IEncryptionService`.

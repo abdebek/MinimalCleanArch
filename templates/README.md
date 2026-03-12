@@ -1,6 +1,31 @@
 # MinimalCleanArch Templates
 
-Project templates for bootstrapping Clean Architecture APIs with MinimalCleanArch.
+Project templates for bootstrapping Clean Architecture APIs with MinimalCleanArch, using vertical-slice-style use-case organization inside clean dependency boundaries.
+
+## What This Template Helps You Build
+- a Minimal API application that starts with MCA package boundaries already in place instead of leaving architecture decisions implicit
+- either a layered multi-project solution or a pragmatic single-project application with the same conceptual separation
+- an application where domain, application, infrastructure, and host concerns already follow the intended dependency direction
+- optional capabilities such as auth, audit logging, messaging, caching, telemetry, and deployment scripts without hand-assembling the baseline
+
+## Architectural Style
+- Clean Architecture for dependency direction and framework isolation
+- vertical-slice/CQRS-style organization for commands, queries, handlers, and endpoints
+- not a classic “service layer per entity” template; the generated app is intended to group behavior around use cases
+
+## Generated Dependency Direction
+- `Domain` depends on nothing else in the generated solution.
+- `Application` depends on `Domain`.
+- `Infrastructure` depends on `Application` and `Domain`.
+- `Api` depends on `Application`, `Infrastructure`, and `Domain`.
+- In single-project mode, folders stay separated by responsibility even though they compile into one project.
+- HTTP, persistence, messaging, and encryption concerns stay out of `Domain`.
+
+## Choosing a Shape
+- Default multi-project template: best when you want strict project boundaries and independent domain/application/infrastructure assemblies.
+- `--single-project`: best when you want the same architectural separation but lower solution complexity and faster iteration for smaller services.
+- `--recommended`: good default for production-oriented APIs that need HTTP polish and operational basics without every optional subsystem.
+- `--all`: good for exploring the full MCA stack, generated tests, and deployment workflows end to end.
 
 ## Install
 
@@ -211,6 +236,15 @@ Notes:
 | `--tests` | false | Include test projects |
 | `--docker` | false | Include Dockerfile and docker-compose.yml |
 
+### How Options Affect Architecture
+| Option | Main effect on generated solution |
+|--------|----------------------------------|
+| `--single-project` | Collapses layers into one project while keeping `Domain`, `Application`, `Infrastructure`, and endpoint folders separate by responsibility |
+| `--tests` | Adds unit and integration test projects or test targets for the generated app |
+| `--docker` | Adds container build and local deployment assets (`Dockerfile`, `docker-compose.yml`, generated `scripts/`) |
+| `--recommended` | Enables common API-facing concerns such as logging, validation, health checks, security, caching, and rate limiting |
+| `--all` | Builds on `--recommended` and adds auth, messaging, audit, telemetry, tests, and deployment assets |
+
 ### Features
 | Option | Description |
 |--------|-------------|
@@ -224,6 +258,18 @@ Notes:
 | `--messaging` | Wolverine domain events |
 | `--audit` | Audit logging |
 | `--opentelemetry` | Distributed tracing |
+
+### Feature-to-Layer Impact
+| Feature | Generated layers most affected | What changes |
+|--------|-------------------------------|-------------|
+| `--validation` | `Application`, `Api` | Adds validators plus API-side validation registration |
+| `--auth` | `Infrastructure`, `Api` | Adds Identity/OpenIddict persistence, auth endpoints, and security setup |
+| `--security` | `Infrastructure`, `Api` | Adds encryption/security registrations and HTTP security defaults |
+| `--caching` | `Infrastructure`, `Api` | Adds cache configuration and host wiring |
+| `--messaging` | `Application`, `Infrastructure`, `Api` | Adds domain-event handlers/contracts plus Wolverine setup and transport wiring |
+| `--audit` | `Infrastructure`, `Api` | Adds audit persistence, interception, and registration |
+| `--opentelemetry` | `Api` | Adds tracing/telemetry host configuration |
+| `--docker` | solution root / host assets | Adds container and deployment workflow assets, not domain rules |
 
 ### Database
 | Option | Default | Description |
@@ -286,7 +332,15 @@ MyApp/
 
 ## Architecture Overview
 
-Generated apps follow Clean Architecture with DDD-style domain modeling and CQRS-style handlers.
+Generated apps follow a hybrid approach: Clean Architecture for dependency direction and DDD-style domain modeling, plus vertical-slice/CQRS-style handlers for use-case organization.
+
+## What Stays Where
+- `Domain`: business entities, invariants, repository contracts, specifications, value objects, domain events, and no infrastructure frameworks.
+- `Application`: commands, queries, handlers, and use-case orchestration over domain contracts.
+- `Infrastructure`: EF Core, Identity/OpenIddict, messaging transports, email senders, encryption, caching implementations, and external integrations.
+- `Api` or top-level host: endpoint mapping, middleware, auth policies, OpenAPI/Scalar, service registration, and environment-specific startup behavior.
+
+This is the main rule the template is trying to preserve: dependencies point inward toward the domain model, while frameworks and operational concerns stay at the edges.
 
 ### Layer Responsibilities
 
