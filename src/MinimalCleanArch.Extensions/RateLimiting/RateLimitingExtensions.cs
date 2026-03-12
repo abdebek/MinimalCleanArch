@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
+using MinimalCleanArch.Extensions.Errors;
 
 namespace MinimalCleanArch.Extensions.RateLimiting;
 
@@ -119,22 +120,28 @@ public static class RateLimitingExtensions
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = async (context, token) =>
             {
-                context.HttpContext.Response.ContentType = "application/problem+json";
-
                 var retryAfter = GetRetryAfterSeconds(context);
                 if (retryAfter.HasValue)
                 {
                     context.HttpContext.Response.Headers.RetryAfter = retryAfter.Value.ToString();
                 }
 
-                await context.HttpContext.Response.WriteAsJsonAsync(new
+                var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateRateLimit(
+                    context.HttpContext,
+                    retryAfter);
+
+                if (context.HttpContext.RequestServices.GetService<IProblemDetailsService>() is IProblemDetailsService problemDetailsService)
                 {
-                    type = "https://httpstatuses.com/429",
-                    title = "Too Many Requests",
-                    status = 429,
-                    detail = "Rate limit exceeded. Please try again later.",
-                    retryAfter = retryAfter
-                }, cancellationToken: token);
+                    await problemDetailsService.WriteAsync(new ProblemDetailsContext
+                    {
+                        HttpContext = context.HttpContext,
+                        ProblemDetails = problemDetails
+                    });
+                    return;
+                }
+
+                context.HttpContext.Response.ContentType = "application/problem+json";
+                await context.HttpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken: token);
             };
         });
 

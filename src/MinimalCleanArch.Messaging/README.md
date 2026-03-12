@@ -3,7 +3,7 @@
 Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Version
-- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
+- Current stable: 0.1.18 (net9.0, net10.0).
 
 ## Why Use It
 - publish and handle domain events through Wolverine without building the integration layer from scratch
@@ -28,7 +28,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Messaging --version 0.1.18-preview
+dotnet add package MinimalCleanArch.Messaging --version 0.1.18
 ```
 
 Recommended bootstrap:
@@ -92,4 +92,5 @@ builder.Services.Configure<ExecutionContextOptions>(options =>
 ```
 
 When using a local feed, add a `nuget.config` pointing to your local packages folder and keep `nuget.org` available unless your feed mirrors all external dependencies.
+
 

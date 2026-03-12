@@ -3,7 +3,7 @@
 Audit logging components for MinimalCleanArch.
 
 ## Version
-- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
+- Current stable: 0.1.18 (net9.0, net10.0).
 
 ## Why Use It
 - persist entity change history and audit metadata without duplicating audit plumbing in each EF Core DbContext
@@ -30,7 +30,7 @@ Audit logging components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Audit --version 0.1.18-preview
+dotnet add package MinimalCleanArch.Audit --version 0.1.18
 ```
 
 Register services:
@@ -82,4 +82,5 @@ Notes:
 - `IAuditLogService` supports tenant-aware queries in addition to user and correlation-based lookups.
 - `IAuditContextProvider.GetTenantId()` now defaults to `null`, so existing custom providers do not need to implement tenant support immediately.
 - When using a local feed, add a `nuget.config` pointing to your local packages folder and keep `nuget.org` available unless your feed mirrors all external dependencies.
+
 

@@ -3,7 +3,7 @@
 Validation components for MinimalCleanArch.
 
 ## Version
-- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
+- Current stable: 0.1.18 (net9.0, net10.0).
 
 ## Why Use It
 - register FluentValidation validators with short, MCA-oriented extension methods
@@ -28,7 +28,7 @@ Validation components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Validation --version 0.1.18-preview
+dotnet add package MinimalCleanArch.Validation --version 0.1.18
 ```
 
 Recommended registration:
@@ -50,4 +50,5 @@ Recommended methods:
 - `AddValidation(...)` registers validators from one or more assemblies.
 - `AddValidationFromAssemblyContaining<T>()` registers validators from the assembly containing `T`.
 - `AddMinimalCleanArchValidation(...)` and `AddMinimalCleanArchValidationFromAssemblyContaining<T>()` remain available as compatibility aliases.
+
 

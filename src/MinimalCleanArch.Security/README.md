@@ -3,7 +3,7 @@
 Security components for MinimalCleanArch.
 
 ## Version
-- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
+- Current stable: 0.1.18 (net9.0, net10.0).
 
 ## Why Use It
 - encrypt sensitive values at the infrastructure layer instead of leaking encryption logic into entities or handlers
@@ -29,7 +29,7 @@ Security components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Security --version 0.1.18-preview
+dotnet add package MinimalCleanArch.Security --version 0.1.18
 ```
 
 Recommended service registration:
@@ -69,3 +69,4 @@ Recommended guidance:
 - IEncryptionService - Interface for encryption services
 - AesEncryptionService - AES implementation of IEncryptionService
 - EncryptedConverter - Value converter for encrypted properties
+

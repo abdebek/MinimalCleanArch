@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MinimalCleanArch.Extensions.Errors;
 using System.Diagnostics;
 using System.Text.Json;
-using MinimalCleanArch.Extensions.Models;
 
 namespace MinimalCleanArch.Extensions.Middlewares;
 
@@ -57,46 +57,14 @@ public sealed class ErrorHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception, string correlationId)
     {
-        context.Response.ContentType = "application/problem+json";
-
-        var statusCode = ErrorResponseMapper.ResolveStatusCode(exception);
-        context.Response.StatusCode = statusCode;
         var includeSensitiveDetails = _environment?.IsDevelopment() == true || Debugger.IsAttached;
+        var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateForException(
+            context,
+            exception,
+            includeSensitiveDetails);
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = ErrorResponseMapper.ResolveTitle(exception),
-            Type = $"https://httpstatuses.com/{statusCode}",
-            Detail = ErrorResponseMapper.ResolveDetail(exception, includeSensitiveDetails),
-            Instance = context.Request.Path
-        };
-
-        foreach (var extension in ErrorResponseMapper.CreateBaseExtensions(context, exception))
-        {
-            problemDetails.Extensions[extension.Key] = extension.Value!;
-        }
-
-        if (!problemDetails.Extensions.ContainsKey("correlationId"))
-        {
-            problemDetails.Extensions["correlationId"] = correlationId;
-        }
-
-        // Include additional debug info in development or when debugger is attached
-        if (includeSensitiveDetails)
-        {
-            problemDetails.Extensions["exceptionType"] = exception.GetType().FullName ?? "Unknown";
-            problemDetails.Extensions["stackTrace"] = exception.StackTrace ?? string.Empty;
-
-            if (exception.InnerException != null)
-            {
-                problemDetails.Extensions["innerException"] = new
-                {
-                    type = exception.InnerException.GetType().FullName,
-                    message = exception.InnerException.Message
-                };
-            }
-        }
+        problemDetails.Extensions["correlationId"] = correlationId;
+        context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
         var options = new JsonSerializerOptions
         {
@@ -104,6 +72,19 @@ public sealed class ErrorHandlingMiddleware
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
+        if (context.RequestServices is not null &&
+            context.RequestServices.GetService(typeof(IProblemDetailsService)) is IProblemDetailsService problemDetailsService)
+        {
+            await problemDetailsService.WriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = context,
+                ProblemDetails = problemDetails,
+                Exception = exception
+            });
+            return;
+        }
+
+        context.Response.ContentType = "application/problem+json";
         await context.Response.WriteAsJsonAsync(problemDetails, options);
     }
 }

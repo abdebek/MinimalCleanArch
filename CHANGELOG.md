@@ -6,9 +6,17 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-03-12
+
+### Changed
+- unified API error, validation, and rate-limit responses around ASP.NET Core `ProblemDetails`
+- `AddMinimalCleanArchExtensions()` now registers ASP.NET Core problem-details services and enriches them with MCA trace and correlation metadata
+- `MinimalCleanArch.Validation` now delegates validator scanning to the `MinimalCleanArch.Extensions` implementation so the registration logic has a single source of truth while preserving the existing public APIs
+
 ### Fixed
 - made `IdentityDbContextBase` provider-aware for standard Identity nullable index filters so SQL Server keeps them and PostgreSQL/non-SQL Server providers do not inherit SQL Server filter SQL
 - added provider-backed unit coverage for SQL Server and PostgreSQL Identity index filter behavior
+- aligned middleware, route filters, `Result` mapping, and rate-limit rejection onto the same RFC 7807 response shape instead of mixing MCA-specific and ASP.NET Core problem-details models
 
 ## [0.1.17] - 2026-03-12
 

@@ -3,7 +3,7 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
-- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
+- Current stable: 0.1.18 (net9.0, net10.0).
 
 ## Why Use It
 - implement repository and unit-of-work patterns with EF Core instead of hand-rolling the infrastructure layer
@@ -93,4 +93,5 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 Use specifications through `IRepository<TEntity, TKey>` in application code. Treat `SpecificationEvaluator` as infrastructure-level plumbing for repository implementations and advanced EF integration points.
 
 When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
+
 

@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using System.Text.Json;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
-using MinimalCleanArch.Extensions.Models;
+using MinimalCleanArch.Extensions.Errors;
 
 namespace MinimalCleanArch.Extensions.Filters
 {
@@ -41,28 +40,15 @@ namespace MinimalCleanArch.Extensions.Filters
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 context.Response.ContentType = "application/problem+json";
-                
-                var problemDetails = new ProblemDetails
-                {
-                    Status = (int)HttpStatusCode.BadRequest,
-                    Title = "Validation Failed",
-                    Type = "https://httpstatuses.com/400",
-                    Detail = "One or more validation errors occurred",
-                    Instance = context.Request.Path
-                };
-                
-                problemDetails.Extensions["errors"] = validationResult.Errors
+
+                var errors = validationResult.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(
                         g => g.Key,
                         g => g.Select(e => e.ErrorMessage).ToArray());
-                
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-                
-                await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails, options));
+
+                var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateValidation(context, errors);
+                await context.Response.WriteAsJsonAsync(problemDetails);
                 return null;
             }
             

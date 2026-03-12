@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using System.Reflection;
 using MinimalCleanArch.Execution;
 using MinimalCleanArch.Extensions.Execution;
+using MinimalCleanArch.Extensions.Errors;
 using MinimalCleanArch.Extensions.HealthChecks;
 using MinimalCleanArch.Extensions.Middlewares;
 using MinimalCleanArch.Extensions.RateLimiting;
@@ -23,6 +25,16 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection</returns>
     public static IServiceCollection AddMinimalCleanArchExtensions(this IServiceCollection services)
     {
+        services.AddProblemDetails(options =>
+        {
+            options.CustomizeProblemDetails = context =>
+            {
+                MinimalCleanArchProblemDetailsFactory.EnrichCommon(
+                    context.HttpContext,
+                    context.ProblemDetails);
+            };
+        });
+
         // Register validators from the Extensions assembly
         services.AddValidatorsFromAssemblyContaining<ServiceCollectionExtensionsMarker>();
 

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
-using MinimalCleanArch.Domain.Common;
 using MinimalCleanArch.Extensions.Errors;
+using MinimalCleanArch.Domain.Common;
 
 namespace MinimalCleanArch.Extensions.Extensions;
 
@@ -21,18 +21,19 @@ public static class ResultHttpExtensions
         ArgumentNullException.ThrowIfNull(error);
         ArgumentNullException.ThrowIfNull(context);
 
-        var statusCode = ErrorResponseMapper.ResolveStatusCode(error);
-        var title = ErrorResponseMapper.ResolveTitle(error);
-        var detail = ErrorResponseMapper.ResolveDetail(error, includeSensitiveDetails);
-        var extensions = ErrorResponseMapper.CreateBaseExtensions(context, error);
+        var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateForError(
+            context,
+            error,
+            includeSensitiveDetails,
+            instance);
 
         return Results.Problem(
-            title: title,
-            detail: detail,
-            statusCode: statusCode,
-            type: $"https://httpstatuses.com/{statusCode}",
-            instance: instance ?? context.Request.Path,
-            extensions: extensions.Count > 0 ? extensions : null);
+            title: problemDetails.Title,
+            detail: problemDetails.Detail,
+            statusCode: problemDetails.Status,
+            type: problemDetails.Type,
+            instance: problemDetails.Instance,
+            extensions: problemDetails.Extensions.Count > 0 ? problemDetails.Extensions : null);
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using MinimalCleanArchExtensions = MinimalCleanArch.Extensions.Extensions.ServiceCollectionExtensions;
 
 namespace MinimalCleanArch.Validation.Extensions;
 
@@ -19,26 +20,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Assembly assembly)
     {
-        // Register all validators in the assembly
-        var validatorType = typeof(IValidator<>);
-        var validatorTypes = assembly.GetTypes()
-            .Where(t => t.GetInterfaces().Any(i => 
-                i.IsGenericType && 
-                i.GetGenericTypeDefinition() == validatorType));
-
-        foreach (var validator in validatorTypes)
-        {
-            var interfaces = validator.GetInterfaces()
-                .Where(i => i.IsGenericType && 
-                          i.GetGenericTypeDefinition() == validatorType);
-
-            foreach (var @interface in interfaces)
-            {
-                services.AddScoped(@interface, validator);
-            }
-        }
-
-        return services;
+        return MinimalCleanArchExtensions.AddValidatorsFromAssembly(services, assembly);
     }
 
     /// <summary>
@@ -50,7 +32,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddValidatorsFromAssemblyContaining<T>(
         this IServiceCollection services)
     {
-        return services.AddValidatorsFromAssembly(typeof(T).Assembly);
+        return MinimalCleanArchExtensions.AddValidatorsFromAssemblyContaining<T>(services);
     }
 
     /// <summary>
@@ -68,7 +50,7 @@ public static class ServiceCollectionExtensions
 
         foreach (var assembly in assemblies.Where(a => a != null).Distinct())
         {
-            services.AddValidatorsFromAssembly(assembly);
+            MinimalCleanArchExtensions.AddValidatorsFromAssembly(services, assembly);
         }
 
         return services;

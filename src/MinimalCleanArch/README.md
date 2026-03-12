@@ -3,7 +3,7 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
-- Current preview: 0.1.18-preview (net9.0, net10.0). Latest stable: 0.1.17.
+- Current stable: 0.1.18 (net9.0, net10.0).
 
 ## Why Use It
 - define entities, repository contracts, specifications, and result types without taking a dependency on EF Core, HTTP, or messaging frameworks
@@ -34,7 +34,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch --version 0.1.18-preview
+dotnet add package MinimalCleanArch --version 0.1.18
 ```
 
 Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` for typed operation results.
@@ -85,4 +85,5 @@ Guidance:
 - use `InMemorySpecificationEvaluator` only for tests or in-memory execution paths
 
 When consuming locally built nupkgs, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
+
 

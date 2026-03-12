@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using MinimalCleanArch.Extensions.Errors;
-using MinimalCleanArch.Extensions.Models;
 
 namespace MinimalCleanArch.Extensions.Extensions;
 
@@ -40,22 +39,24 @@ public static class RouteHandlerBuilderExtensions
                 return await next(context);
             }
 
-            var problemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Failed",
-                Type = "https://httpstatuses.com/400",
-                Detail = "One or more validation errors occurred",
-                Instance = context.HttpContext.Request.Path
-            };
-
-            problemDetails.Extensions["errors"] = validationResult.Errors
+            var errors = validationResult.Errors
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(
                     g => g.Key,
                     g => g.Select(e => e.ErrorMessage).ToArray());
 
-            return Results.BadRequest(problemDetails);
+            var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateValidation(
+                context.HttpContext,
+                errors);
+
+            return Results.ValidationProblem(
+                problemDetails.Errors,
+                detail: problemDetails.Detail,
+                instance: problemDetails.Instance,
+                statusCode: problemDetails.Status,
+                title: problemDetails.Title,
+                type: problemDetails.Type,
+                extensions: problemDetails.Extensions.Count > 0 ? problemDetails.Extensions : null);
         });
 
         return builder;
@@ -87,22 +88,24 @@ public static class RouteHandlerBuilderExtensions
                 return await next(context);
             }
 
-            var problemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Failed",
-                Type = "https://httpstatuses.com/400",
-                Detail = "One or more validation errors occurred",
-                Instance = context.HttpContext.Request.Path
-            };
-
-            problemDetails.Extensions["errors"] = validationResult.Errors
+            var errors = validationResult.Errors
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(
                     g => g.Key,
                     g => g.Select(e => e.ErrorMessage).ToArray());
 
-            return Results.BadRequest(problemDetails);
+            var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateValidation(
+                context.HttpContext,
+                errors);
+
+            return Results.ValidationProblem(
+                problemDetails.Errors,
+                detail: problemDetails.Detail,
+                instance: problemDetails.Instance,
+                statusCode: problemDetails.Status,
+                title: problemDetails.Title,
+                type: problemDetails.Type,
+                extensions: problemDetails.Extensions.Count > 0 ? problemDetails.Extensions : null);
         });
 
         return builder;
@@ -121,18 +124,18 @@ public static class RouteHandlerBuilderExtensions
             }
             catch (Exception ex)
             {
-                var statusCode = ErrorResponseMapper.ResolveStatusCode(ex);
-                var title = ErrorResponseMapper.ResolveTitle(ex);
-                var detail = ErrorResponseMapper.ResolveDetail(ex, includeSensitiveDetails: false);
-                var extensions = ErrorResponseMapper.CreateBaseExtensions(context.HttpContext, ex);
+                var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateForException(
+                    context.HttpContext,
+                    ex,
+                    includeSensitiveDetails: false);
 
                 return Results.Problem(
-                    title: title,
-                    detail: detail,
-                    statusCode: statusCode,
-                    type: $"https://httpstatuses.com/{statusCode}",
-                    instance: context.HttpContext.Request.Path,
-                    extensions: extensions.Count > 0 ? extensions : null);
+                    title: problemDetails.Title,
+                    detail: problemDetails.Detail,
+                    statusCode: problemDetails.Status,
+                    type: problemDetails.Type,
+                    instance: problemDetails.Instance,
+                    extensions: problemDetails.Extensions.Count > 0 ? problemDetails.Extensions : null);
             }
         });
 
