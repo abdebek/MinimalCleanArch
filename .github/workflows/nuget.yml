@@ -60,7 +60,7 @@ jobs:
       run: dotnet --version
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/global.json') }}
@@ -85,7 +85,7 @@ jobs:
         fi
 
     - name: Upload test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: test-results-${{ github.run_number }}
@@ -121,7 +121,7 @@ jobs:
       run: dotnet --version
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/global.json') }}
@@ -233,14 +233,14 @@ jobs:
         ls -la ./artifacts/packages/
 
     - name: Upload packages artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: nuget-packages-${{ github.run_number }}
         path: ./artifacts/packages/*.nupkg
         retention-days: 90
 
     - name: Upload symbols artifact  
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: nuget-symbols-${{ github.run_number }}
         path: ./artifacts/packages/*.snupkg
@@ -273,13 +273,13 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Download packages artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: nuget-packages-${{ github.run_number }}
         path: ./artifacts/packages
 
     - name: Download symbols artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: nuget-symbols-${{ github.run_number }}
         path: ./artifacts/packages
