@@ -65,6 +65,7 @@ projects=(
     "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
     "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
     "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+    "src/MinimalCleanArch.Storage/MinimalCleanArch.Storage.csproj"
     "templates/MinimalCleanArch.Templates.csproj"
 )
 

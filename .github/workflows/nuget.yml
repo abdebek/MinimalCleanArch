@@ -164,6 +164,7 @@ jobs:
           "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
           "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
           "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+          "src/MinimalCleanArch.Storage/MinimalCleanArch.Storage.csproj"
           "src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj"
           "src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj"
           "templates/MinimalCleanArch.Templates.csproj"
@@ -376,6 +377,7 @@ jobs:
           - MinimalCleanArch.Extensions - Minimal API extensions
           - MinimalCleanArch.Validation - FluentValidation integration
           - MinimalCleanArch.Security - Data Protection encryption
+          - MinimalCleanArch.Storage - Generic blob storage abstractions and Azure Blob Storage integration
           - MinimalCleanArch.Messaging - Domain events / Wolverine integration
           - MinimalCleanArch.Audit - Audit logging components
           - MinimalCleanArch.Templates - dotnet new templates (web/api clean architecture)

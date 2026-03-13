@@ -50,6 +50,7 @@ For template options, generated structure, and architecture details, see [`templ
 - Domain building blocks (entities, repositories, unit of work, specifications, result pattern)
 - Minimal API helpers (validation wiring, standardized error handling, OpenAPI + Scalar)
 - Security and encryption (Data Protection/AES column encryption)
+- Blob/object storage abstractions with Azure Blob Storage support
 - Soft delete and auditing support
 - EF Core integration with specification evaluation
 
@@ -61,6 +62,7 @@ For template options, generated structure, and architecture details, see [`templ
 - Domain events and Wolverine integration: `MinimalCleanArch.Messaging`
 - Audit interception and audit queries: `MinimalCleanArch.Audit`
 - Encrypted EF properties and encryption services: `MinimalCleanArch.Security`
+- Generic blob storage abstraction and Azure Blob Storage integration: `MinimalCleanArch.Storage`
 - Project scaffolding: `MinimalCleanArch.Templates`
 
 ## Versions
@@ -77,7 +79,7 @@ For new applications, the recommended order is:
 2. Add EF Core repositories and unit of work with `MinimalCleanArch.DataAccess`.
 3. Add API bootstrap with `MinimalCleanArch.Extensions`.
 4. Register application validators with `MinimalCleanArch.Validation`.
-5. Add `MinimalCleanArch.Messaging`, `MinimalCleanArch.Audit`, and `MinimalCleanArch.Security` only when the app actually needs them.
+5. Add `MinimalCleanArch.Messaging`, `MinimalCleanArch.Audit`, `MinimalCleanArch.Security`, and `MinimalCleanArch.Storage` only when the app actually needs them.
 
 Preferred defaults:
 - use specifications through `IRepository<TEntity, TKey>`
@@ -94,7 +96,8 @@ Preferred defaults:
 - `MinimalCleanArch.Validation` depends on `MinimalCleanArch` and `MinimalCleanArch.Extensions`; use it where API validation registration happens.
 - `MinimalCleanArch.Messaging` and `MinimalCleanArch.Audit` depend on `MinimalCleanArch` and are optional infrastructure/application-host add-ons.
 - `MinimalCleanArch.Security` is an optional infrastructure package for encryption concerns.
-- Domain projects should not reference `DataAccess`, `Extensions`, `Validation`, `Messaging`, `Audit`, or `Security`.
+- `MinimalCleanArch.Storage` is an optional infrastructure package for blob/object storage concerns.
+- Domain projects should not reference `DataAccess`, `Extensions`, `Validation`, `Messaging`, `Audit`, `Security`, or `Storage`.
 
 ## Packages
 | Package | Helps achieve | Depends on | Typical layer |
@@ -104,6 +107,7 @@ Preferred defaults:
 | [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | API bootstrap, validation pipeline, error mapping, OpenAPI, rate limiting | `MinimalCleanArch` | API/Host |
 | [`MinimalCleanArch.Validation`](src/MinimalCleanArch.Validation/README.md) | validator registration and API validation integration | `MinimalCleanArch`, `MinimalCleanArch.Extensions` | API/Host or composition root |
 | [`MinimalCleanArch.Security`](src/MinimalCleanArch.Security/README.md) | encryption services and encrypted EF property support | no MCA package dependency | Infrastructure |
+| [`MinimalCleanArch.Storage`](src/MinimalCleanArch.Storage/README.md) | blob/object storage abstraction with Azure Blob Storage integration | no MCA package dependency | Infrastructure |
 | [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | domain events, Wolverine integration, outbox-capable messaging | `MinimalCleanArch` | Infrastructure or host |
 | [`MinimalCleanArch.Audit`](src/MinimalCleanArch.Audit/README.md) | audit interception, audit storage, audit queries | `MinimalCleanArch` | Infrastructure |
 | [`MinimalCleanArch.Templates`](templates/README.md) | scaffold new MCA-based applications | packaged templates | Project scaffolding |

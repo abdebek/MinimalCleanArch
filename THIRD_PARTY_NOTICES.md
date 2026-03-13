@@ -27,6 +27,7 @@ Use this as a visibility aid, not as legal advice. If you need compliance-grade 
 | OpenIddict | auth-enabled templates | https://github.com/openiddict/openiddict-core | Apache-2.0 | Used for OAuth2/OpenID Connect server and validation flows in generated auth-enabled apps |
 | Microsoft ASP.NET Core Data Protection | `MinimalCleanArch.Security` | https://github.com/dotnet/aspnetcore | Apache-2.0 | Used for development-friendly and production-oriented encryption support |
 | Azure Identity / Azure Data Protection Key Storage packages | `MinimalCleanArch.Security` | https://github.com/Azure/azure-sdk-for-net | MIT | Used when consumers choose Azure-backed key protection/storage |
+| Azure Storage Blobs | `MinimalCleanArch.Storage` | https://github.com/Azure/azure-sdk-for-net | MIT | Used for Azure Blob Storage and Azurite-compatible object storage access |
 
 ## Practical Guidance
 
