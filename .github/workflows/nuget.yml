@@ -274,13 +274,13 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Download packages artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: nuget-packages-${{ github.run_number }}
         path: ./artifacts/packages
 
     - name: Download symbols artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: nuget-symbols-${{ github.run_number }}
         path: ./artifacts/packages
@@ -358,57 +358,32 @@ jobs:
 
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/v') && success()
-      uses: softprops/action-gh-release@v2
-      with:
-        files: |
-          ./artifacts/packages/*.nupkg
-          ./artifacts/packages/*.snupkg
-        generate_release_notes: true
-        draft: false
-        prerelease: ${{ contains(github.ref, '-') || contains(needs.pack.outputs.package-version, '-') }}
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: |
-          ## MinimalCleanArch ${{ github.ref_name }}
-
-          ### Packages Published
-          - MinimalCleanArch - Core components (.NET 9.0, .NET 10.0)
-          - MinimalCleanArch.DataAccess - Entity Framework Core implementation  
-          - MinimalCleanArch.Extensions - Minimal API extensions
-          - MinimalCleanArch.Validation - FluentValidation integration
-          - MinimalCleanArch.Security - Data Protection encryption
-          - MinimalCleanArch.Storage - Generic blob storage abstractions and Azure Blob Storage integration
-          - MinimalCleanArch.Messaging - Domain events / Wolverine integration
-          - MinimalCleanArch.Audit - Audit logging components
-          - MinimalCleanArch.Templates - dotnet new templates (web/api clean architecture)
-
-          ### Installation
-          ```bash
-          dotnet add package MinimalCleanArch --version ${{ needs.pack.outputs.package-version }}
-          dotnet add package MinimalCleanArch.DataAccess --version ${{ needs.pack.outputs.package-version }}
-          dotnet add package MinimalCleanArch.Extensions --version ${{ needs.pack.outputs.package-version }}
-          ```
-
-          ### .NET 9.0 and 10.0 Features
-          This release targets .NET 9.0 and .NET 10.0 and includes:
-          - Updated to Entity Framework Core 9.0.5
-          - FluentValidation 12.0.0 support
-          - Enhanced performance and security
-          - Native AOT compatibility improvements
-
-          ### Usage
-          ```csharp
-          // Program.cs
-          builder.Services.AddMinimalCleanArch<MyDbContext>(options =>
-              options.UseSqlServer(connectionString));
-
-          builder.Services.AddValidatorsFromAssemblyContaining<MyValidator>();
-          builder.Services.AddDataProtectionEncryptionForDevelopment();
-          ```
-
-          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for complete usage instructions.
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        IS_PRERELEASE: ${{ contains(github.ref, '-') || contains(needs.pack.outputs.package-version, '-') }}
+        PACKAGE_VERSION: ${{ needs.pack.outputs.package-version }}
+      run: |
+        set -euo pipefail
+
+        release_assets=(./artifacts/packages/*.nupkg ./artifacts/packages/*.snupkg)
+        if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+          gh release upload "${GITHUB_REF_NAME}" "${release_assets[@]}" --clobber
+        else
+          prerelease_flag=()
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            prerelease_flag+=(--prerelease)
+          fi
+
+          release_notes_template="$(cat release-notes.md)"
+          release_notes="${release_notes_template//\{\{TAG\}\}/${GITHUB_REF_NAME}}"
+          release_notes="${release_notes//\{\{VERSION\}\}/${PACKAGE_VERSION}}"
+
+          gh release create "${GITHUB_REF_NAME}" "${release_assets[@]}" \
+            --title "Release ${GITHUB_REF_NAME}" \
+            --notes "${release_notes}" \
+            --generate-notes \
+            "${prerelease_flag[@]}"
+        fi
 
   security-scan:
     runs-on: ubuntu-latest

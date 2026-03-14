@@ -114,6 +114,7 @@ Preferred defaults:
 
 Additional docs:
 - Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
+- Release notes template: [`release-notes.md`](release-notes.md)
 - Third-party notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 
 ## Contributing
