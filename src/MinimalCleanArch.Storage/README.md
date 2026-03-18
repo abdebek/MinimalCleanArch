@@ -3,7 +3,7 @@
 Shared blob storage abstractions for MinimalCleanArch.
 
 ## Version
-- Current stable: 0.1.18 (net9.0, net10.0).
+- Current stable: 0.1.19-preview (net9.0, net10.0).
 
 ## Why Use It
 - keep blob upload and download capabilities behind a reusable infrastructure abstraction instead of baking storage-provider details into application handlers
@@ -29,7 +29,7 @@ Shared blob storage abstractions for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Storage --version 0.1.18
+dotnet add package MinimalCleanArch.Storage --version 0.1.19-preview
 ```
 
 Recommended service registration:

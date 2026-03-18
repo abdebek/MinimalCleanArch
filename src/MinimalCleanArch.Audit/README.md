@@ -3,7 +3,7 @@
 Audit logging components for MinimalCleanArch.
 
 ## Version
-- Current stable: 0.1.18 (net9.0, net10.0).
+- Current stable: 0.1.19-preview (net9.0, net10.0).
 
 ## Why Use It
 - persist entity change history and audit metadata without duplicating audit plumbing in each EF Core DbContext
@@ -30,7 +30,7 @@ Audit logging components for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Audit --version 0.1.18
+dotnet add package MinimalCleanArch.Audit --version 0.1.19-preview
 ```
 
 Register services:

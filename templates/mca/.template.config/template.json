@@ -128,7 +128,7 @@
     "mcaVersion": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "0.1.18",
+      "defaultValue": "0.1.19-preview",
       "description": "MinimalCleanArch package version to reference",
       "replaces": "__MCA_VERSION__"
     },

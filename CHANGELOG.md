@@ -6,6 +6,9 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.19-preview] - 2026-03-18
+- fix version mismatches when default mcaVersion used with later versions
+
 ## [0.1.18] - 2026-03-12
 
 ### Changed
