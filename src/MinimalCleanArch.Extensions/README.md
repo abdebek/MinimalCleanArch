@@ -3,7 +3,7 @@
 Minimal API extensions for MinimalCleanArch.
 
 ## Version
-- Current stable: 0.1.19-preview (net9.0, net10.0).
+- Current: 0.1.20-preview (net9.0, net10.0).
 
 ## Why Use It
 - bootstrap a Minimal API host with a consistent pipeline instead of wiring validation, errors, OpenAPI/Scalar, rate limiting, Serilog, and related concerns by hand
@@ -31,7 +31,7 @@ Minimal API extensions for MinimalCleanArch.
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Extensions --version 0.1.19-preview
+dotnet add package MinimalCleanArch.Extensions --version 0.1.20-preview
 ```
 
 Recommended API bootstrap:
@@ -56,6 +56,21 @@ app.UseMinimalCleanArchApiDefaults(options =>
 {
     options.UseRateLimiting = true;
 });
+```
+
+Result mapping and in-handler validation:
+```csharp
+// Map Result / Result<T> failures to RFC 7807 ProblemDetails
+return result.MatchHttp(httpContext, value => Results.Ok(value));
+
+// Validate a command/query constructed in the handler (path ids, mapped bodies, etc.)
+if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
+{
+    return invalid;
+}
+
+// Or validate a body parameter at the endpoint filter layer
+group.MapPost("/", handler).WithValidation<CreateTodoRequest>();
 ```
 
 `AddMinimalCleanArchApi(...)` is the preferred entry point when you want a single bootstrap method. Use the explicit registrations when you need tighter control over the service graph.

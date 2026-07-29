@@ -3,6 +3,7 @@ using MCA.Application.Commands;
 using MCA.Application.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using MinimalCleanArch.Domain.Common;
+using MinimalCleanArch.Extensions.Extensions;
 using System.Security.Claims;
 #if (UseMessaging)
 using Wolverine;
@@ -20,6 +21,7 @@ public static class AuthEndpoints
         var auth = app.MapGroup("/api/auth").WithTags("Authentication");
 
         auth.MapPost("/register", async (
+            HttpContext httpContext,
             [FromBody] RegisterRequest request,
 #if (UseMessaging)
             IMessageBus bus,
@@ -35,9 +37,9 @@ public static class AuthEndpoints
 #else
             var result = await handler.Handle(command, cancellationToken);
 #endif
-            return result.IsSuccess
-                ? Results.Ok(new { message = "User registered successfully", userId = result.Value })
-                : Results.BadRequest(new { error = result.Error.Message });
+            return result.MatchHttp(
+                httpContext,
+                userId => Results.Ok(new { message = "User registered successfully", userId }));
         })
         .AllowAnonymous()
 #if (UseRateLimiting)
@@ -66,9 +68,9 @@ public static class AuthEndpoints
 #else
             var result = await handler.Handle(command, cancellationToken);
 #endif
-            return result.IsSuccess
-                ? Results.Ok(new { message = "Password changed successfully" })
-                : Results.BadRequest(new { error = result.Error.Message });
+            return result.MatchHttp(
+                httpContext,
+                () => Results.Ok(new { message = "Password changed successfully" }));
         })
         .RequireAuthorization()
 #if (UseRateLimiting)
@@ -78,6 +80,7 @@ public static class AuthEndpoints
         .WithSummary("Change the current user's password");
 
         auth.MapPost("/confirm-email", async (
+            HttpContext httpContext,
             [FromBody] ConfirmEmailRequest request,
 #if (UseMessaging)
             IMessageBus bus,
@@ -93,9 +96,9 @@ public static class AuthEndpoints
 #else
             var result = await handler.Handle(command, cancellationToken);
 #endif
-            return result.IsSuccess
-                ? Results.Ok(new { message = "Email confirmed successfully" })
-                : Results.BadRequest(new { error = result.Error.Message });
+            return result.MatchHttp(
+                httpContext,
+                () => Results.Ok(new { message = "Email confirmed successfully" }));
         })
         .AllowAnonymous()
         .WithName("ConfirmEmail")
@@ -130,6 +133,7 @@ public static class AuthEndpoints
         .WithSummary("Request a password reset email");
 
         auth.MapPost("/reset-password", async (
+            HttpContext httpContext,
             [FromBody] ResetPasswordRequest request,
 #if (UseMessaging)
             IMessageBus bus,
@@ -145,9 +149,9 @@ public static class AuthEndpoints
 #else
             var result = await handler.Handle(command, cancellationToken);
 #endif
-            return result.IsSuccess
-                ? Results.Ok(new { message = "Password reset successfully" })
-                : Results.BadRequest(new { error = result.Error.Message });
+            return result.MatchHttp(
+                httpContext,
+                () => Results.Ok(new { message = "Password reset successfully" }));
         })
         .AllowAnonymous()
 #if (UseRateLimiting)
@@ -157,6 +161,7 @@ public static class AuthEndpoints
         .WithSummary("Reset a user's password using a reset token");
 
         auth.MapPost("/login", async (
+            HttpContext httpContext,
             [FromBody] LoginRequest request,
 #if (UseMessaging)
             IMessageBus bus,
@@ -180,7 +185,13 @@ public static class AuthEndpoints
             }
 
             if (result.Error.Code == "LOCKED_OUT")
-                return Results.Problem("Account is locked out.", statusCode: 423);
+            {
+                return Results.Problem(
+                    title: "Locked Out",
+                    detail: result.Error.Message,
+                    statusCode: StatusCodes.Status423Locked,
+                    instance: httpContext.Request.Path);
+            }
 
             return Results.Unauthorized();
         })

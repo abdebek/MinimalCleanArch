@@ -6,11 +6,7 @@ using Wolverine;
 using MCA.Application.Services;
 #endif
 using MinimalCleanArch.Domain.Common;
-#if (UseValidation)
-using FluentValidation;
-using FluentValidation.Results;
-using System.Linq;
-#endif
+using MinimalCleanArch.Extensions.Extensions;
 
 namespace MCA.Api.Endpoints;
 
@@ -26,284 +22,239 @@ public static class TodoEndpoints
 
         group.MapGet("/", GetAllTodos)
             .WithName("GetAllTodos")
-            .WithSummary("Get all todos");
+            .WithSummary("Get all todos")
+            .WithErrorHandling();
 
         group.MapGet("/{id:int}", GetTodoById)
             .WithName("GetTodoById")
-            .WithSummary("Get a todo by ID");
+            .WithSummary("Get a todo by ID")
+            .WithErrorHandling();
 
         group.MapPost("/", CreateTodo)
             .WithName("CreateTodo")
-            .WithSummary("Create a new todo");
+            .WithSummary("Create a new todo")
+            .WithErrorHandling();
 
         group.MapPut("/{id:int}", UpdateTodo)
             .WithName("UpdateTodo")
-            .WithSummary("Update an existing todo");
+            .WithSummary("Update an existing todo")
+            .WithErrorHandling();
 
         group.MapPost("/{id:int}/complete", CompleteTodo)
             .WithName("CompleteTodo")
-            .WithSummary("Mark a todo as completed");
+            .WithSummary("Mark a todo as completed")
+            .WithErrorHandling();
 
         group.MapDelete("/{id:int}", DeleteTodo)
             .WithName("DeleteTodo")
-            .WithSummary("Delete a todo");
+            .WithSummary("Delete a todo")
+            .WithErrorHandling();
     }
 
 #if (UseMessaging)
-    private static async Task<IResult> GetAllTodos(IMessageBus bus, CancellationToken cancellationToken)
+    private static async Task<IResult> GetAllTodos(
+        HttpContext httpContext,
+        IMessageBus bus,
+        CancellationToken cancellationToken)
     {
         var result = await bus.InvokeAsync<Result<TodoListResult>>(new GetAllTodosQuery(), cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(result.Value.Items)
-            : Results.Problem(result.Error.Message);
+        return result.MatchHttp(httpContext, value => Results.Ok(value.Items));
     }
 
     private static async Task<IResult> GetTodoById(
         int id,
+        HttpContext httpContext,
         IMessageBus bus,
-#if (UseValidation)
-        IValidator<GetTodoByIdQuery> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var query = new GetTodoByIdQuery(id);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(query, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(query, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await bus.InvokeAsync<Result<TodoResponse>>(query, cancellationToken);
-        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> CreateTodo(
         CreateTodoRequest request,
+        HttpContext httpContext,
         IMessageBus bus,
-#if (UseValidation)
-        IValidator<CreateTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new CreateTodoCommand(request.Title, request.Description, request.Priority, request.DueDate);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await bus.InvokeAsync<Result<TodoResponse>>(command, cancellationToken);
-        return result.IsSuccess
-            ? Results.Created($"/api/todos/{result.Value.Id}", result.Value)
-            : Results.BadRequest(result.Error.Message);
+        return result.MatchHttp(
+            httpContext,
+            value => Results.Created($"/api/todos/{value.Id}", value));
     }
 
     private static async Task<IResult> UpdateTodo(
         int id,
         UpdateTodoRequest request,
+        HttpContext httpContext,
         IMessageBus bus,
-#if (UseValidation)
-        IValidator<UpdateTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new UpdateTodoCommand(id, request.Title, request.Description, request.Priority, request.DueDate);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await bus.InvokeAsync<Result<TodoResponse>>(command, cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(result.Value)
-            : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> CompleteTodo(
         int id,
+        HttpContext httpContext,
         IMessageBus bus,
-#if (UseValidation)
-        IValidator<CompleteTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new CompleteTodoCommand(id);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await bus.InvokeAsync<Result>(command, cancellationToken);
-        return result.IsSuccess
-            ? Results.NoContent()
-            : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 
     private static async Task<IResult> DeleteTodo(
         int id,
+        HttpContext httpContext,
         IMessageBus bus,
-#if (UseValidation)
-        IValidator<DeleteTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new DeleteTodoCommand(id);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await bus.InvokeAsync<Result>(command, cancellationToken);
-        return result.IsSuccess
-            ? Results.NoContent()
-            : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 
 #else
-    private static async Task<IResult> GetAllTodos(ITodoService todoService, CancellationToken cancellationToken)
+    private static async Task<IResult> GetAllTodos(
+        HttpContext httpContext,
+        ITodoService todoService,
+        CancellationToken cancellationToken)
     {
         var result = await todoService.GetAllAsync(cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(result.Value)
-            : Results.Problem(result.Error.Message);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> GetTodoById(
         int id,
+        HttpContext httpContext,
         ITodoService todoService,
-#if (UseValidation)
-        IValidator<GetTodoByIdQuery> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var query = new GetTodoByIdQuery(id);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(query, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(query, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await todoService.GetByIdAsync(id, cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(result.Value)
-            : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> CreateTodo(
         CreateTodoRequest request,
+        HttpContext httpContext,
         ITodoService todoService,
-#if (UseValidation)
-        IValidator<CreateTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new CreateTodoCommand(request.Title, request.Description, request.Priority, request.DueDate);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await todoService.CreateAsync(request, cancellationToken);
-        return result.IsSuccess
-            ? Results.Created($"/api/todos/{result.Value.Id}", result.Value)
-            : Results.BadRequest(result.Error.Message);
+        return result.MatchHttp(
+            httpContext,
+            value => Results.Created($"/api/todos/{value.Id}", value));
     }
 
     private static async Task<IResult> UpdateTodo(
         int id,
         UpdateTodoRequest request,
+        HttpContext httpContext,
         ITodoService todoService,
-#if (UseValidation)
-        IValidator<UpdateTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new UpdateTodoCommand(id, request.Title, request.Description, request.Priority, request.DueDate);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await todoService.UpdateAsync(id, request, cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(result.Value)
-            : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> CompleteTodo(
         int id,
+        HttpContext httpContext,
         ITodoService todoService,
-#if (UseValidation)
-        IValidator<CompleteTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new CompleteTodoCommand(id);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await todoService.CompleteAsync(id, cancellationToken);
-        return result.IsSuccess
-            ? Results.NoContent()
-            : Results.NotFound(result.Error.Message);
+        return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 
     private static async Task<IResult> DeleteTodo(
         int id,
+        HttpContext httpContext,
         ITodoService todoService,
-#if (UseValidation)
-        IValidator<DeleteTodoCommand> validator,
-#endif
         CancellationToken cancellationToken)
     {
         var command = new DeleteTodoCommand(id);
 #if (UseValidation)
-        var validation = await validator.ValidateAsync(command, cancellationToken);
-        if (!validation.IsValid)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
         {
-            return Results.ValidationProblem(ToDictionary(validation));
+            return invalid;
         }
 #endif
 
         var result = await todoService.DeleteAsync(id, cancellationToken);
-        return result.IsSuccess
-            ? Results.NoContent()
-            : Results.NotFound(result.Error.Message);
-    }
-#endif
-
-#if (UseValidation)
-    private static IDictionary<string, string[]> ToDictionary(ValidationResult validationResult)
-    {
-        return validationResult.Errors
-            .GroupBy(e => e.PropertyName)
-            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+        return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 #endif
 }

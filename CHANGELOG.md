@@ -6,17 +6,26 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.20-preview] - 2026-07-30
+
+### Added
+- `HttpContext.ValidateAsync<T>(...)` in `MinimalCleanArch.Extensions` for validating commands/queries constructed inside Minimal API handlers (RFC 7807 validation problems)
+
 ### Changed
 - templates (single + multi) now use preferred host bootstrap: `AddMinimalCleanArchApi(...)` and `UseMinimalCleanArchApiDefaults(...)` whenever API polish features are enabled
 - templates reference `MinimalCleanArch.Extensions` for validation, security, rate limiting, health checks, caching, Serilog, and OpenTelemetry feature sets (not only caching/rate limiting)
+- template host projects always reference `MinimalCleanArch.Extensions` so endpoints can use `MatchHttp` / `ValidateAsync` / filters
+- template Todo and Auth endpoints map failures with `MatchHttp` / `ToProblem` instead of plain string error bodies
+- template validation uses `ValidateAsync` after mapping to commands/queries (no per-endpoint `IValidator<T>` injection)
 - sample app aligned to the same preferred bootstrap and middleware pipeline
-- docs updated to describe the preferred template/host bootstrap path
+- docs updated to describe the preferred template/host bootstrap path and Result → ProblemDetails mapping
 
 ### Fixed
 - template integration tests isolate generated apps under `temp/` from repo `Directory.Build.props` so NuGet audit advisories do not fail smoke builds
 - template integration tests use a unique HTTP port per run to avoid collisions under parallel xUnit execution
 - repository `NoWarn` includes NuGet audit codes (NU1902–NU1904) for known transitive package advisories
 - sample registers FluentValidation user request validators and scans the API validators assembly via `AddMinimalCleanArchApi` (DataAnnotations alone were not enforced by `WithValidation`)
+- generated Todo integration tests assert ProblemDetails for validation and not-found paths
 
 
 ## [0.1.19] - 2026-03-18

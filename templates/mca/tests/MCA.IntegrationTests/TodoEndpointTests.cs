@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using MCA.Application.DTOs;
 using MCA.Infrastructure.Data;
@@ -50,9 +51,19 @@ public class TodoEndpointTests : IClassFixture<TestApiFactory>
         var response = await isolatedClient.GetAsync("/api/todos");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var payload = await response.Content.ReadFromJsonAsync<List<TodoResponse>>();
-        payload.Should().NotBeNull();
-        payload!.Should().BeEmpty();
+
+        // Multi-project returns a bare list; single-project returns a paginated object with items.
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (document.RootElement.ValueKind == JsonValueKind.Array)
+        {
+            document.RootElement.GetArrayLength().Should().Be(0);
+        }
+        else
+        {
+            document.RootElement.TryGetProperty("items", out var items)
+                .Should().BeTrue("paginated list responses expose an items array");
+            items.GetArrayLength().Should().Be(0);
+        }
     }
 
     [Fact
@@ -84,13 +95,46 @@ public class TodoEndpointTests : IClassFixture<TestApiFactory>
         (Skip = "Skipped when durable messaging is enabled (requires external infrastructure).")
 #endif
     ]
-    public async Task CreateTodo_InvalidRequest_ReturnsBadRequest()
+    public async Task CreateTodo_InvalidRequest_ReturnsValidationProblemDetails()
     {
         var request = new CreateTodoRequest(string.Empty, null, 0, null);
 
         var response = await _client.PostAsJsonAsync("/api/todos", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.Should().BeOneOf(
+            "application/problem+json",
+            "application/json");
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        root.TryGetProperty("title", out _).Should().BeTrue();
+        root.TryGetProperty("status", out var status).Should().BeTrue();
+        status.GetInt32().Should().Be(400);
+        // ASP.NET ValidationProblem uses "errors"; some shapes use "detail" only.
+        (root.TryGetProperty("errors", out _) || root.TryGetProperty("detail", out _))
+            .Should().BeTrue("validation failures should include errors or detail");
+    }
+
+    [Fact
+#if (UseDurableMessaging)
+        (Skip = "Skipped when durable messaging is enabled (requires external infrastructure).")
+#endif
+    ]
+    public async Task GetTodoById_Missing_ReturnsNotFoundProblemDetails()
+    {
+        var response = await _client.GetAsync("/api/todos/999999");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.Should().BeOneOf(
+            "application/problem+json",
+            "application/json");
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        root.TryGetProperty("status", out var status).Should().BeTrue();
+        status.GetInt32().Should().Be(404);
+        root.TryGetProperty("title", out _).Should().BeTrue();
     }
 #endif
 }

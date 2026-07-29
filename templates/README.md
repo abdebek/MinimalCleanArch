@@ -107,7 +107,7 @@ This is the quickest way to validate OpenIddict + user auth + global Bearer reus
 1. Scaffold and run:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.19-preview
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.20-preview
 cd QuickAuth
 dotnet run
 ```
@@ -320,7 +320,7 @@ Notes:
 ### Versions
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--mcaVersion <version>` | 0.1.19-preview | MinimalCleanArch package version |
+| `--mcaVersion <version>` | 0.1.20-preview | MinimalCleanArch package version |
 | `--framework <tfm>` | net10.0 | Target framework (`net9.0` or `net10.0`) |
 
 ## Architecture Overview
@@ -393,10 +393,11 @@ This is the main rule the template is trying to preserve: dependencies point inw
 ### Typical Request Flow
 
 1. Endpoint receives HTTP request and maps payload to command/query.
-2. Application handler executes use-case through domain contracts/repositories.
-3. Domain entities enforce invariants and may raise domain events.
-4. Infrastructure persists state and publishes/handles events.
-5. Result is mapped to consistent HTTP responses/ProblemDetails.
+2. Optional FluentValidation runs via `HttpContext.ValidateAsync(...)` (or `WithValidation<T>()` for body parameters).
+3. Application handler executes use-case through domain contracts/repositories.
+4. Domain entities enforce invariants and may raise domain events.
+5. Infrastructure persists state and publishes/handles events.
+6. Endpoint maps `Result` / `Result<T>` with `MatchHttp` / `ToProblem` to RFC 7807 ProblemDetails (not plain string `BadRequest`/`NotFound` bodies).
 
 ## Auth and Security Notes
 
@@ -461,7 +462,7 @@ dotnet add package AspNet.Security.OAuth.GitHub
 pwsh ./templates/scripts/validate-templates.ps1 `
   -TemplatePackagePath ./artifacts/packages `
   -LocalFeedPath ./artifacts/packages `
-  -McaVersion 0.1.19-preview `
+  -McaVersion 0.1.20-preview `
   -Framework net10.0
 ```
 

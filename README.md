@@ -26,7 +26,7 @@ Then open `https://localhost:<port>/scalar/v1`.
 For auth + OpenIddict + Scalar password flow:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.19-preview
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.20-preview
 cd QuickAuth
 dotnet run
 ```
@@ -66,7 +66,7 @@ For template options, generated structure, and architecture details, see [`templ
 - Project scaffolding: `MinimalCleanArch.Templates`
 
 ## Versions
-- Latest stable packages/templates: `0.1.19-preview`
+- Latest packages/templates: `0.1.20-preview`
 
 ## Local Validation
 - Template validation uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
@@ -86,11 +86,13 @@ Preferred defaults:
 - use `AddMinimalCleanArchApi(...)` as the main API bootstrap method (validators + rate limiting + problem details)
 - use `UseMinimalCleanArchApiDefaults(...)` for the standard middleware pipeline (correlation ID, security headers, error handling, optional rate limiting)
 - prefer `options.AddValidatorsFromAssemblyContaining<T>()` on `AddMinimalCleanArchApi` over separate validator registration calls
+- map endpoint outcomes with `result.MatchHttp(...)` / `error.ToProblem(...)` (RFC 7807), not plain string bodies
+- validate handler-built commands/queries with `httpContext.ValidateAsync(...)` (or `WithValidation<T>()` for body parameters)
 - use `AddMinimalCleanArchMessaging...` extensions instead of wiring Wolverine from scratch
 - use Data Protection-based encryption for new development
 - use `IExecutionContext` as the shared source for user, tenant, and correlation data across HTTP and message-handler flows
 
-The sample app and generated templates follow this bootstrap path when API polish features are enabled.
+The sample app and generated templates follow this bootstrap and HTTP mapping path when API polish features are enabled.
 
 ## Dependency Direction
 - `MinimalCleanArch` is the foundation. Other MCA packages can depend on it; your domain layer can depend on it.
