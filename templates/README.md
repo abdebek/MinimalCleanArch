@@ -400,9 +400,40 @@ This is the main rule the template is trying to preserve: dependencies point inw
 6. Infrastructure persists state; messaging host publishes/handles events when enabled.
 7. Endpoint maps `Result` / `Result<T>` with `MatchHttp` / `ToProblem` to RFC 7807 ProblemDetails.
 
+## Database initialization
+
+Generated apps initialize the schema at startup based on `Database:*` settings:
+
+| Setting | Production default | Development default |
+|--------|--------------------|---------------------|
+| `Database:EnsureCreated` | `false` | `true` |
+| `Database:ApplyMigrations` | `false` | `true` |
+
+Behavior:
+- **SQLite**: uses `EnsureCreated` (migrations flag is ignored for SQLite in the initializer).
+- **SQL Server / PostgreSQL**: prefers `Database.Migrate()`. If no EF migrations exist yet, Development falls back to `EnsureCreated` with a warning log.
+- Outside Development, missing migrations with `ApplyMigrations=true` fails fast (no silent empty schema).
+
+Create migrations after scaffolding (SQL Server/PostgreSQL):
+
+```bash
+# Single-project
+dotnet ef migrations add InitialCreate -o Infrastructure/Data/Migrations
+
+# Multi-project
+dotnet ef migrations add InitialCreate \
+  --project src/MyApp.Infrastructure \
+  --startup-project src/MyApp.Api \
+  -o Data/Migrations
+```
+
+A design-time `AppDbContextFactory` is included for EF tools.
+
 ## Auth and Security Notes
 
 - `--auth` automatically enables `--security`.
+- CORS is config-driven via `Cors:AllowedOrigins`. Empty list: Development allows any origin; non-Development allows none (fail closed).
+- `Encryption:Key` is empty in production `appsettings.json`. Development uses Data Protection helpers (or a demo key); outside Development a real key is required when `--security` is enabled—use user-secrets, environment variables, or a vault.
 - Password reset endpoints do not return reset tokens in API responses.
 - OAuth demo endpoints (`/oauth/demo/*`) and OpenIddict dev endpoints (`/dev/openiddict/*`) are mapped only in Development.
 - Default demo/scalar client id is `OpenIddict:Clients:Web:ClientId` (defaults to `mca-web-client`). You can override per-request with `/oauth/demo/start?clientId=...`.

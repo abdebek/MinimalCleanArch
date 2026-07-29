@@ -76,6 +76,7 @@
     <!--#if (UsePostgres)-->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
     <!--#endif-->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.5" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
@@ -97,6 +98,7 @@
     <!--#if (UsePostgres)-->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <!--#endif-->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />

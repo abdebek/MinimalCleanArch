@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- template `DatabaseInitializer` with SQLite `EnsureCreated` and SQL Server/PostgreSQL `Migrate` (+ Development fallback)
+- design-time `AppDbContextFactory` for `dotnet ef migrations`
+- template `Database` and `Cors` configuration sections
+
 ### Changed
 - template Todo use cases live in `TodoCommandHandler` (repository + unit of work); removed `ITodoService` / `TodoService` double abstraction
 - template endpoints always call handlers (or Wolverine bus); no service-layer pass-through
@@ -13,6 +18,9 @@ The format is based on Keep a Changelog.
 - `ApplicationUser` moved from Domain to `Application/Identity` so Domain has no ASP.NET Identity dependency
 - multi-project Application no longer references `MinimalCleanArch.Messaging` / Wolverine (host/API owns messaging packages)
 - architecture tests assert Domain is free of Identity and Application is free of Wolverine
+- CORS is config-driven (`Cors:AllowedOrigins`); non-Development fails closed when empty
+- encryption: Development uses Data Protection helpers; non-Development requires `Encryption:Key` (no committed production key)
+- production `appsettings` keep bootstrap admin seeding disabled; Development enables demo admin only
 
 ## [0.1.20-preview] - 2026-07-30
 

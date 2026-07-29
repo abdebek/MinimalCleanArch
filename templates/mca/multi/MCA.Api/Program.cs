@@ -173,18 +173,56 @@ builder.Services.AddMinimalCleanArchApi(options =>
 #endif
 
 #if (UseSecurity)
-// Security - encryption service (Data Protection for development)
-builder.Services.AddDataProtectionEncryptionForDevelopment(builder.Environment.ApplicationName ?? "MCA");
+// Security - encryption (dev Data Protection vs configured key outside Development)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDataProtectionEncryptionForDevelopment(builder.Environment.ApplicationName ?? "MCA");
+}
+else
+{
+    var encryptionKey = builder.Configuration["Encryption:Key"];
+    if (string.IsNullOrWhiteSpace(encryptionKey))
+    {
+        throw new InvalidOperationException(
+            "Encryption:Key must be configured outside Development (user-secrets, environment variable, or vault). " +
+            "Do not commit production keys to appsettings.json.");
+    }
+
+    builder.Services.AddEncryption(new EncryptionOptions
+    {
+        Key = encryptionKey,
+        ValidateKeyStrength = true,
+        EnableOperationLogging = false
+    });
+}
 #endif
 
 #if (UseSecurity)
-// Basic CORS policy for APIs, customizable via appsettings
+// CORS: configured origins only; Development may fall back to AllowAnyOrigin when the list is empty
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+    {
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else
+        {
+            // Fail closed: no origins allowed until Cors:AllowedOrigins is configured
+            policy.SetIsOriginAllowed(_ => false);
+        }
+    });
 });
 #endif
 
@@ -354,17 +392,17 @@ app.MapExternalAuthEndpoints();
 app.MapOAuthEndpoints(app.Environment.IsDevelopment());
 #endif
 
-// Ensure database is created (development only)
-var ensureCreated = app.Configuration.GetValue("Database:EnsureCreated", true);
-if (app.Environment.IsDevelopment() && ensureCreated)
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+// Database schema (EnsureCreated for SQLite demos; Migrate/fallback for SQL Server/PostgreSQL)
+var dbLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInitializer");
+await DatabaseInitializer.InitializeAsync(
+    app.Services,
+    app.Configuration,
+    app.Environment,
+    dbLogger);
 #if (UseAuth)
-    await app.Services.SeedOpenIddictApplicationsAsync(builder.Configuration);
+// OpenIddict clients + optional bootstrap admin (controlled by Seed:* settings)
+await app.Services.SeedOpenIddictApplicationsAsync(builder.Configuration);
 #endif
-}
 
 app.Run();
 
