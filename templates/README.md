@@ -333,6 +333,32 @@ Generated apps follow a hybrid approach: Clean Architecture for dependency direc
 - vertical-slice/CQRS-style organization for commands, queries, handlers, and endpoints
 - not a classic “service layer per entity” template; the generated app is intended to group behavior around use cases
 
+### Host Bootstrap (preferred MCA APIs)
+
+When any API polish feature is enabled (`--validation`, `--security`, `--ratelimiting`, `--healthchecks`, `--caching`, `--serilog`, `--opentelemetry`, or via `--recommended` / `--all`), the generated host uses:
+
+```csharp
+// Service registration
+builder.Services.AddMinimalCleanArchApi(options =>
+{
+    options.AddValidatorsFromAssemblyContaining<CreateTodoCommandValidator>();
+    options.EnableRateLimiting = true;
+    options.ConfigureRateLimiting = config =>
+        builder.Configuration.GetSection("RateLimiting").Bind(config);
+});
+
+// Middleware pipeline (correlation ID → security headers → error handling → rate limiting)
+app.UseMinimalCleanArchApiDefaults(pipeline =>
+{
+    pipeline.UseRateLimiting = true;
+    pipeline.UseApiSecurityHeaders = true;
+});
+```
+
+Feature blocks for database, auth, messaging, audit, OpenTelemetry exporters, and health-check probes remain explicit next to that bootstrap. Prefer these entry points over hand-wiring correlation middleware, problem details, validators, and rate limiting separately.
+
+`MinimalCleanArch.Extensions` is referenced whenever those polish features are on so the host can call the preferred bootstrap APIs.
+
 ### Generated Dependency Direction
 
 - `Domain` depends on nothing else in the generated solution.

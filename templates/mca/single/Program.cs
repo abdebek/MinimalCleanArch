@@ -17,7 +17,9 @@ using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
 #if (UseValidation)
 using MCA.Application.Validation;
-using MinimalCleanArch.Validation.Extensions;
+#endif
+#if (UseMcaApiBootstrap)
+using MinimalCleanArch.Extensions.Extensions;
 #endif
 #if (UseHealthChecks)
 using HealthChecks.UI.Client;
@@ -29,9 +31,6 @@ using MinimalCleanArch.Security.Extensions;
 #endif
 #if (UseCaching)
 using MinimalCleanArch.Extensions.Caching;
-#endif
-#if (UseRateLimiting)
-using MinimalCleanArch.Extensions.RateLimiting;
 #endif
 #if (UseMessaging)
 using MinimalCleanArch.Messaging.Extensions;
@@ -156,8 +155,20 @@ builder.Services.AddScoped<ITodoService, TodoService>();
 #if (UseAudit)
 builder.Services.AddHttpContextAccessor();
 #endif
+
+#if (UseMcaApiBootstrap)
+// Preferred MCA API bootstrap: problem details, correlation, validators, rate limiting
+builder.Services.AddMinimalCleanArchApi(options =>
+{
 #if (UseValidation)
-builder.Services.AddValidationFromAssemblyContaining<CreateTodoCommandValidator>();
+    options.AddValidatorsFromAssemblyContaining<CreateTodoCommandValidator>();
+#endif
+#if (UseRateLimiting)
+    options.EnableRateLimiting = true;
+    options.ConfigureRateLimiting = config =>
+        builder.Configuration.GetSection("RateLimiting").Bind(config);
+#endif
+});
 #endif
 
 #if (UseSecurity)
@@ -194,14 +205,6 @@ builder.Services.AddHttpClient();
 // Caching
 builder.Services.AddMemoryCache();
 builder.Services.AddMinimalCleanArchCaching();
-#endif
-
-#if (UseRateLimiting)
-// Rate limiting (global + endpoint policies)
-builder.Services.AddMinimalCleanArchRateLimiting(config =>
-{
-    builder.Configuration.GetSection("RateLimiting").Bind(config);
-});
 #endif
 
 #if (UseMessaging)
@@ -305,10 +308,22 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+#if (UseMcaApiBootstrap)
+// Preferred MCA pipeline: correlation ID → security headers → error handling → optional rate limiting
+app.UseMinimalCleanArchApiDefaults(pipeline =>
+{
+#if (UseRateLimiting)
+    pipeline.UseRateLimiting = true;
+#endif
+#if (UseSecurity)
+    pipeline.UseApiSecurityHeaders = true;
+#endif
+});
+#endif
+
 #if (UseSerilog)
 app.UseSerilogRequestLogging();
 #endif
-
 
 app.UseHttpsRedirection();
 
@@ -320,10 +335,6 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
-#endif
-
-#if (UseRateLimiting)
-app.UseMinimalCleanArchRateLimiting();
 #endif
 
 #if (UseHealthChecks)

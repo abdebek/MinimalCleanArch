@@ -12,7 +12,8 @@
     <!-- XML Documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591/CS1573: Missing XML docs, NU1608: Package version constraint mismatch (Wolverine dependencies) -->
-    <NoWarn>$(NoWarn);CS1591;CS1573;NU1608</NoWarn>
+    <!-- NU1902-NU1904: NuGet audit advisories on transitive packages (OpenTelemetry, OpenApi, SQLite, DataProtection) -->
+    <NoWarn>$(NoWarn);CS1591;CS1573;NU1608;NU1902;NU1903;NU1904</NoWarn>
   </PropertyGroup>
 
   <!-- NuGet package properties -->

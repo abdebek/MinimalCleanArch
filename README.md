@@ -83,11 +83,14 @@ For new applications, the recommended order is:
 
 Preferred defaults:
 - use specifications through `IRepository<TEntity, TKey>`
-- use `AddMinimalCleanArchApi(...)` as the main API bootstrap method
-- use `AddValidationFromAssemblyContaining<T>()` for validator registration
+- use `AddMinimalCleanArchApi(...)` as the main API bootstrap method (validators + rate limiting + problem details)
+- use `UseMinimalCleanArchApiDefaults(...)` for the standard middleware pipeline (correlation ID, security headers, error handling, optional rate limiting)
+- prefer `options.AddValidatorsFromAssemblyContaining<T>()` on `AddMinimalCleanArchApi` over separate validator registration calls
 - use `AddMinimalCleanArchMessaging...` extensions instead of wiring Wolverine from scratch
 - use Data Protection-based encryption for new development
 - use `IExecutionContext` as the shared source for user, tenant, and correlation data across HTTP and message-handler flows
+
+The sample app and generated templates follow this bootstrap path when API polish features are enabled.
 
 ## Dependency Direction
 - `MinimalCleanArch` is the foundation. Other MCA packages can depend on it; your domain layer can depend on it.

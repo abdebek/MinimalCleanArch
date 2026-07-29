@@ -6,6 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- templates (single + multi) now use preferred host bootstrap: `AddMinimalCleanArchApi(...)` and `UseMinimalCleanArchApiDefaults(...)` whenever API polish features are enabled
+- templates reference `MinimalCleanArch.Extensions` for validation, security, rate limiting, health checks, caching, Serilog, and OpenTelemetry feature sets (not only caching/rate limiting)
+- sample app aligned to the same preferred bootstrap and middleware pipeline
+- docs updated to describe the preferred template/host bootstrap path
+
+### Fixed
+- template integration tests isolate generated apps under `temp/` from repo `Directory.Build.props` so NuGet audit advisories do not fail smoke builds
+- template integration tests use a unique HTTP port per run to avoid collisions under parallel xUnit execution
+- repository `NoWarn` includes NuGet audit codes (NU1902–NU1904) for known transitive package advisories
+- sample registers FluentValidation user request validators and scans the API validators assembly via `AddMinimalCleanArchApi` (DataAnnotations alone were not enforced by `WithValidation`)
+
+
 ## [0.1.19] - 2026-03-18
 - stable release following 0.1.19-preview that fixes the version mismatches when default mcaVersion used with later versions, with no any additional changes
 

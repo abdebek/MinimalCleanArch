@@ -207,6 +207,10 @@
       "type": "computed",
       "value": "(UseMessaging && (UseSqlServer || UsePostgres))"
     },
+    "UseMcaApiBootstrap": {
+      "type": "computed",
+      "value": "(UseValidation || UseSecurity || UseRateLimiting || UseHealthChecks || UseCaching || UseSerilog || UseOpenTelemetry)"
+    },
     "ConnectionString": {
       "type": "generated",
       "generator": "switch",

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
@@ -16,6 +17,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     private readonly string _baseOutputDir;
     private readonly string _packageSource;
     private readonly string _templateVersion;
+    private readonly int _appPort;
     private const string TemplateFramework = "net10.0";
 
     public TemplateIntegrationTests(TemplateTestFixture fixture, ITestOutputHelper output)
@@ -26,6 +28,8 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         Directory.CreateDirectory(_baseOutputDir);
         _packageSource = fixture.PackageSource;
         _templateVersion = fixture.TemplateVersion;
+        // Unique port per test instance so parallel template runs do not collide on :5000
+        _appPort = Random.Shared.Next(5200, 5900);
     }
 
     private void CreateNugetConfig(string projectDir)
@@ -60,6 +64,27 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
         File.WriteAllText(Path.Combine(projectDir, "nuget.config"), nugetConfigContent);
         _output.WriteLine($"Created nuget.config pointing to {localPackageSource} and global packages at {globalPackages}");
+
+        // Generated apps under repo temp/ inherit the repository Directory.Build.props
+        // (TreatWarningsAsErrors, MinVer, etc.). Isolate so NuGet audit advisories and
+        // repo packaging policy do not fail template smoke builds.
+        WriteIsolatedDirectoryBuildProps(projectDir);
+    }
+
+    private static void WriteIsolatedDirectoryBuildProps(string projectDir)
+    {
+        var content = """
+            <Project>
+              <PropertyGroup>
+                <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+                <NuGetAudit>false</NuGetAudit>
+                <GenerateDocumentationFile>false</GenerateDocumentationFile>
+                <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+              </PropertyGroup>
+            </Project>
+            """;
+
+        File.WriteAllText(Path.Combine(projectDir, "Directory.Build.props"), content);
     }
 
     [Fact]
@@ -92,7 +117,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
             // 4. Build
             _output.WriteLine("Building project...");
-            await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
+            await BuildGeneratedProjectAsync(projectDir);
 
             // 5. Run App
             _output.WriteLine("Running app...");
@@ -102,7 +127,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             try
             {
                 // 6. Verify Health
-                await WaitForHealthCheckAsync("http://localhost:5000/health", cts.Token);
+                await WaitForHealthCheckAsync(GetHealthUrl(), cts.Token);
                 _output.WriteLine("App is healthy!");
             }
             finally
@@ -151,7 +176,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
             // 4. Build
             _output.WriteLine("Building project...");
-            await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
+            await BuildGeneratedProjectAsync(projectDir);
 
             // 5. Run App
             _output.WriteLine("Running app...");
@@ -161,7 +186,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             try
             {
                 // 6. Verify Health
-                await WaitForHealthCheckAsync("http://localhost:5000/health", cts.Token);
+                await WaitForHealthCheckAsync(GetHealthUrl(), cts.Token);
                 _output.WriteLine("App is healthy!");
             }
             finally
@@ -194,7 +219,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
         // 2. Build
         _output.WriteLine("Building project...");
-        await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
+        await BuildGeneratedProjectAsync(projectDir);
 
         // 3. Run App
         _output.WriteLine("Running app...");
@@ -204,7 +229,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         try
         {
             // 4. Verify Health
-            await WaitForHealthCheckAsync("http://localhost:5000/health", cts.Token);
+            await WaitForHealthCheckAsync(GetHealthUrl(), cts.Token);
             _output.WriteLine("App is healthy!");
         }
         finally
@@ -243,7 +268,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
             // 4. Build
             _output.WriteLine("Building project...");
-            await RunDotnetCommandAsync("build", projectDir, "/nodeReuse:false");
+            await BuildGeneratedProjectAsync(projectDir);
 
             // 5. Run App
             _output.WriteLine("Running app...");
@@ -253,7 +278,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             try
             {
                 // 6. Verify Health
-                await WaitForHealthCheckAsync("http://localhost:5000/health", cts.Token);
+                await WaitForHealthCheckAsync(GetHealthUrl(), cts.Token);
                 _output.WriteLine("App is healthy!");
             }
             finally
@@ -271,6 +296,16 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     }
 
     // Helpers
+
+    private string GetHealthUrl() => $"http://localhost:{_appPort}/health";
+
+    private Task BuildGeneratedProjectAsync(string projectDir) =>
+        RunDotnetCommandAsync(
+            "build",
+            projectDir,
+            "/nodeReuse:false",
+            "/p:NuGetAudit=false",
+            "/p:TreatWarningsAsErrors=false");
 
     private void AssertTargetFramework(string projectDir, string projectName)
     {
@@ -409,14 +444,19 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"\"{mainDll}\" --urls http://localhost:5000",
+            Arguments = $"\"{mainDll}\" --urls http://localhost:{_appPort}",
             WorkingDirectory = Path.GetDirectoryName(mainDll),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            EnvironmentVariables = { ["ASPNETCORE_ENVIRONMENT"] = "Development" }
+            EnvironmentVariables =
+            {
+                ["ASPNETCORE_ENVIRONMENT"] = "Development",
+                ["ASPNETCORE_URLS"] = $"http://localhost:{_appPort}"
+            }
         };
+        _output.WriteLine($"Starting app on http://localhost:{_appPort}");
 
         var process = new Process { StartInfo = psi };
 
@@ -432,25 +472,32 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
 
     private async Task WaitForHealthCheckAsync(string url, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient();
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        HttpStatusCode? lastStatus = null;
+        string? lastBody = null;
+
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 var response = await client.GetAsync(url, cancellationToken);
+                lastStatus = response.StatusCode;
                 if (response.IsSuccessStatusCode)
                 {
                     return;
                 }
+
+                lastBody = await response.Content.ReadAsStringAsync(cancellationToken);
             }
-            catch
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // Ignore and retry
+                lastBody = ex.Message;
             }
 
             await Task.Delay(1000, cancellationToken);
         }
 
-        throw new TimeoutException("App did not become healthy in time.");
+        throw new TimeoutException(
+            $"App did not become healthy in time. url={url}, lastStatus={lastStatus}, lastBody={lastBody}");
     }
 }

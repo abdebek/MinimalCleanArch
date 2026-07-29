@@ -9,19 +9,17 @@ using MinimalCleanArch.Extensions.Extensions;
 using MinimalCleanArch.Extensions.HealthChecks;
 using MinimalCleanArch.Extensions.Hosting;
 using MinimalCleanArch.Extensions.Logging;
-using MinimalCleanArch.Extensions.Middlewares;
-using MinimalCleanArch.Extensions.RateLimiting;
 using MinimalCleanArch.Extensions.Telemetry;
 using MinimalCleanArch.Extensions.Versioning;
 using MinimalCleanArch.Messaging.Extensions;
 using MinimalCleanArch.Sample.API.Endpoints;
+using MinimalCleanArch.Sample.API.Validators;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
 using MinimalCleanArch.Sample.Infrastructure.Seeders;
 using MinimalCleanArch.Sample.Infrastructure.Services;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
-using MinimalCleanArch.Validation.Extensions;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -57,15 +55,21 @@ try
     // Add services to the container
     builder.Services.AddOpenApi();
 
+    // Preferred MCA API bootstrap (problem details, correlation, validators, rate limiting)
+    builder.Services.AddMinimalCleanArchApi(options =>
+    {
+        // Scan the sample assembly (API validators live next to endpoints/models)
+        options.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
+        options.EnableRateLimiting = true;
+        options.ConfigureRateLimiting = config =>
+        {
+            config.GlobalPermitLimit = 1000;
+            config.FixedPermitLimit = 100;
+        };
+    });
+
     // Add API versioning
     builder.Services.AddMinimalCleanArchApiVersioning();
-
-    // Add rate limiting
-    builder.Services.AddMinimalCleanArchRateLimiting(config =>
-    {
-        config.GlobalPermitLimit = 1000;
-        config.FixedPermitLimit = 100;
-    });
 
     // Add health checks
     builder.Services.AddMinimalCleanArchHealthChecks()
@@ -171,9 +175,6 @@ try
         builder.Services.AddScoped<IEmailSender, EmailSender>();
     }
 
-    // Add validation services
-    builder.Services.AddValidationFromAssemblyContaining<Todo>();
-
     // Add caching services (in-memory by default)
     builder.Services.AddMinimalCleanArchCaching(options =>
     {
@@ -196,9 +197,6 @@ try
         Log.Information("Wolverine messaging enabled for domain events");
     }
 
-    // Add MinimalCleanArch extensions (includes correlation ID accessor)
-    builder.Services.AddMinimalCleanArchExtensions();
-
     // Add database seeding
     builder.Services.AddDatabaseSeeding()
         .AddSeeder<DatabaseMigrationSeeder>()
@@ -207,23 +205,15 @@ try
 
     var app = builder.Build();
 
-    // Configure the HTTP request pipeline
-    // Order matters: correlation ID → security headers → error handling → request logging
-
-    // Add correlation ID first
-    app.UseCorrelationId();
-
-    // Add security headers
-    app.UseSecurityHeaders(SecurityHeadersOptions.ForApi());
-
-    // Add global error handling
-    app.UseGlobalErrorHandling();
+    // Preferred MCA pipeline: correlation ID → security headers → error handling → rate limiting
+    app.UseMinimalCleanArchApiDefaults(pipeline =>
+    {
+        pipeline.UseRateLimiting = true;
+        pipeline.UseApiSecurityHeaders = true;
+    });
 
     // Add Serilog request logging
     app.UseSerilogRequestLogging();
-
-    // Add rate limiting
-    app.UseMinimalCleanArchRateLimiting();
 
     if (app.Environment.IsDevelopment())
     {
