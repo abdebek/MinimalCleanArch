@@ -2,16 +2,15 @@
 using Serilog;
 #endif
 using Scalar.AspNetCore;
-using MCA.Application.Services;
 using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
-using MCA.Infrastructure.Services;
 using MCA.Application.Commands;
-#if (UseMessaging || UseAuth)
 using MCA.Application.Handlers;
-#endif
 using MCA.Endpoints;
+#if (UseAuth)
+using MCA.Infrastructure.Services;
+#endif
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
@@ -150,8 +149,8 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 builder.Services.AddScoped<ITodoRepository>(sp => new TodoRepository(sp.GetRequiredService<AppDbContext>()));
 builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(sp.GetRequiredService<AppDbContext>()));
 
-// Services
-builder.Services.AddScoped<ITodoService, TodoService>();
+// Application handlers (use cases)
+builder.Services.AddScoped<TodoCommandHandler>();
 #if (UseAudit)
 builder.Services.AddHttpContextAccessor();
 #endif

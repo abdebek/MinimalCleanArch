@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MCA.Application.Interfaces;
 using MCA.Domain.Constants;
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using MCA.Infrastructure.Data;
 #if (SingleProject)
 using MCA.Infrastructure.Configuration;

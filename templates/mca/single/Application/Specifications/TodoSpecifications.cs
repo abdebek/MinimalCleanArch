@@ -1,7 +1,7 @@
 using MCA.Domain.Entities;
 using MinimalCleanArch.Specifications;
 
-namespace MCA.Infrastructure.Specifications;
+namespace MCA.Application.Specifications;
 
 /// <summary>
 /// Specification for filtering todos by search, completion state, priority, and due date.
@@ -45,7 +45,6 @@ public sealed class TodoFilterSpecification : BaseSpecification<Todo>
             AddCriteria(t => t.Priority == priority.Value);
         }
 
-        // Default ordering: priority desc, then earliest due date first
         ApplyOrderByDescending(t => t.Priority);
         ApplyThenBy(t => t.DueDate ?? DateTime.MaxValue);
         UseNoTracking();

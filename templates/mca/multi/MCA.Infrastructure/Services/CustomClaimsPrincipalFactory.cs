@@ -1,5 +1,5 @@
 #if (UseAuth)
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;

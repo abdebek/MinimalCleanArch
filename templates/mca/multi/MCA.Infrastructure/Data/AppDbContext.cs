@@ -5,12 +5,12 @@ using MinimalCleanArch.Execution;
 #if (UseSecurity)
 using MinimalCleanArch.Security.Encryption;
 #endif
-using MinimalCleanArch.Domain.Entities;
 #if (UseAudit)
 using MinimalCleanArch.Audit.Entities;
 using MinimalCleanArch.Audit.Extensions;
 #endif
 #if (UseAuth)
+using MCA.Application.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 #endif

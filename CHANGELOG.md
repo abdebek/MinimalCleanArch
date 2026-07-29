@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- template Todo use cases live in `TodoCommandHandler` (repository + unit of work); removed `ITodoService` / `TodoService` double abstraction
+- template endpoints always call handlers (or Wolverine bus); no service-layer pass-through
+- Todo specifications moved to `Application/Specifications` (query concerns, not infrastructure)
+- `ApplicationUser` moved from Domain to `Application/Identity` so Domain has no ASP.NET Identity dependency
+- multi-project Application no longer references `MinimalCleanArch.Messaging` / Wolverine (host/API owns messaging packages)
+- architecture tests assert Domain is free of Identity and Application is free of Wolverine
+
 ## [0.1.20-preview] - 2026-07-30
 
 ### Added

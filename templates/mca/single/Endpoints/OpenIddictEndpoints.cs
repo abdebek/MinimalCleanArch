@@ -1,6 +1,6 @@
 #if (UseAuth)
 using MCA.Application.Interfaces;
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using MCA.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;

@@ -5,7 +5,7 @@ using MCA.Domain.Events;
 using MinimalCleanArch.Domain.Events;
 #endif
 
-namespace MCA.Domain.Entities;
+namespace MCA.Application.Identity;
 
 public class ApplicationUser : IdentityUser<Guid>, IAuditableEntity
 #if (UseMessaging)

@@ -10,6 +10,7 @@ using MinimalCleanArch.Audit.Entities;
 using MinimalCleanArch.Audit.Extensions;
 #endif
 #if (UseAuth)
+using MCA.Application.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 #endif

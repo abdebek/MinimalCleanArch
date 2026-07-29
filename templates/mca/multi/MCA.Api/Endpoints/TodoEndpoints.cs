@@ -1,9 +1,8 @@
 using MCA.Application.DTOs;
 using MCA.Application.Commands;
+using MCA.Application.Handlers;
 #if (UseMessaging)
 using Wolverine;
-#else
-using MCA.Application.Services;
 #endif
 using MinimalCleanArch.Domain.Common;
 using MinimalCleanArch.Extensions.Extensions;
@@ -157,17 +156,17 @@ public static class TodoEndpoints
 #else
     private static async Task<IResult> GetAllTodos(
         HttpContext httpContext,
-        ITodoService todoService,
+        TodoCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await todoService.GetAllAsync(cancellationToken);
-        return result.MatchHttp(httpContext, value => Results.Ok(value));
+        var result = await handler.Handle(new GetAllTodosQuery(), cancellationToken);
+        return result.MatchHttp(httpContext, value => Results.Ok(value.Items));
     }
 
     private static async Task<IResult> GetTodoById(
         int id,
         HttpContext httpContext,
-        ITodoService todoService,
+        TodoCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var query = new GetTodoByIdQuery(id);
@@ -178,14 +177,14 @@ public static class TodoEndpoints
         }
 #endif
 
-        var result = await todoService.GetByIdAsync(id, cancellationToken);
+        var result = await handler.Handle(query, cancellationToken);
         return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> CreateTodo(
         CreateTodoRequest request,
         HttpContext httpContext,
-        ITodoService todoService,
+        TodoCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new CreateTodoCommand(request.Title, request.Description, request.Priority, request.DueDate);
@@ -196,7 +195,7 @@ public static class TodoEndpoints
         }
 #endif
 
-        var result = await todoService.CreateAsync(request, cancellationToken);
+        var result = await handler.Handle(command, cancellationToken);
         return result.MatchHttp(
             httpContext,
             value => Results.Created($"/api/todos/{value.Id}", value));
@@ -206,7 +205,7 @@ public static class TodoEndpoints
         int id,
         UpdateTodoRequest request,
         HttpContext httpContext,
-        ITodoService todoService,
+        TodoCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new UpdateTodoCommand(id, request.Title, request.Description, request.Priority, request.DueDate);
@@ -217,14 +216,14 @@ public static class TodoEndpoints
         }
 #endif
 
-        var result = await todoService.UpdateAsync(id, request, cancellationToken);
+        var result = await handler.Handle(command, cancellationToken);
         return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 
     private static async Task<IResult> CompleteTodo(
         int id,
         HttpContext httpContext,
-        ITodoService todoService,
+        TodoCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new CompleteTodoCommand(id);
@@ -235,14 +234,14 @@ public static class TodoEndpoints
         }
 #endif
 
-        var result = await todoService.CompleteAsync(id, cancellationToken);
+        var result = await handler.Handle(command, cancellationToken);
         return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 
     private static async Task<IResult> DeleteTodo(
         int id,
         HttpContext httpContext,
-        ITodoService todoService,
+        TodoCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new DeleteTodoCommand(id);
@@ -253,7 +252,7 @@ public static class TodoEndpoints
         }
 #endif
 
-        var result = await todoService.DeleteAsync(id, cancellationToken);
+        var result = await handler.Handle(command, cancellationToken);
         return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 #endif

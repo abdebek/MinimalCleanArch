@@ -32,6 +32,20 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void Domain_Should_Not_Depend_On_AspNetIdentity()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("Microsoft.AspNetCore.Identity")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of ASP.NET Identity types (ApplicationUser lives in MCA.Application.Identity)");
+    }
+
+    [Fact]
     public void Application_Should_Not_Depend_On_Infrastructure()
     {
         var assembly = typeof(TodoResponse).Assembly;
@@ -43,6 +57,21 @@ public class ArchitectureTests
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Application_Should_Not_Depend_On_Wolverine()
+    {
+        var assembly = typeof(TodoResponse).Assembly;
+        var result = Types.InAssembly(assembly)
+            .That()
+            .ResideInNamespace("MCA.Application")
+            .Should()
+            .NotHaveDependencyOn("Wolverine")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Application use-case handlers should not reference Wolverine; host/messaging packages wire that up");
     }
 
     [Fact]

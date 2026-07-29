@@ -1,6 +1,6 @@
 using MCA.Application.Interfaces;
 using MCA.Domain.Constants;
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using MCA.Infrastructure.Configuration;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Providers;

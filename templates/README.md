@@ -361,18 +361,18 @@ Feature blocks for database, auth, messaging, audit, OpenTelemetry exporters, an
 
 ### Generated Dependency Direction
 
-- `Domain` depends on nothing else in the generated solution.
-- `Application` depends on `Domain`.
+- `Domain` depends on nothing else in the generated solution (no ASP.NET Identity, EF, or Wolverine).
+- `Application` depends on `Domain` (and Identity *stores* only when `--auth` is on, for `ApplicationUser` / `UserManager`).
 - `Infrastructure` depends on `Application` and `Domain`.
 - `Api` depends on `Application`, `Infrastructure`, and `Domain`.
 - In single-project mode, folders stay separated by responsibility even though they compile into one project.
 - HTTP, persistence, messaging, and encryption concerns stay out of `Domain`.
 
 ## What Stays Where
-- `Domain`: business entities, invariants, repository contracts, specifications, value objects, domain events, and no infrastructure frameworks.
-- `Application`: commands, queries, handlers, and use-case orchestration over domain contracts.
-- `Infrastructure`: EF Core, Identity/OpenIddict, messaging transports, email senders, encryption, caching implementations, and external integrations.
-- `Api` or top-level host: endpoint mapping, middleware, auth policies, OpenAPI/Scalar, service registration, and environment-specific startup behavior.
+- `Domain`: business entities (e.g. `Todo`), invariants, repository contracts, value objects, domain events — no infrastructure frameworks and no ASP.NET Identity.
+- `Application`: commands, queries, **use-case handlers** (own the business orchestration), specifications, validators, and when `--auth` is on `ApplicationUser` under `Application/Identity`.
+- `Infrastructure`: EF Core, OpenIddict wiring, repository implementations, email senders, encryption, caching implementations, and external integrations.
+- `Api` or top-level host: endpoint mapping, middleware, auth policies, OpenAPI/Scalar, Wolverine host setup, service registration.
 
 This is the main rule the template is trying to preserve: dependencies point inward toward the domain model, while frameworks and operational concerns stay at the edges.
 
@@ -394,10 +394,11 @@ This is the main rule the template is trying to preserve: dependencies point inw
 
 1. Endpoint receives HTTP request and maps payload to command/query.
 2. Optional FluentValidation runs via `HttpContext.ValidateAsync(...)` (or `WithValidation<T>()` for body parameters).
-3. Application handler executes use-case through domain contracts/repositories.
-4. Domain entities enforce invariants and may raise domain events.
-5. Infrastructure persists state and publishes/handles events.
-6. Endpoint maps `Result` / `Result<T>` with `MatchHttp` / `ToProblem` to RFC 7807 ProblemDetails (not plain string `BadRequest`/`NotFound` bodies).
+3. Endpoint invokes the application handler (directly, or via Wolverine `IMessageBus` when `--messaging` is on).
+4. Handler runs the use case through domain contracts/repositories and specifications.
+5. Domain entities enforce invariants and may raise domain events.
+6. Infrastructure persists state; messaging host publishes/handles events when enabled.
+7. Endpoint maps `Result` / `Result<T>` with `MatchHttp` / `ToProblem` to RFC 7807 ProblemDetails.
 
 ## Auth and Security Notes
 

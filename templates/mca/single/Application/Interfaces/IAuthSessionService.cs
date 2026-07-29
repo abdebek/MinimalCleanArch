@@ -1,5 +1,5 @@
 #if (UseAuth)
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using MinimalCleanArch.Domain.Common;
 
 namespace MCA.Application.Interfaces;
