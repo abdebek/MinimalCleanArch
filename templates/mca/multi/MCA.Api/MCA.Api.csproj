@@ -13,20 +13,20 @@
     <!-- Always referenced for MatchHttp / ValidateAsync / endpoint filters -->
     <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
     <!--#if (UseSerilog)-->
-    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <!--#endif-->
     <!--#if (UseHealthChecks)-->
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
     <!--#if (UseSqlite)-->
-    <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="8.0.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="9.0.0" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="AspNetCore.HealthChecks.Npgsql" Version="8.0.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.Npgsql" Version="9.0.0" />
     <!--#endif-->
     <!--#endif-->
     <!--#if (UseValidation)-->

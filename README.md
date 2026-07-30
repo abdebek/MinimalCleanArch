@@ -73,6 +73,11 @@ For template options, generated structure, and architecture details, see [`templ
 - This is required because generated projects reference both `MinimalCleanArch.*` packages and pinned third-party packages.
 - Use local-feed-only validation only if your feed mirrors every external dependency used by the templates.
 
+## Package management
+- Repo libraries/sample/tests use **Central Package Management** (`eng/Directory.Packages.props`).
+- Generated templates keep explicit package versions (no CPM dependency).
+- See [`docs/package-management.md`](docs/package-management.md).
+
 ## Preferred Integration Path
 For new applications, the recommended order is:
 1. Model entities, repository contracts, and specifications with `MinimalCleanArch`.

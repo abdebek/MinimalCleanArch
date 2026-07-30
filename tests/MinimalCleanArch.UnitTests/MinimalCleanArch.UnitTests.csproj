@@ -1,45 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<IsPackable>false</IsPackable>
-		<IsTestProject>true</IsTestProject>
-	</PropertyGroup>
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-		<PackageReference Include="xunit" Version="2.9.3" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="coverlet.collector" Version="6.0.4">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-                <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.3" />
-		<PackageReference Include="Moq" Version="4.20.72" />
-		<PackageReference Include="FluentAssertions" Version="8.8.0" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" VersionOverride="9.0.5" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" VersionOverride="9.0.2" />
+  </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Storage\MinimalCleanArch.Storage.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
-		<ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Storage\MinimalCleanArch.Storage.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
+    <ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
+  </ItemGroup>
 
 </Project>

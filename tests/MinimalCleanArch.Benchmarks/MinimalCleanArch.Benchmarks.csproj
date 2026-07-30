@@ -1,19 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<IsPackable>false</IsPackable>
-	</PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-                <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.3" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
+  </ItemGroup>
 
 </Project>

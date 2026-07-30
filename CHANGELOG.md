@@ -10,6 +10,8 @@ The format is based on Keep a Changelog.
 - template `DatabaseInitializer` with SQLite `EnsureCreated` and SQL Server/PostgreSQL `Migrate` (+ Development fallback)
 - design-time `AppDbContextFactory` for `dotnet ef migrations`
 - template `Database` and `Cors` configuration sections
+- repo **Central Package Management** via `eng/Directory.Packages.props` (imported from src/tests/samples only)
+- `docs/package-management.md` for CPM, template pin policy, and FluentValidation/Wolverine notes
 
 ### Changed
 - template Todo use cases live in `TodoCommandHandler` (repository + unit of work); removed `ITodoService` / `TodoService` double abstraction
@@ -21,6 +23,10 @@ The format is based on Keep a Changelog.
 - CORS is config-driven (`Cors:AllowedOrigins`); non-Development fails closed when empty
 - encryption: Development uses Data Protection helpers; non-Development requires `Encryption:Key` (no committed production key)
 - production `appsettings` keep bootstrap admin seeding disabled; Development enables demo admin only
+- removed unused `FluentValidation.AspNetCore` from Extensions/Validation/sample (FV 12 + DI extensions only)
+- aligned `Microsoft.AspNetCore.OpenApi` on net10 to **10.0.3**
+- template health-check packages bumped from 8.x to **9.0.0**
+- template Serilog.AspNetCore pin aligned to **9.0.0** (matches library)
 
 ## [0.1.20-preview] - 2026-07-30
 

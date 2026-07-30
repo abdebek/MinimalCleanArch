@@ -1,0 +1,10 @@
+<Project>
+  <!--
+    Scaffolded app package versions stay explicit in template .csproj files.
+    Disable central package management for the template packaging project and
+    any intermediate builds under templates/.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

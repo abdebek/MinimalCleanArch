@@ -1,21 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Description>Entity Framework Core implementation for MinimalCleanArch</Description>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Description>Entity Framework Core implementation for MinimalCleanArch</Description>
+  </PropertyGroup>
 
-        <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-                <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
-                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
-        </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="9.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.5" />
+  </ItemGroup>
 
-        <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-                <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
-                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
-        </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+  </ItemGroup>
 
 </Project>

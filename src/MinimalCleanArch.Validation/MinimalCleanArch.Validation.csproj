@@ -1,22 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Description>Validation components for MinimalCleanArch using FluentValidation, including extensions for service registration.</Description>
-		<PackageTags>clean-architecture;validation;fluent-validation</PackageTags>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Description>Validation components for MinimalCleanArch using FluentValidation, including extensions for service registration.</Description>
+    <PackageTags>clean-architecture;validation;fluent-validation</PackageTags>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="FluentValidation" Version="12.1.1" />
-		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-                <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" Condition="'$(TargetFramework)' == 'net9.0'" />
-                <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" Condition="'$(TargetFramework)' == 'net10.0'" />
-	</ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
-		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="9.0.5" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
+    <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+  </ItemGroup>
 
 </Project>

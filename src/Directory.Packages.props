@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '..', 'eng', 'Directory.Packages.props'))" />
+</Project>

@@ -47,9 +47,11 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
-  <!-- Common package references for all projects -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="All" />
-    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+  <!-- Common package references (versions from Directory.Packages.props when CPM is enabled) -->
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'false'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <PackageReference Include="MinVer" PrivateAssets="All" />
   </ItemGroup>
 </Project>
+
+

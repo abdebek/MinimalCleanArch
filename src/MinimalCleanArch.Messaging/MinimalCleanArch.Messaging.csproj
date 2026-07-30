@@ -1,34 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Description>Messaging and event-driven architecture for MinimalCleanArch using Wolverine. Includes domain events, transactional outbox, and background job processing.</Description>
-		<PackageTags>clean-architecture;wolverine;messaging;domain-events;outbox;cqrs</PackageTags>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Description>Messaging and event-driven architecture for MinimalCleanArch using Wolverine. Includes domain events, transactional outbox, and background job processing.</Description>
+    <PackageTags>clean-architecture;wolverine;messaging;domain-events;outbox;cqrs</PackageTags>
+    <!-- NU1608: residual graph noise around Roslyn; packages are pinned centrally in Directory.Packages.props -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
+  </PropertyGroup>
 
-        <ItemGroup>
-                <FrameworkReference Include="Microsoft.AspNetCore.App" />
-                <!-- Wolverine core -->
-                <PackageReference Include="WolverineFx" Version="5.15.0" />
-                <!-- Wolverine EF Core integration for outbox -->
-		<PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.15.0" />
-		<!-- Wolverine HTTP integration for minimal APIs -->
-		<PackageReference Include="WolverineFx.Http" Version="5.15.0" />
-		<!-- Wolverine SQL Server integration for outbox -->
-		<PackageReference Include="WolverineFx.SqlServer" Version="5.15.0" />
-                <!-- Wolverine PostgreSQL integration for outbox -->
-                <PackageReference Include="WolverineFx.Postgresql" Version="5.15.0" />
-                <!-- Pin Roslyn to align with Wolverine dependency (avoid NU1608) -->
-                <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
-                <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.0.0" />
-        </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="WolverineFx.Http" />
+    <PackageReference Include="WolverineFx.SqlServer" />
+    <PackageReference Include="WolverineFx.Postgresql" />
+    <!-- Pin Roslyn with Wolverine to keep the dependency graph aligned -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
+  </ItemGroup>
 
-        <PropertyGroup>
-                <!-- Suppress NU1608 warnings for Roslyn alignment -->
-                <NoWarn>$(NoWarn);NU1608</NoWarn>
-        </PropertyGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+  </ItemGroup>
 
 </Project>

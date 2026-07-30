@@ -1,29 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-	<PropertyGroup>
-		<Description>Sample application demonstrating MinimalCleanArch usage</Description>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Description>Sample application demonstrating MinimalCleanArch usage</Description>
+  </PropertyGroup>
 
-	<ItemGroup>
-                <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
-                <PackageReference Include="Scalar.AspNetCore" Version="2.4.7" />
-                <PackageReference Include="FluentValidation" Version="12.1.1" />
-                <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-                <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
-                <!-- Health check for Entity Framework -->
-                <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.3" />
-        </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
-		<!-- Optional: Audit logging (opt-in) -->
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Audit\MinimalCleanArch.Audit.csproj" />
-		<!-- Optional: Messaging with Wolverine (opt-in) -->
-		<ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Audit\MinimalCleanArch.Audit.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
+  </ItemGroup>
 
 </Project>

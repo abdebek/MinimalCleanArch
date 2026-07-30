@@ -1,26 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Description>Optional audit logging package for MinimalCleanArch. Provides audit log tables, change history tracking, and audit query services. Opt-in feature - only adds overhead when explicitly enabled.</Description>
-		<PackageTags>clean-architecture;audit;audit-log;change-tracking;compliance</PackageTags>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Description>Optional audit logging package for MinimalCleanArch. Provides audit log tables, change history tracking, and audit query services. Opt-in feature - only adds overhead when explicitly enabled.</Description>
+    <PackageTags>clean-architecture;audit;audit-log;change-tracking;compliance</PackageTags>
+  </PropertyGroup>
 
-        <ItemGroup>
-                <FrameworkReference Include="Microsoft.AspNetCore.App" />
-        </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
-        <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
-                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.5" />
-        </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" VersionOverride="9.0.5" />
+  </ItemGroup>
 
-        <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-                <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
-                <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.3" />
-        </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+  </ItemGroup>
 
 </Project>

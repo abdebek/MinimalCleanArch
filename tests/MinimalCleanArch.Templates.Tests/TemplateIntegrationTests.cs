@@ -76,6 +76,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         var content = """
             <Project>
               <PropertyGroup>
+                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
                 <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
                 <NuGetAudit>false</NuGetAudit>
                 <GenerateDocumentationFile>false</GenerateDocumentationFile>
@@ -85,6 +86,16 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
             """;
 
         File.WriteAllText(Path.Combine(projectDir, "Directory.Build.props"), content);
+
+        // Nearest Directory.Packages.props wins; disable CPM so explicit Version= pins work.
+        var packagesProps = """
+            <Project>
+              <PropertyGroup>
+                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+              </PropertyGroup>
+            </Project>
+            """;
+        File.WriteAllText(Path.Combine(projectDir, "Directory.Packages.props"), packagesProps);
     }
 
     [Fact]
