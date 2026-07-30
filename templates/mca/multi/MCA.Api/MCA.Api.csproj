@@ -55,7 +55,7 @@
     <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.2.0" />
     <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.2.0" />
     <!--#endif-->
-    <!--#if (UseOpenTelemetry)-->
+    <!--#if (UseOpenTelemetry && !UseAspire)-->
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
@@ -63,18 +63,21 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Api" Version="1.15.0" />
     <!--#endif-->
+    <!--#if (UseAspire && UseCaching)-->
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.4.6" />
+    <!--#endif-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
-    <!--#if (UseCaching)-->
+    <!--#if (UseCaching && !UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
     <!--#endif-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
-    <!--#if (UseCaching)-->
+    <!--#if (UseCaching && !UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
     <!--#endif-->
   </ItemGroup>
@@ -83,6 +86,9 @@
     <ProjectReference Include="..\MCA.Domain\MCA.Domain.csproj" />
     <ProjectReference Include="..\MCA.Application\MCA.Application.csproj" />
     <ProjectReference Include="..\MCA.Infrastructure\MCA.Infrastructure.csproj" />
+    <!--#if (UseAspire)-->
+    <ProjectReference Include="..\MCA.ServiceDefaults\MCA.ServiceDefaults.csproj" />
+    <!--#endif-->
   </ItemGroup>
 
 </Project>

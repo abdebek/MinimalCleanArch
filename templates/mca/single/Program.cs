@@ -61,8 +61,18 @@ using Wolverine.Postgresql;
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
+#if (UseAspire)
+builder.AddServiceDefaults();
+#endif
 var dbName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
-var connectionString = BuildConnectionString(dbName);
+// Aspire injects ConnectionStrings:appdb for Postgres/SQL Server resources; otherwise DefaultConnection / fallbacks
+var connectionString =
+#if (UseAspire)
+    builder.Configuration.GetConnectionString("appdb")
+    ?? BuildConnectionString(dbName);
+#else
+    BuildConnectionString(dbName);
+#endif
 
 string BuildConnectionString(string databaseName)
 {
@@ -241,8 +251,22 @@ builder.Services.AddHttpClient();
 
 #if (UseCaching)
 // Caching
+#if (UseAspire)
+var redisConnection = builder.Configuration.GetConnectionString("redis");
+if (!string.IsNullOrWhiteSpace(redisConnection))
+{
+    builder.AddRedisDistributedCache("redis");
+    builder.Services.AddMinimalCleanArchDistributedCaching();
+}
+else
+{
+    builder.Services.AddMemoryCache();
+    builder.Services.AddMinimalCleanArchCaching();
+}
+#else
 builder.Services.AddMemoryCache();
 builder.Services.AddMinimalCleanArchCaching();
+#endif
 #endif
 
 #if (UseMessaging)
@@ -290,26 +314,30 @@ builder.Services.AddHealthChecks()
 #endif
 
 #if (UseOpenTelemetry)
-// OpenTelemetry
-var otlpEndpoint = builder.Configuration.GetValue<string>("OpenTelemetry:Endpoint");
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("MCA"))
-    .WithTracing(tracing =>
-    {
-        tracing
+// OpenTelemetry (skip console wiring when Aspire OTLP is active)
+var aspireOtlp = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+if (!aspireOtlp)
+{
+    var otlpEndpoint = builder.Configuration.GetValue<string>("OpenTelemetry:Endpoint");
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(resource => resource.AddService("MCA"))
+        .WithTracing(tracing =>
+        {
+            tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddConsoleExporter();
+
+            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+            {
+                tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+            }
+        })
+        .WithMetrics(metrics => metrics
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddConsoleExporter();
-
-        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
-        {
-            tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
-        }
-    })
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddConsoleExporter());
+            .AddConsoleExporter());
+}
 #endif
 
 // OpenAPI document generation
@@ -380,6 +408,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
+#endif
+#if (UseAspire)
+app.MapDefaultEndpoints();
 #endif
 
 // Map endpoints

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>__MCA_TFM__</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>mca-aspire-apphost</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <!--#if (UsePostgres)-->
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <!--#endif-->
+    <!--#if (UseSqlServer)-->
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.4.6" />
+    <!--#endif-->
+    <!--#if (UseCaching)-->
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.4.6" />
+    <!--#endif-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--#if (MultiProject)-->
+    <ProjectReference Include="..\MCA.Api\MCA.Api.csproj" />
+    <!--#else-->
+    <ProjectReference Include="..\MCA.csproj" />
+    <!--#endif-->
+  </ItemGroup>
+
+</Project>

@@ -272,7 +272,8 @@ Notes:
 |--------|---------|-------------|
 | `--single-project` | false | Single project instead of multi-project solution |
 | `--tests` | false | Include test projects |
-| `--docker` | false | Include Dockerfile and docker-compose.yml |
+| `--docker` | false | Include Dockerfile and docker-compose.yml (ignored when `--aspire` is set) |
+| `--aspire` | false | Include .NET Aspire AppHost + ServiceDefaults for local orchestration |
 
 ### How Options Affect Architecture
 | Option | Main effect on generated solution |
@@ -399,6 +400,33 @@ This is the main rule the template is trying to preserve: dependencies point inw
 5. Domain entities enforce invariants and may raise domain events.
 6. Infrastructure persists state; messaging host publishes/handles events when enabled.
 7. Endpoint maps `Result` / `Result<T>` with `MatchHttp` / `ToProblem` to RFC 7807 ProblemDetails.
+
+## Aspire orchestration (`--aspire`)
+
+When `--aspire` is set, the scaffold includes:
+
+- `{Name}.AppHost` — starts Postgres or SQL Server (when `--db` is not sqlite), optional Redis (when caching is on), and the API
+- `{Name}.ServiceDefaults` — OTLP telemetry, resilience, `/alive` + `/health/ready`
+
+```bash
+# Recommended happy path
+dotnet new mca -n OrderService --recommended --aspire --db postgres
+cd OrderService
+dotnet run --project OrderService.AppHost
+```
+
+Connection names injected by AppHost (stable; not renamed with the project):
+
+| Resource | Connection string name |
+|----------|------------------------|
+| Database | `appdb` |
+| Redis (if caching) | `redis` |
+
+Notes:
+- Requires **Docker** for container resources.
+- `--aspire` disables docker-compose generation (`--docker` / `--all` compose assets are omitted).
+- Prefer `--db postgres` or `--db sqlserver` with Aspire; SQLite still works but without a DB container.
+- When Aspire OTLP is present, console OpenTelemetry exporters from `--opentelemetry` are skipped to avoid double wiring.
 
 ## Database initialization
 

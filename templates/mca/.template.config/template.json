@@ -14,6 +14,7 @@
   "sourceName": "MCA",
   "defaultName": "MyApp",
   "primaryOutputs": [
+    { "path": "MCA.AppHost/MCA.AppHost.csproj", "condition": "(UseAspire)" },
     { "path": "MCA.slnx", "condition": "(MultiProject)" },
     { "path": "MCA.csproj", "condition": "(SingleProject)" }
   ],
@@ -46,7 +47,13 @@
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
-      "description": "Include Docker support (Dockerfile and docker-compose.yml)"
+      "description": "Include Docker support (Dockerfile and docker-compose.yml). Ignored when --aspire is set."
+    },
+    "aspire": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include .NET Aspire AppHost and ServiceDefaults (local orchestration for DB/cache)"
     },
     "serilog": {
       "type": "parameter",
@@ -183,9 +190,13 @@
       "type": "computed",
       "value": "(opentelemetry || all)"
     },
+    "UseAspire": {
+      "type": "computed",
+      "value": "(aspire)"
+    },
     "UseDocker": {
       "type": "computed",
-      "value": "(docker || all)"
+      "value": "((docker || all) && !aspire)"
     },
     "UseTests": {
       "type": "computed",
@@ -273,7 +284,15 @@
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
         { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.slnx", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
-        { "exclude": ["single/**", "multi/**"] }
+        { "exclude": ["single/**", "multi/**", "aspire/**"] }
+      ]
+    },
+    {
+      "source": "aspire",
+      "target": "./",
+      "condition": "(UseAspire)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/obj/**"] }
       ]
     },
     {
@@ -293,6 +312,7 @@
       "condition": "(SingleProject)",
       "modifiers": [
         { "condition": "(!UseDocker)", "exclude": ["Dockerfile", "docker-compose.yml", ".dockerignore"] },
+        { "condition": "(!UseAspire)", "exclude": ["MCA.slnx"] },
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
         { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Services/*Auth*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Interfaces/I*Auth*.cs", "**/Commands/Auth*.cs", "**/Handlers/*Auth*Handler.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
@@ -316,6 +336,16 @@
       "manualInstructions": [{ "text": "Run 'dotnet restore'" }],
       "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
       "continueOnError": true
+    },
+    {
+      "condition": "(UseAspire)",
+      "description": "Run via Aspire AppHost",
+      "manualInstructions": [
+        {
+          "text": "Start with: dotnet run --project <YourApp>.AppHost (folder created next to your API). Requires Docker for Postgres/SQL Server/Redis containers. DB connection name is appdb; Redis is redis when caching is enabled."
+        }
+      ],
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C"
     },
     {
       "condition": "(UseSqlite && UseMessaging)",

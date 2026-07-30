@@ -306,6 +306,87 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         }
     }
 
+    [Fact]
+    public async Task Create_Build_Aspire_MultiProject()
+    {
+        var projectName = "TestAppAspire";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        _output.WriteLine("Generating Aspire multi-project...");
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir,
+            "--recommended", "--aspire", "--db", "postgres"));
+
+        var appHostCsproj = Path.Combine(projectDir, $"{projectName}.AppHost", $"{projectName}.AppHost.csproj");
+        var serviceDefaultsCsproj = Path.Combine(projectDir, $"{projectName}.ServiceDefaults", $"{projectName}.ServiceDefaults.csproj");
+        File.Exists(appHostCsproj).Should().BeTrue("AppHost project should be generated");
+        File.Exists(serviceDefaultsCsproj).Should().BeTrue("ServiceDefaults project should be generated");
+
+        // Stable connection name must not be rewritten by sourceName (MCA → project name)
+        var appHostProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.AppHost", "Program.cs"));
+        appHostProgram.Should().Contain("AddDatabase(\"appdb\")");
+        appHostProgram.Should().NotContain("AddDatabase(\"mca\")");
+
+        var apiProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "Program.cs"));
+        apiProgram.Should().Contain("GetConnectionString(\"appdb\")");
+        apiProgram.Should().Contain("AddServiceDefaults()");
+        apiProgram.Should().Contain("MapDefaultEndpoints()");
+
+        // docker-compose must be omitted when --aspire is set
+        Directory.GetFiles(projectDir, "docker-compose.yml", SearchOption.AllDirectories)
+            .Should().BeEmpty();
+
+        AssertTargetFramework(projectDir, projectName);
+
+        _output.WriteLine("Building Aspire solution (AppHost)...");
+        await RunDotnetCommandAsync(
+            "build",
+            appHostCsproj,
+            "/nodeReuse:false",
+            "/p:NuGetAudit=false",
+            "/p:TreatWarningsAsErrors=false");
+    }
+
+    [Fact]
+    public async Task Create_Build_Aspire_SingleProject()
+    {
+        var projectName = "TestAppAspireSingle";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        _output.WriteLine("Generating Aspire single-project...");
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir,
+            "--single-project", "--recommended", "--aspire", "--db", "sqlserver"));
+
+        var appHostCsproj = Path.Combine(projectDir, $"{projectName}.AppHost", $"{projectName}.AppHost.csproj");
+        File.Exists(appHostCsproj).Should().BeTrue("AppHost project should be generated for single-project");
+        File.Exists(Path.Combine(projectDir, $"{projectName}.csproj")).Should().BeTrue();
+        File.Exists(Path.Combine(projectDir, $"{projectName}.slnx")).Should().BeTrue("single + aspire should include solution file");
+
+        var appHostProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.AppHost", "Program.cs"));
+        appHostProgram.Should().Contain("AddDatabase(\"appdb\")");
+        appHostProgram.Should().Contain("AddSqlServer");
+        // Single-project host references Projects.{Name} not Projects.{Name}_Api
+        appHostProgram.Should().Contain($"Projects.{projectName}");
+        appHostProgram.Should().NotContain($"Projects.{projectName}_Api");
+
+        var program = File.ReadAllText(Path.Combine(projectDir, "Program.cs"));
+        program.Should().Contain("GetConnectionString(\"appdb\")");
+        program.Should().Contain("AddServiceDefaults()");
+
+        AssertTargetFramework(projectDir, projectName);
+
+        _output.WriteLine("Building Aspire single-project AppHost...");
+        await RunDotnetCommandAsync(
+            "build",
+            appHostCsproj,
+            "/nodeReuse:false",
+            "/p:NuGetAudit=false",
+            "/p:TreatWarningsAsErrors=false");
+    }
+
     // Helpers
 
     private string GetHealthUrl() => $"http://localhost:{_appPort}/health";

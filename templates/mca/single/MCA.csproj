@@ -55,13 +55,16 @@
     <PackageReference Include="AspNetCore.HealthChecks.Npgsql" Version="9.0.0" />
     <!--#endif-->
     <!--#endif-->
-    <!--#if (UseOpenTelemetry)-->
+    <!--#if (UseOpenTelemetry && !UseAspire)-->
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Api" Version="1.15.0" />
+    <!--#endif-->
+    <!--#if (UseAspire && UseCaching)-->
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.4.6" />
     <!--#endif-->
     <PackageReference Include="Scalar.AspNetCore" Version="2.4.7" />
   </ItemGroup>
@@ -80,7 +83,9 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
+    <!--#if (!UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
+    <!--#endif-->
     <!--#endif-->
     <!--#if (UseAuth)-->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
@@ -102,7 +107,9 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
     <!--#if (UseCaching)-->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
+    <!--#if (!UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
+    <!--#endif-->
     <!--#endif-->
     <!--#if (UseAuth)-->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
@@ -112,6 +119,14 @@
 
   <ItemGroup>
     <Compile Remove="tests/**" />
+    <!--#if (UseAspire)-->
+    <!-- Nested AppHost/ServiceDefaults must not compile into the web project (single-project layout). -->
+    <Compile Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <Content Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <None Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <EmbeddedResource Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <ProjectReference Include="MCA.ServiceDefaults\MCA.ServiceDefaults.csproj" />
+    <!--#endif-->
   </ItemGroup>
 
 </Project>

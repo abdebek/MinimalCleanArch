@@ -78,9 +78,10 @@ For template options, generated structure, and architecture details, see [`templ
 - Generated templates keep explicit package versions (no CPM dependency).
 - See [`docs/package-management.md`](docs/package-management.md).
 
-## Aspire (spike)
-- Local orchestration sample: [`samples/MinimalCleanArch.Aspire/README.md`](samples/MinimalCleanArch.Aspire/README.md)
-- Run: `dotnet run --project samples/MinimalCleanArch.Aspire/MinimalCleanArch.AppHost` (requires Docker)
+## Aspire
+- **Template:** `dotnet new mca -n MyApp --recommended --aspire --db postgres` then `dotnet run --project MyApp.AppHost`
+- Connection names: `appdb` (Postgres/SQL Server), `redis` (when caching is enabled)
+- **Sample spike:** [`samples/MinimalCleanArch.Aspire/README.md`](samples/MinimalCleanArch.Aspire/README.md) (sample still uses name `mca`)
 - Direct sample (SQLite, no containers): `dotnet run --project samples/MinimalCleanArch.Sample`
 
 ## Preferred Integration Path

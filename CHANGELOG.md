@@ -9,6 +9,7 @@ The format is based on Keep a Changelog.
 ### Added
 - Aspire orchestration spike under `samples/MinimalCleanArch.Aspire/` (AppHost + ServiceDefaults; Postgres + Redis + Sample API)
 - Sample app supports Aspire-injected connection names `mca` (Postgres) and `redis` (distributed cache); skips MCA OTel console path when Aspire OTLP is present
+- template flag **`--aspire`**: generates `{Name}.AppHost` + `{Name}.ServiceDefaults` (Postgres/SQL Server → connection `appdb`, optional Redis → `redis`; mutual exclusion with docker-compose)
 - template `DatabaseInitializer` with SQLite `EnsureCreated` and SQL Server/PostgreSQL `Migrate` (+ Development fallback)
 - design-time `AppDbContextFactory` for `dotnet ef migrations`
 - template `Database` and `Cors` configuration sections

@@ -4,7 +4,15 @@
     <Project Path="MCA.Application/MCA.Application.csproj" />
     <Project Path="MCA.Domain/MCA.Domain.csproj" />
     <Project Path="MCA.Infrastructure/MCA.Infrastructure.csproj" />
+    <!--#if (UseAspire)-->
+    <Project Path="MCA.ServiceDefaults/MCA.ServiceDefaults.csproj" />
+    <!--#endif-->
   </Folder>
+  <!--#if (UseAspire)-->
+  <Folder Name="/aspire/">
+    <Project Path="MCA.AppHost/MCA.AppHost.csproj" />
+  </Folder>
+  <!--#endif-->
   <!--#if (UseTests)-->
   <Folder Name="/tests/">
     <Project Path="tests/MCA.IntegrationTests/MCA.IntegrationTests.csproj" />
