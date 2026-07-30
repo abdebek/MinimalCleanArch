@@ -9,7 +9,9 @@
     <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +22,7 @@
     <ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.Audit\MinimalCleanArch.Audit.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
+    <ProjectReference Include="..\MinimalCleanArch.Aspire\MinimalCleanArch.ServiceDefaults\MinimalCleanArch.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

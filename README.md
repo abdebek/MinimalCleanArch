@@ -78,6 +78,11 @@ For template options, generated structure, and architecture details, see [`templ
 - Generated templates keep explicit package versions (no CPM dependency).
 - See [`docs/package-management.md`](docs/package-management.md).
 
+## Aspire (spike)
+- Local orchestration sample: [`samples/MinimalCleanArch.Aspire/README.md`](samples/MinimalCleanArch.Aspire/README.md)
+- Run: `dotnet run --project samples/MinimalCleanArch.Aspire/MinimalCleanArch.AppHost` (requires Docker)
+- Direct sample (SQLite, no containers): `dotnet run --project samples/MinimalCleanArch.Sample`
+
 ## Preferred Integration Path
 For new applications, the recommended order is:
 1. Model entities, repository contracts, and specifications with `MinimalCleanArch`.

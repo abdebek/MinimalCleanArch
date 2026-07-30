@@ -20,6 +20,16 @@ The sample uses the preferred MCA host APIs:
 
 Generated apps from `dotnet new mca` with polish features (`--recommended`, etc.) follow the same pattern.
 
+### Aspire (optional)
+
+To run with Postgres + Redis + the Aspire dashboard:
+
+```bash
+dotnet run --project ../MinimalCleanArch.Aspire/MinimalCleanArch.AppHost
+```
+
+See [`../MinimalCleanArch.Aspire/README.md`](../MinimalCleanArch.Aspire/README.md). Direct `dotnet run` of this sample still uses SQLite and in-memory cache.
+
 ## Quick Run
 
 ```bash

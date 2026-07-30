@@ -9,6 +9,8 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MinimalCleanArch.Sample/MinimalCleanArch.Sample.csproj" />
+    <Project Path="samples/MinimalCleanArch.Aspire/MinimalCleanArch.AppHost/MinimalCleanArch.AppHost.csproj" />
+    <Project Path="samples/MinimalCleanArch.Aspire/MinimalCleanArch.ServiceDefaults/MinimalCleanArch.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj" />
