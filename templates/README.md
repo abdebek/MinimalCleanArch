@@ -272,7 +272,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | Option | Description |
 |--------|-------------|
 | `--recommended` | Includes: serilog, healthchecks, validation, security, caching, ratelimiting |
-| `--all` | Includes: auth, messaging, audit, opentelemetry, docker, tests (plus recommended set) |
+| `--all` | Includes: auth, messaging, audit, opentelemetry, storage, docker, tests (plus recommended set) |
 
 ### Project Structure
 | Option | Default | Description |
@@ -281,6 +281,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--tests` | false | Include test projects |
 | `--docker` | false | Include Dockerfile and docker-compose.yml (ignored when `--aspire` is set) |
 | `--aspire` | false | Include .NET Aspire AppHost + ServiceDefaults for local orchestration |
+| `--storage` | false | Include MinimalCleanArch.Storage (Azure Blob / Azurite signed URLs) |
 
 ### How Options Affect Architecture
 | Option | Main effect on generated solution |
@@ -289,7 +290,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--tests` | Adds unit and integration test projects or test targets for the generated app |
 | `--docker` | Adds container build and local deployment assets (`Dockerfile`, `docker-compose.yml`, generated `scripts/`) |
 | `--recommended` | Enables common API-facing concerns such as logging, validation, health checks, security, caching, and rate limiting |
-| `--all` | Builds on `--recommended` and adds auth, messaging, audit, telemetry, tests, and deployment assets |
+| `--all` | Builds on `--recommended` and adds auth, messaging, audit, telemetry, storage, tests, and deployment assets |
 
 ### Features
 | Option | Description |
@@ -304,6 +305,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--messaging` | Wolverine domain events |
 | `--audit` | Audit logging |
 | `--opentelemetry` | Distributed tracing |
+| `--storage` | Blob storage via `MinimalCleanArch.Storage` (Azure Blob / Azurite) |
 
 ### Feature-to-Layer Impact
 | Feature | Generated layers most affected | What changes |
@@ -315,6 +317,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--messaging` | `Application`, `Infrastructure`, `Api` | Adds domain-event handlers/contracts plus Wolverine setup and transport wiring |
 | `--audit` | `Infrastructure`, `Api` | Adds audit persistence, interception, and registration |
 | `--opentelemetry` | `Api` | Adds tracing/telemetry host configuration |
+| `--storage` | `Api` (host) | Adds `IBlobStorage` registration, `/api/storage/*` signed URL endpoints, Azurite in compose when `--docker` |
 | `--docker` | solution root / host assets | Adds container and deployment workflow assets, not domain rules |
 
 ### Database
@@ -420,6 +423,24 @@ When `--aspire` is set, the scaffold includes:
 dotnet new mca -n OrderService --recommended --aspire --db postgres
 cd OrderService
 dotnet run --project OrderService.AppHost
+# or: ./scripts/run-apphost.sh
+```
+
+## Blob storage (`--storage`)
+
+When `--storage` (or `--all`) is set:
+
+- References `MinimalCleanArch.Storage`
+- Registers `AddAzureBlobStorage(configuration)` (section `BlobStorage`)
+- Maps `/api/storage/upload-url` and `/api/storage/download-url`
+- With `--docker`, adds an **Azurite** service and wires the API connection string
+
+Local defaults use the Azurite/devstore connection (`UseDevelopmentStorage=true`). Override `BlobStorage:ConnectionString` / `ContainerName` for production accounts.
+
+```bash
+dotnet new mca -n MediaApi --recommended --storage --docker
+# start Azurite + API via compose, then:
+# POST /api/storage/upload-url  { "blobKey": "uploads/a.pdf", "contentType": "application/pdf", "byteLength": 1024 }
 ```
 
 Connection names injected by AppHost (stable; not renamed with the project):

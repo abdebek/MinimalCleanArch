@@ -57,13 +57,26 @@ public class TemplateTestFixture : IAsyncLifetime
         var packagePath = candidateDirs
             .Where(Directory.Exists)
             .SelectMany(dir => Directory.GetFiles(dir, "MinimalCleanArch.Templates*.nupkg", SearchOption.TopDirectoryOnly)
-                .Where(file => !file.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase)))
+                .Where(IsMainTemplatePackage))
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .FirstOrDefault();
 
         var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.1.20-preview";
 
         return (packagePath ?? TemplatePath, version);
+    }
+
+    private static bool IsMainTemplatePackage(string file)
+    {
+        // Exclude symbol packages (both .snupkg and legacy *.symbols.nupkg naming).
+        if (file.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var name = Path.GetFileName(file);
+        return name.StartsWith("MinimalCleanArch.Templates.", StringComparison.OrdinalIgnoreCase)
+            && !name.Contains(".symbols.", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? ExtractVersion(string? packagePath)
@@ -80,7 +93,14 @@ public class TemplateTestFixture : IAsyncLifetime
             return null;
         }
 
-        return fileName[prefix.Length..];
+        var version = fileName[prefix.Length..];
+        // Guard against mis-parsed symbol package names (e.g. 0.1.20-preview.symbols).
+        if (version.EndsWith(".symbols", StringComparison.OrdinalIgnoreCase))
+        {
+            version = version[..^".symbols".Length];
+        }
+
+        return version;
     }
 
     private static string? ReadVersionFromCsproj()

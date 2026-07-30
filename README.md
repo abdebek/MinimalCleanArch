@@ -37,7 +37,7 @@ For template options, generated structure, and architecture details, see [`templ
 ## Why Use It
 - keep domain rules, repository contracts, and specifications separate from infrastructure concerns
 - add EF Core persistence without pushing EF types into the domain layer
-- bootstrap Minimal API applications with consistent validation, error handling, OpenAPI, rate limiting, and operational defaults
+- bootstrap Minimal API applications with consistent validation, error handling, OpenAPI, rate limiting, optional blob storage (`--storage`), and operational defaults
 - opt into messaging, audit logging, and encryption only when the application actually needs them
 - scaffold new applications with a package set that already follows the intended dependency direction
 

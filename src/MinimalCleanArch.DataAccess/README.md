@@ -3,7 +3,7 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
-- Current stable: 0.1.19-preview (net9.0, net10.0).
+- Current stable: 0.1.20-preview (net9.0, net10.0).
 
 ## Why Use It
 - implement repository and unit-of-work patterns with EF Core instead of hand-rolling the infrastructure layer

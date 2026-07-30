@@ -359,6 +359,38 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
     }
 
     [Fact]
+    public async Task Create_Build_Storage_MultiProject()
+    {
+        var projectName = "TestAppStorage";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        _output.WriteLine("Generating multi-project with --storage...");
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir,
+            "--storage", "--healthchecks"));
+
+        var apiCsproj = Path.Combine(projectDir, $"{projectName}.Api", $"{projectName}.Api.csproj");
+        File.Exists(apiCsproj).Should().BeTrue();
+        File.ReadAllText(apiCsproj).Should().Contain("MinimalCleanArch.Storage");
+
+        var storageEndpoints = Path.Combine(projectDir, $"{projectName}.Api", "Endpoints", "StorageEndpoints.cs");
+        File.Exists(storageEndpoints).Should().BeTrue();
+
+        var apiProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "Program.cs"));
+        apiProgram.Should().Contain("AddAzureBlobStorage");
+        apiProgram.Should().Contain("MapStorageEndpoints");
+
+        var appsettings = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "appsettings.json"));
+        appsettings.Should().Contain("BlobStorage");
+
+        AssertTargetFramework(projectDir, projectName);
+
+        _output.WriteLine("Building storage-enabled solution...");
+        await BuildGeneratedProjectAsync(projectDir);
+    }
+
+    [Fact]
     public async Task Create_Build_Aspire_MultiProject()
     {
         var projectName = "TestAppAspire";

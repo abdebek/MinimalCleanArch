@@ -277,7 +277,8 @@ $scenarios = @(
     @{ Name = "single-default"; Args = @("--single-project"); Aspire = $false; SingleProject = $true },
     @{ Name = "single-recommended"; Args = @("--single-project", "--recommended"); Aspire = $false; SingleProject = $true },
     @{ Name = "single-auth-sqlite"; Args = @("--single-project", "--auth", "--tests"); Aspire = $false; SingleProject = $true },
-    @{ Name = "single-all-sqlite"; Args = @("--single-project", "--all", "--tests"); Aspire = $false; SingleProject = $true }
+    @{ Name = "single-all-sqlite"; Args = @("--single-project", "--all", "--tests"); Aspire = $false; SingleProject = $true },
+    @{ Name = "multi-storage-sqlite"; Args = @("--storage", "--healthchecks"); Aspire = $false; SingleProject = $false }
 )
 
 if (-not $SkipAspire) {

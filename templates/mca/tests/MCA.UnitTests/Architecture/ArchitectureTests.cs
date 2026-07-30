@@ -46,6 +46,20 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void Domain_Should_Not_Depend_On_StoragePackage()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("MinimalCleanArch.Storage")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of storage/provider packages; IBlobStorage belongs in infrastructure/host");
+    }
+
+    [Fact]
     public void Application_Should_Not_Depend_On_Infrastructure()
     {
         var assembly = typeof(TodoResponse).Assembly;

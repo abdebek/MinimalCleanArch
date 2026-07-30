@@ -37,6 +37,9 @@ using MinimalCleanArch.Messaging.Extensions;
 #if (UseAudit)
 using MinimalCleanArch.Audit.Extensions;
 #endif
+#if (UseStorage)
+using MinimalCleanArch.Storage;
+#endif
 #if (UseOpenTelemetry)
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -203,6 +206,11 @@ else
         EnableOperationLogging = false
     });
 }
+#endif
+
+#if (UseStorage)
+// Blob storage (Azure Blob Storage / Azurite). Configure BlobStorage:* in appsettings or env.
+builder.Services.AddAzureBlobStorage(builder.Configuration);
 #endif
 
 #if (UseSecurity)
@@ -415,6 +423,9 @@ app.MapDefaultEndpoints();
 
 // Map endpoints
 app.MapTodoEndpoints();
+#if (UseStorage)
+app.MapStorageEndpoints();
+#endif
 #if (UseAuth)
 app.MapAuthEndpoints(app.Environment.IsDevelopment());
 app.MapOpenIddictEndpoints(app.Environment.IsDevelopment());

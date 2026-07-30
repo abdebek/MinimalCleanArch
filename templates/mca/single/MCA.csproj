@@ -29,6 +29,9 @@
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
     <!--#endif-->
+    <!--#if (UseStorage)-->
+    <PackageReference Include="MinimalCleanArch.Storage" Version="__MCA_VERSION__" />
+    <!--#endif-->
     <!--#if (UseAuth)-->
     <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.6.0" />
     <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.6.0" />

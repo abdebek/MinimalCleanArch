@@ -6,18 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
-### Changed
-- Dependency refresh for configured TFMs (net10 default / net9 overrides):
-  - Microsoft.AspNetCore / EF / Extensions **10.0.10** (net9 **9.0.18**)
-  - Npgsql.EF Core **10.0.3** (net9 **9.0.4**)
-  - OpenTelemetry **1.17.0**, Scalar.AspNetCore **2.16.16**, Serilog.AspNetCore **10.0.0** (net9 **9.0.0**)
-  - WolverineFx **6.24.0** (+ **`WolverineFx.RuntimeCompilation`** for dynamic handler codegen), OpenIddict **7.6.0**, Azure.Identity **1.21.0**, Azure.Storage.Blobs **12.29.1**
-  - Asp.Versioning.Http **10.0.1** (net9 **8.1.1**), test/tooling packages (Testcontainers **4.13.0**, FluentAssertions **8.10.0**, etc.)
-  - Lift transitive `Microsoft.OpenApi` to **2.11.0** (NU1903 on 2.0.0)
-  - `global.json` SDK roll-forward target **10.0.302**
-  - Template package pins aligned with `eng/Directory.Packages.props`
-
 ### Added
+- template flag **`--storage`**: `MinimalCleanArch.Storage` + signed upload/download endpoints; Azurite service when `--docker` is set; included in `--all`
+- architecture test: Domain must not reference `MinimalCleanArch.Storage`
+- template integration test `Create_Build_Storage_MultiProject`
+- validate-templates scenario `multi-storage-sqlite`
 - Aspire orchestration spike under `samples/MinimalCleanArch.Aspire/` (AppHost + ServiceDefaults; Postgres + Redis + Sample API)
 - Sample app supports Aspire-injected connection names `mca` (Postgres) and `redis` (distributed cache); skips MCA OTel console path when Aspire OTLP is present
 - template flag **`--aspire`**: generates `{Name}.AppHost` + `{Name}.ServiceDefaults` (Postgres/SQL Server → connection `appdb`, optional Redis → `redis`; mutual exclusion with docker-compose)

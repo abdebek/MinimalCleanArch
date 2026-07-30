@@ -115,6 +115,12 @@
       "defaultValue": "false",
       "description": "Include OpenTelemetry for distributed tracing"
     },
+    "storage": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include MinimalCleanArch.Storage (Azure Blob / Azurite) for signed upload/download URLs"
+    },
     "db": {
       "type": "parameter",
       "datatype": "choice",
@@ -189,6 +195,10 @@
     "UseOpenTelemetry": {
       "type": "computed",
       "value": "(opentelemetry || all)"
+    },
+    "UseStorage": {
+      "type": "computed",
+      "value": "(storage || all)"
     },
     "UseAspire": {
       "type": "computed",
@@ -285,6 +295,7 @@
         // No local scripts when neither docker nor aspire
         { "condition": "(!UseDocker && !UseAspire)", "exclude": ["scripts/**"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
+        { "condition": "(!UseStorage)", "exclude": ["**/StorageEndpoints.cs"] },
         { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
         { "condition": "(!UseDurableMessaging)", "exclude": ["tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
