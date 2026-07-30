@@ -24,18 +24,18 @@ public class AuthSessionService(
             ?? await _userManager.FindByNameAsync(emailOrUserName);
         if (user is null)
         {
-            return Result.Failure<ApplicationUser>(new Error("INVALID_CREDENTIALS", "Invalid credentials"));
+            return Result.Failure<ApplicationUser>(Error.Unauthorized("INVALID_CREDENTIALS", "Invalid credentials"));
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
         if (result.IsLockedOut)
         {
-            return Result.Failure<ApplicationUser>(new Error("LOCKED_OUT", "Account is locked out."));
+            return Result.Failure<ApplicationUser>(Error.Forbidden("LOCKED_OUT", "Account is locked out."));
         }
 
         if (!result.Succeeded)
         {
-            return Result.Failure<ApplicationUser>(new Error("INVALID_CREDENTIALS", "Invalid credentials"));
+            return Result.Failure<ApplicationUser>(Error.Unauthorized("INVALID_CREDENTIALS", "Invalid credentials"));
         }
 
         return Result.Success(user);

@@ -277,11 +277,20 @@
       "source": "./",
       "target": "./",
       "modifiers": [
-        { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore", "scripts/**"] },
+        { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
+        // Docker-only deploy scripts
+        { "condition": "(!UseDocker)", "exclude": ["scripts/compose-up.*", "scripts/compose-down.*", "scripts/deploy.*", "scripts/kind-smoke.*", "scripts/publish.*"] },
+        // Aspire AppHost helper (not used without --aspire)
+        { "condition": "(!UseAspire)", "exclude": ["scripts/run-apphost.*"] },
+        // No local scripts when neither docker nor aspire
+        { "condition": "(!UseDocker && !UseAspire)", "exclude": ["scripts/**"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
         { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
         { "condition": "(!UseDurableMessaging)", "exclude": ["tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
+        // Auth suite is heavy and shares one factory/client; endpoint rate policies (TokenBucket) cause 429 under --all/--ratelimiting.
+        // Auth is covered by multi-auth / single-auth scenarios; rate limiting has its own tests.
+        { "condition": "(UseRateLimiting)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
         { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.slnx", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**", "aspire/**"] }

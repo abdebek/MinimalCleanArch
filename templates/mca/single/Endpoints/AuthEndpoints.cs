@@ -275,7 +275,9 @@ public static class AuthEndpoints
 #endif
                 if (result.IsSuccess)
                 {
-                    return Results.Redirect(result.Value.RedirectUrl ?? "/");
+                    // LocalRedirect preserves '?' in relative return URLs (OpenIddict authorize query).
+                    // Results.Redirect can percent-encode '?' to %3F, which breaks /connect/authorize routing.
+                    return Results.LocalRedirect(result.Value.RedirectUrl ?? "/");
                 }
 
                 if (result.Error.Code == "LOCKED_OUT")

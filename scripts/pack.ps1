@@ -144,3 +144,12 @@ if ($packages.Count -eq 0) {
 
 Write-Host ""
 Write-Host "All packages ready for publishing!" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next steps:" -ForegroundColor Green
+Write-Host "  # Validate generated templates (includes --aspire AppHost builds by default)" -ForegroundColor Cyan
+if (-not [string]::IsNullOrWhiteSpace($PackageVersion)) {
+    Write-Host "  ./scripts/validate-templates.ps1 -McaVersion $PackageVersion" -ForegroundColor Cyan
+} else {
+    Write-Host "  ./scripts/validate-templates.ps1 -McaVersion <version-matching-packages>" -ForegroundColor Cyan
+}
+Write-Host "  ./scripts/publish.ps1 -WhatIf" -ForegroundColor Cyan

@@ -152,7 +152,12 @@ public class TestApiFactory : WebApplicationFactory<Program>
         {
             configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Database:EnsureCreated"] = "false"
+                ["Database:EnsureCreated"] = "false",
+                // Keep Todo tests independent of rate-limit noise when --all is used.
+                ["RateLimiting:EnableGlobalLimiter"] = "false",
+                ["RateLimiting:FixedPermitLimit"] = "10000",
+                ["RateLimiting:TokenBucketLimit"] = "10000",
+                ["RateLimiting:TokensPerPeriod"] = "10000"
             });
         });
         builder.ConfigureServices(services =>
@@ -170,11 +175,22 @@ public class TestApiFactory : WebApplicationFactory<Program>
 #endif
             });
 
-            // Ensure database is created for each test run
-            using var sp = services.BuildServiceProvider();
-            using var scope = sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
+            // Ensure database is created for each test run.
+            // Wolverine registers IAsyncDisposable-only services — must not Dispose() the temp provider.
+            var sp = services.BuildServiceProvider();
+            try
+            {
+                using var scope = sp.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.EnsureCreated();
+            }
+            finally
+            {
+                if (sp is IAsyncDisposable asyncDisposable)
+                    asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                else
+                    sp.Dispose();
+            }
         });
     }
 }

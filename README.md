@@ -69,8 +69,13 @@ For template options, generated structure, and architecture details, see [`templ
 - Latest packages/templates: `0.1.20-preview`
 
 ## Local Validation
-- Template validation uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
-- This is required because generated projects reference both `MinimalCleanArch.*` packages and pinned third-party packages.
+```bash
+./scripts/pack.sh --package-version 0.1.20-preview
+./scripts/validate-templates.sh -McaVersion 0.1.20-preview   # or: ./scripts/validate-templates.ps1
+```
+- Wrappers live under `scripts/`; implementation is `templates/scripts/validate-templates.ps1`.
+- Scaffolds multi/single variants (including **Aspire AppHost** builds by default; `-SkipAspire` to omit).
+- Uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
 - Use local-feed-only validation only if your feed mirrors every external dependency used by the templates.
 
 ## Package management
@@ -79,7 +84,8 @@ For template options, generated structure, and architecture details, see [`templ
 - See [`docs/package-management.md`](docs/package-management.md).
 
 ## Aspire
-- **Template:** `dotnet new mca -n MyApp --recommended --aspire --db postgres` then `dotnet run --project MyApp.AppHost`
+- **Template:** `dotnet new mca -n MyApp --recommended --aspire --db postgres`
+- **Run:** `./scripts/run-apphost.sh` / `pwsh ./scripts/run-apphost.ps1` (or `dotnet run --project MyApp.AppHost`)
 - Connection names: `appdb` (Postgres/SQL Server), `redis` (when caching is enabled)
 - **Sample spike:** [`samples/MinimalCleanArch.Aspire/README.md`](samples/MinimalCleanArch.Aspire/README.md) (sample still uses name `mca`)
 - Direct sample (SQLite, no containers): `dotnet run --project samples/MinimalCleanArch.Sample`

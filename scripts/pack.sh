@@ -178,6 +178,15 @@ fi
 
 echo ""
 echo "All packages ready for publishing!"
+echo ""
+echo "Next steps:"
+echo "  # Validate generated templates (includes --aspire AppHost builds by default)"
+if [ -n "$PACKAGE_VERSION" ]; then
+    echo "  ./scripts/validate-templates.sh -McaVersion $PACKAGE_VERSION"
+else
+    echo "  ./scripts/validate-templates.sh -McaVersion <version-matching-packages>"
+fi
+echo "  ./scripts/publish.sh --what-if"
 
 if [ $success_count -eq 0 ]; then
     echo "Error: No packages were created successfully"

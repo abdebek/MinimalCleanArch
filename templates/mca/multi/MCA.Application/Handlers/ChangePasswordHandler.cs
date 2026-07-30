@@ -19,12 +19,12 @@ public class ChangePasswordHandler
         var user = await _userManager.FindByIdAsync(command.UserId);
         if (user == null)
         {
-            return Result.Failure(new Error("NOT_FOUND", "User not found"));
+            return Result.Failure(Error.NotFound("NOT_FOUND", "User not found"));
         }
 
         var result = await _userManager.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword);
         return result.Succeeded
             ? Result.Success()
-            : Result.Failure(new Error("CHANGE_FAILED", string.Join("; ", result.Errors.Select(e => e.Description))));
+            : Result.Failure(Error.Validation("CHANGE_FAILED", string.Join("; ", result.Errors.Select(e => e.Description))));
     }
 }

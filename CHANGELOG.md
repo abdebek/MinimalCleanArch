@@ -10,6 +10,13 @@ The format is based on Keep a Changelog.
 - Aspire orchestration spike under `samples/MinimalCleanArch.Aspire/` (AppHost + ServiceDefaults; Postgres + Redis + Sample API)
 - Sample app supports Aspire-injected connection names `mca` (Postgres) and `redis` (distributed cache); skips MCA OTel console path when Aspire OTLP is present
 - template flag **`--aspire`**: generates `{Name}.AppHost` + `{Name}.ServiceDefaults` (Postgres/SQL Server → connection `appdb`, optional Redis → `redis`; mutual exclusion with docker-compose)
+- `templates/scripts/validate-templates.ps1` covers Aspire multi/single scaffolds (AppHost build, `appdb`, docker-compose exclusion; `-SkipAspire` to omit)
+- repo wrappers `scripts/validate-templates.ps1` / `.sh`; `pack.*` prints validate as next step
+- generated `--aspire` apps include `scripts/run-apphost.*` + `smoke-test.*` (compose/kind/deploy scripts only with `--docker`)
+- auth handlers map Identity failures to typed errors (`Error.Validation` / `NotFound` / `Unauthorized`) so `MatchHttp` returns 400/404/401 instead of 500
+- SSR login uses `Results.LocalRedirect` for relative return URLs; auth integration tests fix Unix `file://` mangling of `/connect/authorize?...`
+- template integration test factories dispose temporary `ServiceProvider` via `IAsyncDisposable` (Wolverine-safe)
+- rate-limit integration test forces global permit=1 via `ConfigureTestServices`; auth integration tests omitted when `--ratelimiting` is on (covered by auth-only scenarios)
 - template `DatabaseInitializer` with SQLite `EnsureCreated` and SQL Server/PostgreSQL `Migrate` (+ Development fallback)
 - design-time `AppDbContextFactory` for `dotnet ef migrations`
 - template `Database` and `Cors` configuration sections

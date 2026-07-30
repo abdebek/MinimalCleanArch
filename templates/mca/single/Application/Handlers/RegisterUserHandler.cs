@@ -33,7 +33,7 @@ public class RegisterUserHandler
         if (!result.Succeeded)
         {
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            return Result.Failure<Guid>(new Error("REGISTRATION_FAILED", errors));
+            return Result.Failure<Guid>(Error.Validation("REGISTRATION_FAILED", errors));
         }
 
 #if (!UseMessaging)

@@ -156,9 +156,12 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     [Fact]
     public async Task ConfirmEmail_InvalidToken_ReturnsBadRequest()
     {
-        // Use a valid Guid format — UserManager<Guid> will parse it before looking up the user
-        var request = new { userId = Guid.NewGuid().ToString(), token = "bad-token" };
+        // Register first so the failure is invalid token (Validation/400), not missing user (NotFound/404)
+        var email = UniqueEmail();
+        var reg = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+        var regBody = await reg.Content.ReadFromJsonAsync<RegisterResult>();
 
+        var request = new { userId = regBody!.userId, token = "bad-token" };
         var response = await _client.PostAsJsonAsync("/api/auth/confirm-email", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -456,8 +459,20 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
     private static string ToRelativePathAndQuery(string uriOrPath)
     {
-        if (Uri.TryCreate(uriOrPath, UriKind.Absolute, out var absolute))
+        if (string.IsNullOrWhiteSpace(uriOrPath))
+            return uriOrPath;
+
+        // App-relative paths must be returned as-is. On Unix, UriKind.Absolute parses
+        // "/connect/authorize?..." as file:///... and PathAndQuery encodes '?' to %3F,
+        // which breaks the subsequent request to the authorize endpoint.
+        if (uriOrPath.StartsWith('/') && !uriOrPath.StartsWith("//", StringComparison.Ordinal))
+            return uriOrPath;
+
+        if (Uri.TryCreate(uriOrPath, UriKind.Absolute, out var absolute)
+            && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
+        {
             return absolute.PathAndQuery;
+        }
 
         return uriOrPath;
     }
@@ -484,7 +499,14 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
                 ["Seed:AdminPassword"] = "SeededAdmin!123",
                 ["Seed:AdminFirstName"] = "System",
                 ["Seed:AdminLastName"] = "Administrator",
-                ["Seed:AdminRole"] = Roles.Admin
+                ["Seed:AdminRole"] = Roles.Admin,
+                // Auth suite issues many requests; relax limiters when --all/--ratelimiting is on.
+                ["RateLimiting:EnableGlobalLimiter"] = "false",
+                ["RateLimiting:FixedPermitLimit"] = "10000",
+                ["RateLimiting:SlidingPermitLimit"] = "10000",
+                ["RateLimiting:TokenBucketLimit"] = "10000",
+                ["RateLimiting:TokensPerPeriod"] = "10000",
+                ["RateLimiting:ConcurrencyPermitLimit"] = "10000"
             });
         });
         builder.ConfigureServices(services =>
@@ -505,15 +527,26 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
 #endif
             });
 
-            using var bootstrapProvider = services.BuildServiceProvider();
-            using var bootstrapScope = bootstrapProvider.CreateScope();
-            var db = bootstrapScope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
-            var configuration = bootstrapScope.ServiceProvider.GetRequiredService<IConfiguration>();
-            bootstrapScope.ServiceProvider
-                .SeedOpenIddictApplicationsAsync(configuration)
-                .GetAwaiter()
-                .GetResult();
+            // Wolverine registers IAsyncDisposable-only services — must not Dispose() the temp provider.
+            var bootstrapProvider = services.BuildServiceProvider();
+            try
+            {
+                using var bootstrapScope = bootstrapProvider.CreateScope();
+                var db = bootstrapScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.EnsureCreated();
+                var configuration = bootstrapScope.ServiceProvider.GetRequiredService<IConfiguration>();
+                bootstrapScope.ServiceProvider
+                    .SeedOpenIddictApplicationsAsync(configuration)
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            finally
+            {
+                if (bootstrapProvider is IAsyncDisposable asyncDisposable)
+                    asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                else
+                    bootstrapProvider.Dispose();
+            }
 
             // Replace SMTP sender with an in-memory capture sender for auth flow assertions
             services.RemoveAll<IEmailSender>();

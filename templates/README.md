@@ -221,7 +221,9 @@ dotnet new mca -n DurableApp --all --db postgres --tests
 
 ## Deployment Scripts (Generated App)
 
-When you scaffold with `--docker` (or `--all`), the generated app includes `scripts/` for local deployment workflows.
+Generated `scripts/` depend on how you scaffold:
+
+### Docker Compose / kind (`--docker` or `--all`, not with `--aspire`)
 
 Recommended default: Docker Compose
 
@@ -241,24 +243,29 @@ Bash:
 
 Optional local Kubernetes smoke path (kind):
 
-PowerShell:
-
-```powershell
-pwsh ./scripts/deploy.ps1 -Target kind -ImageTag myapp:local
-```
-
-Bash:
-
 ```bash
 ./scripts/deploy.sh --target kind --image-tag myapp:local
+# or: pwsh ./scripts/deploy.ps1 -Target kind -ImageTag myapp:local
 ```
 
 Notes:
 - Compose is the fastest way to validate full local dependencies (API + DB + cache from `docker-compose.yml`).
-- The kind smoke path is best for quick API image validation and local cluster checks.
-- For SQL Server/PostgreSQL generated apps, prefer Compose unless you also deploy matching DB services to your cluster.
-- Compose uses `name: ${COMPOSE_PROJECT_NAME:-mca}`; the generated compose scripts automatically set `COMPOSE_PROJECT_NAME` from the app folder name. You can override it explicitly with `COMPOSE_PROJECT_NAME=...`.
+- Compose uses `name: ${COMPOSE_PROJECT_NAME:-mca}`; generated compose scripts set `COMPOSE_PROJECT_NAME` from the app folder name.
+- Shared helper: `scripts/smoke-test.sh` / `.ps1` (HTTP readiness poll).
 
+### Aspire (`--aspire`)
+
+Docker-compose assets and compose/kind/deploy scripts are **omitted**. Instead you get:
+
+```bash
+./scripts/run-apphost.sh
+# or: pwsh ./scripts/run-apphost.ps1
+# equivalent: dotnet run --project <Name>.AppHost
+```
+
+Also includes `scripts/smoke-test.*` for hitting the API once the host is up (use the Aspire dashboard URL / mapped ports).
+
+`--aspire` and `--docker` are mutually exclusive (`--aspire` wins).
 ## Template Options
 
 ### Presets
@@ -519,17 +526,27 @@ dotnet add package AspNet.Security.OAuth.GitHub
 ## Validate Templates Locally
 
 ```bash
-pwsh ./templates/scripts/validate-templates.ps1 `
-  -TemplatePackagePath ./artifacts/packages `
-  -LocalFeedPath ./artifacts/packages `
-  -McaVersion 0.1.20-preview `
-  -Framework net10.0
+# From repo root — pack then validate
+./scripts/pack.sh --package-version 0.1.20-preview
+./scripts/validate-templates.sh -McaVersion 0.1.20-preview -Framework net10.0
+
+# PowerShell equivalents
+# ./scripts/pack.ps1 -PackageVersion 0.1.20-preview
+# ./scripts/validate-templates.ps1 -McaVersion 0.1.20-preview -Framework net10.0
 ```
 
+`scripts/validate-templates.*` wraps `templates/scripts/validate-templates.ps1` (implementation lives under `templates/scripts/`).
+
 Validation behavior:
-- The script uses the local feed for `MinimalCleanArch.*` packages and `nuget.org` for third-party packages by default.
-- This keeps validation deterministic on clean machines and CI agents.
+- Scaffolds and **builds** multi/single variants (default, recommended, auth, all, SQL Server, Postgres, SQLite).
+- Includes **Aspire** scenarios by default:
+  - multi `--recommended --aspire --db postgres` (builds `{Name}.AppHost`, asserts `scripts/run-apphost.*`)
+  - single `--single-project --recommended --aspire --db sqlserver` (builds `{Name}.AppHost`, checks nested-project exclusions)
+- Aspire checks assert stable connection name `appdb`, `AddServiceDefaults` / `MapDefaultEndpoints`, no `docker-compose.yml`, no compose/kind deploy scripts.
+- Isolates generated apps from the repo `Directory.Build.props` (CPM / TreatWarningsAsErrors / NuGet audit).
+- Uses the local feed for `MinimalCleanArch.*` packages and `nuget.org` for third-party packages by default.
 - Pass `-IncludeNugetOrg:$false` only if your local feed also contains every external package referenced by the generated templates.
+- Pass `-SkipAspire` to omit Aspire scaffolds (e.g. offline without Aspire packages).
 - Pass `-RunDockerE2E` when you want durable SQL Server and PostgreSQL integration tests to run instead of being skipped.
 
 ## Uninstall
