@@ -15,14 +15,25 @@ This keeps CPM **out of** `temp/` template smoke builds and other trees that mus
 - **Transitive pinning** is off (`CentralPackageTransitivePinningEnabled=false`) so net9 graphs are not forced onto net10 package versions
 
 ```xml
-<!-- Directory.Packages.props -->
-<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+<!-- Directory.Packages.props (central = net10 defaults) -->
+<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
 
 <!-- src project -->
-<PackageReference Include="Microsoft.EntityFrameworkCore" /> <!-- uses 10.0.3 -->
-<PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.5"
+<PackageReference Include="Microsoft.EntityFrameworkCore" /> <!-- uses 10.0.10 on net10 -->
+<PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.18"
                   Condition="'$(TargetFramework)' == 'net9.0'" />
 ```
+
+| Channel | Microsoft.AspNetCore / EF / Extensions |
+|---------|----------------------------------------|
+| **net10.0** (default) | **10.0.10** |
+| **net9.0** (`VersionOverride`) | **9.0.18** |
+
+TFM-specific third-party notes:
+- `Serilog.AspNetCore` **10.0.0** (net10) / **9.0.0** (net9)
+- `Asp.Versioning.Http` **10.0.1** (net10) / **8.1.1** (net9)
+- `WolverineFx` **6.24.0**
+- Aspire hosting **13.4.6** (latest stable line)
 
 Build tooling packages (`MinVer`, `SourceLink`) are referenced from `Directory.Build.props` and versioned centrally.
 
@@ -44,7 +55,9 @@ Template packaging under `templates/` sets `ManagePackageVersionsCentrally=false
 
 ## Wolverine / Roslyn
 
-WolverineFx `5.15.0` is pinned centrally. `Microsoft.CodeAnalysis.Common` / `Workspaces.Common` `5.0.0` are pinned next to it in `MinimalCleanArch.Messaging` to keep the dependency graph aligned. Residual `NU1608` is still suppressed on the messaging project if the graph reports unavoidable version range noise.
+WolverineFx **6.24.0** is pinned centrally, including **`WolverineFx.RuntimeCompilation`** (required for `TypeLoadMode.Dynamic` — runtime codegen is no longer in the core package). Hosts that reference `MinimalCleanArch.Messaging` get RuntimeCompilation transitively.
+
+`Microsoft.CodeAnalysis.Common` / `Workspaces.Common` remain at **5.0.0** so BenchmarkDotNet’s exact pin does not conflict. Residual `NU1608` may still be suppressed on the messaging project.
 
 ## Health checks
 

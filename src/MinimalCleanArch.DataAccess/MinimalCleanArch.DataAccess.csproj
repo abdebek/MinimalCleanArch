@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="9.0.5" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.18" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">

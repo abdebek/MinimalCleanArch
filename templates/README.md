@@ -548,6 +548,9 @@ Validation behavior:
 - Pass `-IncludeNugetOrg:$false` only if your local feed also contains every external package referenced by the generated templates.
 - Pass `-SkipAspire` to omit Aspire scaffolds (e.g. offline without Aspire packages).
 - Pass `-RunDockerE2E` when you want durable SQL Server and PostgreSQL integration tests to run instead of being skipped.
+- On **success**, deletes the run directory under `temp/validate/` (pass `-KeepOutput` to retain). On **failure**, keeps it for debugging.
+- Template xUnit tests clean each run’s `temp/MCA_Tests/<id>/` unless `MCA_KEEP_TEMPLATE_OUTPUT=1`.
+- Manual cleanup: `./scripts/clean-temp.sh` (or `pwsh ./scripts/clean-temp.ps1`).
 
 ## Uninstall
 

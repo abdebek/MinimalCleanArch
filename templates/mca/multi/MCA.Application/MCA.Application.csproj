@@ -16,24 +16,24 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.18" />
     <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.18" />
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.18" />
     <!--#endif-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
     <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.10" />
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.10" />
     <!--#endif-->
   </ItemGroup>
 

@@ -13,7 +13,6 @@
     <!-- Always referenced for MatchHttp / ValidateAsync / endpoint filters -->
     <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
     <!--#if (UseSerilog)-->
-    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <!--#endif-->
@@ -32,36 +31,38 @@
     <!--#if (UseValidation)-->
     <PackageReference Include="MinimalCleanArch.Validation" Version="__MCA_VERSION__" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageReference Include="WolverineFx.FluentValidation" Version="5.15.0" />
+    <PackageReference Include="WolverineFx.FluentValidation" Version="6.24.0" />
     <!--#endif-->
-    <PackageReference Include="Scalar.AspNetCore" Version="2.4.7" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
     <!--#if (UseSecurity)-->
     <PackageReference Include="MinimalCleanArch.Security" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="__MCA_VERSION__" />
+    <!-- RuntimeCompilation is required by Wolverine 6 for TypeLoadMode.Dynamic (also brought in by MCA.Messaging) -->
+    <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.24.0" />
     <!--#if (UseDurableMessaging && UseSqlServer)-->
-    <PackageReference Include="WolverineFx.SqlServer" Version="5.15.0" />
+    <PackageReference Include="WolverineFx.SqlServer" Version="6.24.0" />
     <!--#endif-->
     <!--#if (UseDurableMessaging && UsePostgres)-->
-    <PackageReference Include="WolverineFx.Postgresql" Version="5.15.0" />
+    <PackageReference Include="WolverineFx.Postgresql" Version="6.24.0" />
     <!--#endif-->
     <!--#endif-->
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.2.0" />
+    <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.6.0" />
+    <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.6.0" />
+    <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.6.0" />
     <!--#endif-->
     <!--#if (UseOpenTelemetry && !UseAspire)-->
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Api" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.17.0" />
     <!--#endif-->
     <!--#if (UseAspire && UseCaching)-->
     <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.4.6" />
@@ -69,16 +70,22 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <!--#if (UseSerilog)-->
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <!--#endif-->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
     <!--#if (UseCaching && !UseAspire)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
     <!--#endif-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+    <!--#if (UseSerilog)-->
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <!--#endif-->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <!--#if (UseCaching && !UseAspire)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
     <!--#endif-->
   </ItemGroup>
 

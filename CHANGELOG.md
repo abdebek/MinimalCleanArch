@@ -6,12 +6,24 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- Dependency refresh for configured TFMs (net10 default / net9 overrides):
+  - Microsoft.AspNetCore / EF / Extensions **10.0.10** (net9 **9.0.18**)
+  - Npgsql.EF Core **10.0.3** (net9 **9.0.4**)
+  - OpenTelemetry **1.17.0**, Scalar.AspNetCore **2.16.16**, Serilog.AspNetCore **10.0.0** (net9 **9.0.0**)
+  - WolverineFx **6.24.0** (+ **`WolverineFx.RuntimeCompilation`** for dynamic handler codegen), OpenIddict **7.6.0**, Azure.Identity **1.21.0**, Azure.Storage.Blobs **12.29.1**
+  - Asp.Versioning.Http **10.0.1** (net9 **8.1.1**), test/tooling packages (Testcontainers **4.13.0**, FluentAssertions **8.10.0**, etc.)
+  - Lift transitive `Microsoft.OpenApi` to **2.11.0** (NU1903 on 2.0.0)
+  - `global.json` SDK roll-forward target **10.0.302**
+  - Template package pins aligned with `eng/Directory.Packages.props`
+
 ### Added
 - Aspire orchestration spike under `samples/MinimalCleanArch.Aspire/` (AppHost + ServiceDefaults; Postgres + Redis + Sample API)
 - Sample app supports Aspire-injected connection names `mca` (Postgres) and `redis` (distributed cache); skips MCA OTel console path when Aspire OTLP is present
 - template flag **`--aspire`**: generates `{Name}.AppHost` + `{Name}.ServiceDefaults` (Postgres/SQL Server → connection `appdb`, optional Redis → `redis`; mutual exclusion with docker-compose)
 - `templates/scripts/validate-templates.ps1` covers Aspire multi/single scaffolds (AppHost build, `appdb`, docker-compose exclusion; `-SkipAspire` to omit)
 - repo wrappers `scripts/validate-templates.ps1` / `.sh`; `pack.*` prints validate as next step
+- template tests and `validate-templates` clean `temp/` scaffolds by default; `scripts/clean-temp.*` for manual reclaim
 - generated `--aspire` apps include `scripts/run-apphost.*` + `smoke-test.*` (compose/kind/deploy scripts only with `--docker`)
 - auth handlers map Identity failures to typed errors (`Error.Validation` / `NotFound` / `Unauthorized`) so `MatchHttp` returns 400/404/401 instead of 500
 - SSR login uses `Results.LocalRedirect` for relative return URLs; auth integration tests fix Unix `file://` mangling of `/connect/authorize?...`

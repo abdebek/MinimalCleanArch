@@ -104,7 +104,8 @@ if ($WhatIf) {
 $scriptFiles = @(
     "scripts/pack.sh",
     "scripts/publish.sh",
-    "scripts/validate-templates.sh"
+    "scripts/validate-templates.sh",
+    "scripts/clean-temp.sh"
 )
 
 foreach ($script in $scriptFiles) {

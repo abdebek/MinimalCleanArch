@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 
 namespace MinimalCleanArch.Templates.Tests;
 
-public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
+public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsyncLifetime
 {
     private readonly ITestOutputHelper _output;
     private readonly string _testRunId;
@@ -19,6 +19,13 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
     private readonly string _templateVersion;
     private readonly int _appPort;
     private const string TemplateFramework = "net10.0";
+
+    /// <summary>
+    /// When true (env MCA_KEEP_TEMPLATE_OUTPUT=1), scaffold dirs under temp/MCA_Tests are kept for debugging.
+    /// </summary>
+    private static readonly bool KeepTemplateOutput =
+        string.Equals(Environment.GetEnvironmentVariable("MCA_KEEP_TEMPLATE_OUTPUT"), "1", StringComparison.Ordinal)
+        || string.Equals(Environment.GetEnvironmentVariable("MCA_KEEP_TEMPLATE_OUTPUT"), "true", StringComparison.OrdinalIgnoreCase);
 
     public TemplateIntegrationTests(TemplateTestFixture fixture, ITestOutputHelper output)
     {
@@ -30,6 +37,51 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>
         _templateVersion = fixture.TemplateVersion;
         // Unique port per test instance so parallel template runs do not collide on :5000
         _appPort = Random.Shared.Next(5200, 5900);
+    }
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public Task DisposeAsync()
+    {
+        if (KeepTemplateOutput)
+        {
+            _output.WriteLine($"Keeping template output (MCA_KEEP_TEMPLATE_OUTPUT): {_baseOutputDir}");
+            return Task.CompletedTask;
+        }
+
+        TryDeleteDirectory(_baseOutputDir, _output);
+        return Task.CompletedTask;
+    }
+
+    private static void TryDeleteDirectory(string path, ITestOutputHelper? output = null)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
+            return;
+        }
+
+        try
+        {
+            // Builds can leave read-only files; clear attributes before delete.
+            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+                catch
+                {
+                    // Best-effort
+                }
+            }
+
+            Directory.Delete(path, recursive: true);
+            output?.WriteLine($"Cleaned template output: {path}");
+        }
+        catch (Exception ex)
+        {
+            output?.WriteLine($"Warning: failed to clean template output '{path}': {ex.Message}");
+        }
     }
 
     private void CreateNugetConfig(string projectDir)

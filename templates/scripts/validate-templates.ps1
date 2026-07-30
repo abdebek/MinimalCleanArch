@@ -5,6 +5,8 @@ param(
     [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
     [switch]$SkipAspire = $false,
+    # Keep scaffolds under temp/validate for inspection (default: delete on success)
+    [switch]$KeepOutput = $false,
     [bool]$IncludeNugetOrg = $true
 )
 
@@ -303,11 +305,32 @@ $runStamp = Get-Date -Format "yyyyMMddHHmmssfff"
 $workRoot = Join-Path $PSScriptRoot "../../temp/validate/$runStamp"
 New-Item -ItemType Directory -Force -Path $workRoot | Out-Null
 Write-Host "==> Validation output: $workRoot"
+if ($KeepOutput) {
+    Write-Host "==> KeepOutput enabled (scaffolds will not be deleted)"
+}
 $restoreConfigPath = Join-Path $workRoot "NuGet.Config"
 New-RestoreConfig -ConfigPath $restoreConfigPath -FeedPath $localFeed -UseNugetOrg:$IncludeNugetOrg
 
 # Isolate parent of scaffolds from repo Directory.Build.props (MSBuild walks up)
 Write-IsolatedDirectoryBuildProps -ProjectDir $workRoot
+
+function Remove-ValidationOutput {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -Path $Path)) {
+        return
+    }
+    try {
+        Get-ChildItem -Path $Path -Recurse -Force -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                try { $_.Attributes = 'Normal' } catch { }
+            }
+        Remove-Item -Path $Path -Recurse -Force -ErrorAction Stop
+        Write-Host "==> Cleaned validation output: $Path"
+    }
+    catch {
+        Write-Host "WARNING: failed to clean validation output '$Path': $_" -ForegroundColor Yellow
+    }
+}
 
 $buildProps = @(
     "-p:UseSharedCompilation=false",
@@ -417,7 +440,14 @@ foreach ($scenario in $scenarios) {
 
 if ($failedScenarios.Count -gt 0) {
     Write-Host "Validation failed for scenario(s): $($failedScenarios -join ', ')" -ForegroundColor Red
+    Write-Host "Output kept for debugging: $workRoot" -ForegroundColor Yellow
     exit 1
 }
 
 Write-Host "Validation complete. All scenarios passed." -ForegroundColor Green
+
+if (-not $KeepOutput) {
+    Remove-ValidationOutput -Path $workRoot
+} else {
+    Write-Host "Output retained (-KeepOutput): $workRoot"
+}

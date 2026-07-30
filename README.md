@@ -72,9 +72,11 @@ For template options, generated structure, and architecture details, see [`templ
 ```bash
 ./scripts/pack.sh --package-version 0.1.20-preview
 ./scripts/validate-templates.sh -McaVersion 0.1.20-preview   # or: ./scripts/validate-templates.ps1
+./scripts/clean-temp.sh                                      # reclaim temp/MCA_Tests + temp/validate
 ```
 - Wrappers live under `scripts/`; implementation is `templates/scripts/validate-templates.ps1`.
 - Scaffolds multi/single variants (including **Aspire AppHost** builds by default; `-SkipAspire` to omit).
+- Successful validation **deletes** its `temp/validate/<run>/` tree (use `-KeepOutput` to keep). Template tests clean `temp/MCA_Tests/<id>/` after each test unless `MCA_KEEP_TEMPLATE_OUTPUT=1`.
 - Uses two package sources by default: the local `MinimalCleanArch` feed and `nuget.org`.
 - Use local-feed-only validation only if your feed mirrors every external dependency used by the templates.
 
