@@ -33,14 +33,7 @@ public static class DatabaseInitializer
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-#if (UseSqlite)
-        if (ensureCreated)
-        {
-            await db.Database.EnsureCreatedAsync(cancellationToken);
-            logger.LogInformation("SQLite database ensured via EnsureCreated.");
-        }
-#else
-        if (applyMigrations)
+        if (applyMigrations && db.Database.IsRelational())
         {
             var migrations = db.Database.GetMigrations().ToList();
             if (migrations.Count > 0)
@@ -71,6 +64,12 @@ public static class DatabaseInitializer
             logger.LogWarning(
                 "Database ensured via EnsureCreated. Prefer Database:ApplyMigrations with EF migrations for SQL Server/PostgreSQL.");
         }
-#endif
+        else if (applyMigrations)
+        {
+            // applyMigrations was requested but the provider is non-relational (e.g. EF Core
+            // InMemory used in tests). Nothing to do; the host/test is responsible for schema.
+            logger.LogDebug(
+                "Database:ApplyMigrations is true but the context is not relational; skipping schema initialization.");
+        }
     }
 }

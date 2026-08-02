@@ -145,11 +145,19 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
             await using var stream = response.ResponseStream;
             using var sha = SHA256.Create();
             await using var crypto = new CryptoStream(stream, sha, CryptoStreamMode.Read);
-            await using var ms = new MemoryStream();
-            await crypto.CopyToAsync(ms, cancellationToken);
+            // Drain the stream so the hash is computed; discard the bytes but track length
+            // in case the response omits Content-Length.
+            var buffer = new byte[8192];
+            long bytesDrained = 0;
+            int read;
+            while ((read = await crypto.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                bytesDrained += read;
+            }
+
             var hash = Convert.ToHexString(sha.Hash!).ToLowerInvariant();
             var contentType = response.Headers.ContentType ?? "application/octet-stream";
-            var length = response.ContentLength > 0 ? response.ContentLength : ms.Length;
+            var length = response.ContentLength > 0 ? response.ContentLength : bytesDrained;
 
             return new BlobObjectInfo(blobKey, contentType, length, hash);
         }
