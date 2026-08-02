@@ -23,11 +23,15 @@ public static class ServiceCollectionExtensions
             .AddOptions<BlobStorageOptions>()
             .Bind(configuration.GetSection(sectionName))
             .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateOnStart<BlobStorageOptions>();
 
         var provider = configuration.GetSection(sectionName)["Provider"] ?? BlobStorageProviders.Azure;
         if (string.Equals(provider, BlobStorageProviders.R2, StringComparison.OrdinalIgnoreCase))
         {
+            services
+                .AddOptions<BlobStorageOptions>()
+                .Configure(o => o.Provider = BlobStorageProviders.R2)
+                .Validate(R2BlobStorage.ValidateOptions, "BlobStorage Provider=R2 requires R2ServiceUrl, R2AccessKeyId, and R2SecretAccessKey.");
             return services.AddR2BlobStorageCore();
         }
 
@@ -36,7 +40,7 @@ public static class ServiceCollectionExtensions
             .AddOptions<AzureBlobStorageOptions>()
             .Bind(configuration.GetSection(sectionName))
             .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateOnStart<AzureBlobStorageOptions>();
 
         return services.AddAzureBlobStorageCore();
     }
@@ -54,7 +58,7 @@ public static class ServiceCollectionExtensions
             .AddOptions<AzureBlobStorageOptions>()
             .Bind(configuration.GetSection(sectionName))
             .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateOnStart<AzureBlobStorageOptions>();
 
         services
             .AddOptions<BlobStorageOptions>()
@@ -72,7 +76,7 @@ public static class ServiceCollectionExtensions
             .AddOptions<AzureBlobStorageOptions>()
             .Configure(configureOptions)
             .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateOnStart<AzureBlobStorageOptions>();
 
         services.Configure<BlobStorageOptions>(o => o.Provider = BlobStorageProviders.Azure);
 
@@ -92,7 +96,8 @@ public static class ServiceCollectionExtensions
             .Bind(configuration.GetSection(sectionName))
             .Configure(o => o.Provider = BlobStorageProviders.R2)
             .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Validate(R2BlobStorage.ValidateOptions, "BlobStorage Provider=R2 requires R2ServiceUrl, R2AccessKeyId, and R2SecretAccessKey.")
+            .ValidateOnStart<BlobStorageOptions>();
 
         return services.AddR2BlobStorageCore();
     }
@@ -106,7 +111,8 @@ public static class ServiceCollectionExtensions
             .Configure(configureOptions)
             .Configure(o => o.Provider = BlobStorageProviders.R2)
             .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Validate(R2BlobStorage.ValidateOptions, "BlobStorage Provider=R2 requires R2ServiceUrl, R2AccessKeyId, and R2SecretAccessKey.")
+            .ValidateOnStart<BlobStorageOptions>();
 
         return services.AddR2BlobStorageCore();
     }

@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.20-preview] - 2026-08-02
+
 ### Added
 - template flag **`--storage`**: `MinimalCleanArch.Storage` + signed upload/download endpoints; Azurite service when `--docker` is set; included in `--all`
 - **Cloudflare R2** in `MinimalCleanArch.Storage`: `R2BlobStorage`, unified `BlobStorageOptions` (`Provider` = `Azure` | `R2`), `AddBlobStorage` / `AddR2BlobStorage`
@@ -30,10 +32,23 @@ The format is based on Keep a Changelog.
 - template `Database` and `Cors` configuration sections
 - repo **Central Package Management** via `eng/Directory.Packages.props` (imported from src/tests/samples only)
 - `docs/package-management.md` for CPM, template pin policy, and FluentValidation/Wolverine notes
+- `HttpContext.ValidateAsync<T>(...)` in `MinimalCleanArch.Extensions` for validating commands/queries constructed inside Minimal API handlers (RFC 7807 validation problems)
+- `R2BlobStorage.CreateDownloadUrlAsync` honors `R2PublicBaseUrl` (CDN/r2.dev override) when set; falls back to S3 presigned URL when unset
+- single-project `--docker` template includes Azurite service when `--storage` is set (parity with multi-project)
 
 ### Fixed
 - Wolverine 6: `AddMinimalCleanArchMessaging*` sets `ServiceLocationPolicy.AllowedButWarn` so constructor-injected MS.DI handlers work (6.0 default `NotAllowed` caused 500s on `IMessageBus.InvokeAsync`)
 - `validate-templates.ps1` ignores `*.symbols.nupkg` when selecting the template package to install
+- `AzureBlobStorage` now applies `BlobStorageOptions.KeyPrefix` (previously only R2); unified options/docs are accurate for both providers
+- `R2BlobStorage.GetBlobAsync` no longer buffers the entire object into a `MemoryStream` (hashes via a streaming drain with an 8 KB buffer)
+- template `DatabaseInitializer` no longer silently ignores `Database:ApplyMigrations` on the SQLite branch; migrations path is now provider-agnostic and guarded by `Database.IsRelational()` so EF Core InMemory (tests) skips cleanly
+- storage endpoints require authorization when `--auth` is enabled (previously anonymous PUT/GET URL minting for arbitrary keys)
+- R2 credentials (`R2ServiceUrl` / `R2AccessKeyId` / `R2SecretAccessKey`) are validated at host start via `ValidateOnStart` instead of failing on first use
+- template integration tests isolate generated apps under `temp/` from repo `Directory.Build.props` so NuGet audit advisories do not fail smoke builds
+- template integration tests use a unique HTTP port per run to avoid collisions under parallel xUnit execution
+- repository `NoWarn` includes NuGet audit codes (NU1902–NU1904) for known transitive package advisories
+- sample registers FluentValidation user request validators and scans the API validators assembly via `AddMinimalCleanArchApi` (DataAnnotations alone were not enforced by `WithValidation`)
+- generated Todo integration tests assert ProblemDetails for validation and not-found paths
 
 ### Changed
 - template Todo use cases live in `TodoCommandHandler` (repository + unit of work); removed `ITodoService` / `TodoService` double abstraction
@@ -49,13 +64,6 @@ The format is based on Keep a Changelog.
 - aligned `Microsoft.AspNetCore.OpenApi` on net10 to **10.0.3**
 - template health-check packages bumped from 8.x to **9.0.0**
 - template Serilog.AspNetCore pin aligned to **9.0.0** (matches library)
-
-## [0.1.20-preview] - 2026-07-30
-
-### Added
-- `HttpContext.ValidateAsync<T>(...)` in `MinimalCleanArch.Extensions` for validating commands/queries constructed inside Minimal API handlers (RFC 7807 validation problems)
-
-### Changed
 - templates (single + multi) now use preferred host bootstrap: `AddMinimalCleanArchApi(...)` and `UseMinimalCleanArchApiDefaults(...)` whenever API polish features are enabled
 - templates reference `MinimalCleanArch.Extensions` for validation, security, rate limiting, health checks, caching, Serilog, and OpenTelemetry feature sets (not only caching/rate limiting)
 - template host projects always reference `MinimalCleanArch.Extensions` so endpoints can use `MatchHttp` / `ValidateAsync` / filters
@@ -63,14 +71,6 @@ The format is based on Keep a Changelog.
 - template validation uses `ValidateAsync` after mapping to commands/queries (no per-endpoint `IValidator<T>` injection)
 - sample app aligned to the same preferred bootstrap and middleware pipeline
 - docs updated to describe the preferred template/host bootstrap path and Result → ProblemDetails mapping
-
-### Fixed
-- template integration tests isolate generated apps under `temp/` from repo `Directory.Build.props` so NuGet audit advisories do not fail smoke builds
-- template integration tests use a unique HTTP port per run to avoid collisions under parallel xUnit execution
-- repository `NoWarn` includes NuGet audit codes (NU1902–NU1904) for known transitive package advisories
-- sample registers FluentValidation user request validators and scans the API validators assembly via `AddMinimalCleanArchApi` (DataAnnotations alone were not enforced by `WithValidation`)
-- generated Todo integration tests assert ProblemDetails for validation and not-found paths
-
 
 ## [0.1.19] - 2026-03-18
 - stable release following 0.1.19-preview that fixes the version mismatches when default mcaVersion used with later versions, with no any additional changes

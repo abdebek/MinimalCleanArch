@@ -45,19 +45,26 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
 
     private string StorageKey(string blobKey) => _keyPrefix + blobKey;
 
+    /// <summary>
+    /// Validates that required R2 credentials are present. Used for <c>ValidateOnStart</c>
+    /// so misconfigured R2 settings fail at host startup instead of on first use.
+    /// </summary>
+    public static bool ValidateOptions(BlobStorageOptions settings)
+        => !string.IsNullOrWhiteSpace(settings.R2ServiceUrl)
+            && !string.IsNullOrWhiteSpace(settings.R2AccessKeyId)
+            && !string.IsNullOrWhiteSpace(settings.R2SecretAccessKey);
+
     public static IAmazonS3 CreateClient(BlobStorageOptions settings)
     {
-        if (string.IsNullOrWhiteSpace(settings.R2ServiceUrl)
-            || string.IsNullOrWhiteSpace(settings.R2AccessKeyId)
-            || string.IsNullOrWhiteSpace(settings.R2SecretAccessKey))
+        if (!ValidateOptions(settings))
         {
             throw new InvalidOperationException(
                 "BlobStorage Provider=R2 requires R2ServiceUrl, R2AccessKeyId, and R2SecretAccessKey.");
         }
 
         // AWSSDK.S3 v4 defaults to SigV4 (required by R2; SigV2 is unsupported).
-        var credentials = new BasicAWSCredentials(settings.R2AccessKeyId, settings.R2SecretAccessKey);
-        var serviceUrl = settings.R2ServiceUrl.TrimEnd('/');
+        var credentials = new BasicAWSCredentials(settings.R2AccessKeyId!, settings.R2SecretAccessKey!);
+        var serviceUrl = settings.R2ServiceUrl!.TrimEnd('/');
         var config = new AmazonS3Config
         {
             ServiceURL = serviceUrl,

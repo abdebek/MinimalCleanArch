@@ -426,7 +426,13 @@ app.MapDefaultEndpoints();
 // Map endpoints
 app.MapTodoEndpoints();
 #if (UseStorage)
+#if (UseAuth)
+// Storage endpoints mint signed PUT/GET URLs; require an authenticated user when auth is on
+// so anonymous clients cannot mint URLs for arbitrary keys.
+app.MapStorageEndpoints(requireAuthorization: true);
+#else
 app.MapStorageEndpoints();
+#endif
 #endif
 #if (UseAuth)
 app.MapAuthEndpoints(app.Environment.IsDevelopment());

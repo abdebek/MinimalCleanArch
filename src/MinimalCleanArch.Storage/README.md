@@ -71,6 +71,10 @@ Cloudflare R2:
 }
 ```
 
+`KeyPrefix` (optional, e.g. `uploads/`) is prepended to every blob key for both
+`Azure` and `R2` providers — useful for shared containers/buckets. It is
+normalized to end with a `/` when non-empty.
+
 ### Explicit Azure / R2 registration
 
 ```csharp

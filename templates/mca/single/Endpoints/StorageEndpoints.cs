@@ -4,9 +4,14 @@ namespace MCA.Endpoints;
 
 public static class StorageEndpoints
 {
-    public static void MapStorageEndpoints(this IEndpointRouteBuilder app)
+    public static void MapStorageEndpoints(this IEndpointRouteBuilder app, bool requireAuthorization = false)
     {
         var group = app.MapGroup("/api/storage").WithTags("Storage");
+
+        if (requireAuthorization)
+        {
+            group.RequireAuthorization();
+        }
 
         group.MapPost("/upload-url", async (
             CreateUploadUrlRequest request,

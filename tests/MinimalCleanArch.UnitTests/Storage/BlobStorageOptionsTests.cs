@@ -146,4 +146,55 @@ public class BlobStorageOptionsTests
 
         url.ToString().Should().Be(expected);
     }
+
+    [Fact]
+    public void AzureBlobStorageOptions_ResolveKeyPrefix_Normalizes_Prefix()
+    {
+        new AzureBlobStorageOptions { KeyPrefix = null }.ResolveKeyPrefix().Should().Be(string.Empty);
+        new AzureBlobStorageOptions { KeyPrefix = "  " }.ResolveKeyPrefix().Should().Be(string.Empty);
+        new AzureBlobStorageOptions { KeyPrefix = "uploads" }.ResolveKeyPrefix().Should().Be("uploads/");
+        new AzureBlobStorageOptions { KeyPrefix = "uploads/" }.ResolveKeyPrefix().Should().Be("uploads/");
+    }
+
+    [Fact]
+    public void AddBlobStorage_Binds_KeyPrefix_To_AzureBlobStorageOptions()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["BlobStorage:ConnectionString"] = "UseDevelopmentStorage=true",
+                ["BlobStorage:ContainerName"] = "app-data",
+                ["BlobStorage:KeyPrefix"] = "uploads/",
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddAzureBlobStorage(configuration);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AzureBlobStorageOptions>>().Value;
+        options.KeyPrefix.Should().Be("uploads/");
+        options.ResolveKeyPrefix().Should().Be("uploads/");
+    }
+
+    [Fact]
+    public void AddBlobStorage_WithProvider_R2_Fails_Startup_When_Credentials_Missing()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["BlobStorage:Provider"] = "R2",
+                ["BlobStorage:ContainerName"] = "app-data",
+                // R2ServiceUrl / R2AccessKeyId / R2SecretAccessKey omitted
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddBlobStorage(configuration);
+
+        using var provider = services.BuildServiceProvider();
+        var act = () => provider.GetRequiredService<IOptions<BlobStorageOptions>>().Value;
+        act.Should().Throw<OptionsValidationException>();
+    }
 }

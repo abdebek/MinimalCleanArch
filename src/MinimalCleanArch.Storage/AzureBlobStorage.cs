@@ -17,6 +17,9 @@ public sealed class AzureBlobStorage(
     };
 
     private readonly AzureBlobStorageOptions _options = options.Value;
+    private readonly string _keyPrefix = options.Value.ResolveKeyPrefix();
+
+    private string StorageKey(string blobKey) => _keyPrefix + blobKey;
 
     public async Task<BlobUploadDescriptor> CreateUploadAsync(
         string blobKey,
@@ -28,7 +31,7 @@ public sealed class AzureBlobStorage(
         var normalizedContentType = string.IsNullOrWhiteSpace(contentType)
             ? DefaultContentType
             : contentType.Trim();
-        var blobClient = containerClient.GetBlobClient(blobKey);
+        var blobClient = containerClient.GetBlobClient(StorageKey(blobKey));
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(Math.Max(1, _options.UploadUrlTtlMinutes));
 
         return new BlobUploadDescriptor(
@@ -43,7 +46,7 @@ public sealed class AzureBlobStorage(
     public async Task<BlobObjectInfo?> GetBlobAsync(string blobKey, CancellationToken cancellationToken = default)
     {
         var containerClient = await GetContainerClientAsync(cancellationToken);
-        var blobClient = containerClient.GetBlobClient(blobKey);
+        var blobClient = containerClient.GetBlobClient(StorageKey(blobKey));
         if (!await blobClient.ExistsAsync(cancellationToken))
         {
             return null;
@@ -62,7 +65,7 @@ public sealed class AzureBlobStorage(
     public async Task<Uri> CreateDownloadUrlAsync(string blobKey, CancellationToken cancellationToken = default)
     {
         var containerClient = await GetContainerClientAsync(cancellationToken);
-        var blobClient = containerClient.GetBlobClient(blobKey);
+        var blobClient = containerClient.GetBlobClient(StorageKey(blobKey));
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(Math.Max(1, _options.DownloadUrlTtlMinutes));
         return CreateSasUri(blobClient, BlobSasPermissions.Read, expiresAt);
     }
@@ -70,7 +73,7 @@ public sealed class AzureBlobStorage(
     public async Task DeleteAsync(string blobKey, CancellationToken cancellationToken = default)
     {
         var containerClient = await GetContainerClientAsync(cancellationToken);
-        await containerClient.DeleteBlobIfExistsAsync(blobKey, cancellationToken: cancellationToken);
+        await containerClient.DeleteBlobIfExistsAsync(StorageKey(blobKey), cancellationToken: cancellationToken);
     }
 
     private async Task<BlobContainerClient> GetContainerClientAsync(CancellationToken cancellationToken)
