@@ -107,6 +107,8 @@ Recommended guidance:
 - keep provider registration and connection settings in infrastructure or the host
 - use Azurite for local development when targeting Azure Blob Storage in production
 - use R2 API tokens with Object Read & Write; set `R2PublicBaseUrl` when objects are served from a custom domain or r2.dev
+- blob keys must be relative paths within the container/bucket; backslashes are normalized to `/`, `./` segments are collapsed, and `..` traversal / absolute paths / drive specifiers are rejected
+- returned descriptors/info carry the normalized key (no leading `/`, no `..`) so callers see the canonical storage key
 - add app-specific wrappers only when they genuinely add business meaning beyond generic blob operations
 
 ## Local Azurite Notes

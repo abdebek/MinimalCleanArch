@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
@@ -514,6 +515,106 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
             "/nodeReuse:false",
             "/p:NuGetAudit=false",
             "/p:TreatWarningsAsErrors=false");
+    }
+
+    [Fact]
+    public async Task Create_Build_Run_Storage_Endpoints()
+    {
+        var projectName = "TestAppStorageRun";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        _output.WriteLine("Generating --storage --healthchecks single-project...");
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir,
+            "--storage", "--healthchecks"));
+        AssertTargetFramework(projectDir, projectName);
+
+        // Switch to R2 with fake credentials so presign (SigV4) succeeds without a live backend.
+        // AzureBlobStorage SAS generation requires a reachable Azurite; R2 presign is a pure signing call.
+        UpdateAppSettingsBlobStorage(projectDir, projectName);
+
+        // Build
+        _output.WriteLine("Building storage-enabled project...");
+        await BuildGeneratedProjectAsync(projectDir);
+
+        // Run App
+        _output.WriteLine("Running app...");
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var appProcess = StartApp(projectDir, projectName);
+
+        try
+        {
+            await WaitForHealthCheckAsync(GetHealthUrl(), cts.Token);
+            _output.WriteLine("App is healthy; exercising storage endpoints...");
+
+            using var client = new HttpClient { BaseAddress = new Uri($"http://localhost:{_appPort}") };
+
+            // 1. Invalid upload request (missing blobKey) -> validation problem with only the missing fields
+            var invalidUpload = await client.PostAsJsonAsync(
+                "/api/storage/upload-url",
+                new { BlobKey = "", ContentType = "application/pdf", ByteLength = 1024 });
+            invalidUpload.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            var invalidBody = await invalidUpload.Content.ReadAsStringAsync();
+            _output.WriteLine($"Invalid upload response: {invalidBody}");
+            invalidBody.Should().Contain("blobKey");
+            // Content type and byteLength were valid; only blobKey error should be present
+            invalidBody.Should().NotContain("Content type is required");
+            invalidBody.Should().NotContain("Byte length must be greater than zero");
+
+            // 2. Valid upload request -> presigned URL returned (R2 presign is pure SigV4, no network)
+            var validUpload = await client.PostAsJsonAsync(
+                "/api/storage/upload-url",
+                new { BlobKey = "uploads/test.pdf", ContentType = "application/pdf", ByteLength = 1024 });
+            validUpload.StatusCode.Should().Be(HttpStatusCode.OK);
+            var uploadBody = await validUpload.Content.ReadAsStringAsync();
+            _output.WriteLine($"Valid upload response: {uploadBody}");
+            uploadBody.Should().Contain("uploadUrl");
+            uploadBody.Should().Contain("uploads/test.pdf");
+
+            // 3. Valid download request -> presigned URL returned
+            var validDownload = await client.GetAsync("/api/storage/download-url?blobKey=uploads/test.pdf");
+            validDownload.StatusCode.Should().Be(HttpStatusCode.OK);
+            var downloadBody = await validDownload.Content.ReadAsStringAsync();
+            _output.WriteLine($"Valid download response: {downloadBody}");
+            downloadBody.Should().Contain("downloadUrl");
+            downloadBody.Should().Contain("uploads/test.pdf");
+
+            // 4. Path-traversal blob key -> rejected (BlobKeyValidator throws; not 200 OK with a presigned URL)
+            var traversalDownload = await client.GetAsync("/api/storage/download-url?blobKey=../../etc/passwd");
+            traversalDownload.StatusCode.Should().NotBe(HttpStatusCode.OK);
+            var traversalBody = await traversalDownload.Content.ReadAsStringAsync();
+            traversalBody.Should().NotContain("downloadUrl");
+        }
+        finally
+        {
+            if (!appProcess.HasExited)
+            {
+                appProcess.Kill(true);
+            }
+        }
+    }
+
+    private void UpdateAppSettingsBlobStorage(string projectDir, string projectName)
+    {
+        var appSettingsFiles = Directory.GetFiles(projectDir, "appsettings*.json", SearchOption.AllDirectories)
+            .Where(f => !f.Contains("bin") && !f.Contains("obj"))
+            .ToList();
+        foreach (var file in appSettingsFiles)
+        {
+            var json = File.ReadAllText(file);
+            var jNode = JsonNode.Parse(json);
+            if (jNode?["BlobStorage"] is JsonObject blobStorage)
+            {
+                blobStorage["Provider"] = "R2";
+                blobStorage["R2ServiceUrl"] = "https://example.r2.cloudflarestorage.com";
+                blobStorage["R2AccessKeyId"] = "test-key-id";
+                blobStorage["R2SecretAccessKey"] = "test-secret-key";
+                blobStorage["R2BucketName"] = "app-data";
+                File.WriteAllText(file, jNode!.ToString());
+                _output.WriteLine($"Updated BlobStorage in {file}");
+            }
+        }
     }
 
     // Helpers

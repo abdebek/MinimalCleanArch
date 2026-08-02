@@ -35,6 +35,10 @@ The format is based on Keep a Changelog.
 - `HttpContext.ValidateAsync<T>(...)` in `MinimalCleanArch.Extensions` for validating commands/queries constructed inside Minimal API handlers (RFC 7807 validation problems)
 - `R2BlobStorage.CreateDownloadUrlAsync` honors `R2PublicBaseUrl` (CDN/r2.dev override) when set; falls back to S3 presigned URL when unset
 - single-project `--docker` template includes Azurite service when `--storage` is set (parity with multi-project)
+- `BlobKeyValidator` normalizes blob keys (backslash → `/`, collapses `./`, rejects `..`/absolute/drive paths) for both Azure and R2 providers
+- non-Aspire template caching reads `Caching:Redis:ConnectionString` and wires `AddStackExchangeRedisCache` + `AddMinimalCleanArchDistributedCaching` (previously always in-memory outside Aspire); `Caching:Redis` section added to appsettings
+- storage endpoint validation reports only the actually-failed fields instead of all three unconditionally
+- sample Aspire README updated to reflect the shipped `--aspire` template flag
 
 ### Fixed
 - Wolverine 6: `AddMinimalCleanArchMessaging*` sets `ServiceLocationPolicy.AllowedButWarn` so constructor-injected MS.DI handlers work (6.0 default `NotAllowed` caused 500s on `IMessageBus.InvokeAsync`)
@@ -44,6 +48,7 @@ The format is based on Keep a Changelog.
 - template `DatabaseInitializer` no longer silently ignores `Database:ApplyMigrations` on the SQLite branch; migrations path is now provider-agnostic and guarded by `Database.IsRelational()` so EF Core InMemory (tests) skips cleanly
 - storage endpoints require authorization when `--auth` is enabled (previously anonymous PUT/GET URL minting for arbitrary keys)
 - R2 credentials (`R2ServiceUrl` / `R2AccessKeyId` / `R2SecretAccessKey`) are validated at host start via `ValidateOnStart` instead of failing on first use
+- `Create_Build_Storage_MultiProject` template test extended with a live `Create_Build_Run_Storage_Endpoints` test exercising presign + validation + path-traversal rejection
 - template integration tests isolate generated apps under `temp/` from repo `Directory.Build.props` so NuGet audit advisories do not fail smoke builds
 - template integration tests use a unique HTTP port per run to avoid collisions under parallel xUnit execution
 - repository `NoWarn` includes NuGet audit codes (NU1902–NU1904) for known transitive package advisories

@@ -197,4 +197,37 @@ public class BlobStorageOptionsTests
         var act = () => provider.GetRequiredService<IOptions<BlobStorageOptions>>().Value;
         act.Should().Throw<OptionsValidationException>();
     }
+
+    [Theory]
+    [InlineData("uploads/report.pdf", "uploads/report.pdf")]
+    [InlineData("uploads\\report.pdf", "uploads/report.pdf")]
+    [InlineData("uploads/./report.pdf", "uploads/report.pdf")]
+    [InlineData("./uploads/report.pdf", "uploads/report.pdf")]
+    [InlineData("a/b/c", "a/b/c")]
+    public void BlobKeyValidator_Normalizes_Valid_Keys(string input, string expected)
+    {
+        BlobKeyValidator.TryNormalize(input).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("uploads/../../escape")]
+    [InlineData("/absolute")]
+    [InlineData("//unc/share")]
+    [InlineData("C:/windows")]
+    [InlineData("file:foo")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void BlobKeyValidator_Rejects_Invalid_Keys(string input)
+    {
+        BlobKeyValidator.TryNormalize(input).Should().BeNull();
+    }
+
+    [Fact]
+    public void BlobKeyValidator_NormalizeOrThrow_Throws_For_Invalid_Key()
+    {
+        var act = () => BlobKeyValidator.NormalizeOrThrow("../escape");
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*'..' traversal*");
+    }
 }

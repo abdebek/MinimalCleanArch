@@ -43,8 +43,6 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         _keyPrefix = _options.ResolveKeyPrefix();
     }
 
-    private string StorageKey(string blobKey) => _keyPrefix + blobKey;
-
     /// <summary>
     /// Validates that required R2 credentials are present. Used for <c>ValidateOnStart</c>
     /// so misconfigured R2 settings fail at host startup instead of on first use.
@@ -110,7 +108,7 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         long byteLength,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(blobKey);
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
 
         var ttl = Math.Max(1, _options.UploadUrlTtlMinutes);
@@ -119,17 +117,17 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         var request = new GetPreSignedUrlRequest
         {
             BucketName = _bucket,
-            Key = StorageKey(blobKey),
+            Key = _keyPrefix + normalizedKey,
             Verb = HttpVerb.PUT,
             Expires = expires,
             ContentType = contentType,
         };
 
         var url = _s3.GetPreSignedURL(request);
-        _logger.LogDebug("Created R2 upload URL for {BlobKey} expiring {ExpiresAt:o}", blobKey, expires);
+        _logger.LogDebug("Created R2 upload URL for {BlobKey} expiring {ExpiresAt:o}", normalizedKey, expires);
 
         return Task.FromResult(new BlobUploadDescriptor(
-            blobKey,
+            normalizedKey,
             WithEndpointScheme(url, _options),
             expires,
             contentType,
@@ -144,11 +142,11 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         string blobKey,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(blobKey);
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
 
         try
         {
-            using var response = await _s3.GetObjectAsync(_bucket, StorageKey(blobKey), cancellationToken);
+            using var response = await _s3.GetObjectAsync(_bucket, _keyPrefix + normalizedKey, cancellationToken);
             await using var stream = response.ResponseStream;
             using var sha = SHA256.Create();
             await using var crypto = new CryptoStream(stream, sha, CryptoStreamMode.Read);
@@ -166,7 +164,7 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
             var contentType = response.Headers.ContentType ?? "application/octet-stream";
             var length = response.ContentLength > 0 ? response.ContentLength : bytesDrained;
 
-            return new BlobObjectInfo(blobKey, contentType, length, hash);
+            return new BlobObjectInfo(normalizedKey, contentType, length, hash);
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -178,14 +176,14 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         string blobKey,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(blobKey);
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
 
         var publicBase = _options.R2PublicBaseUrl;
         if (!string.IsNullOrWhiteSpace(publicBase))
         {
             var builder = new UriBuilder(publicBase.TrimEnd('/'))
             {
-                Path = CombinePath(publicBase, StorageKey(blobKey)),
+                Path = CombinePath(publicBase, _keyPrefix + normalizedKey),
             };
             return Task.FromResult(builder.Uri);
         }
@@ -196,7 +194,7 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         var request = new GetPreSignedUrlRequest
         {
             BucketName = _bucket,
-            Key = StorageKey(blobKey),
+            Key = _keyPrefix + normalizedKey,
             Verb = HttpVerb.GET,
             Expires = expires,
         };
@@ -214,8 +212,8 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
 
     public async Task DeleteAsync(string blobKey, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(blobKey);
-        await _s3.DeleteObjectAsync(_bucket, StorageKey(blobKey), cancellationToken);
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
+        await _s3.DeleteObjectAsync(_bucket, _keyPrefix + normalizedKey, cancellationToken);
     }
 
     public void Dispose() => _s3.Dispose();

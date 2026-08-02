@@ -18,16 +18,22 @@ public static class StorageEndpoints
             IBlobStorage blobStorage,
             CancellationToken cancellationToken) =>
         {
-            if (string.IsNullOrWhiteSpace(request.BlobKey)
-                || string.IsNullOrWhiteSpace(request.ContentType)
-                || request.ByteLength <= 0)
+            var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            if (string.IsNullOrWhiteSpace(request.BlobKey))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    ["blobKey"] = ["Blob key is required."],
-                    ["contentType"] = ["Content type is required."],
-                    ["byteLength"] = ["Byte length must be greater than zero."]
-                });
+                errors["blobKey"] = ["Blob key is required."];
+            }
+            if (string.IsNullOrWhiteSpace(request.ContentType))
+            {
+                errors["contentType"] = ["Content type is required."];
+            }
+            if (request.ByteLength <= 0)
+            {
+                errors["byteLength"] = ["Byte length must be greater than zero."];
+            }
+            if (errors.Count > 0)
+            {
+                return Results.ValidationProblem(errors);
             }
 
             var descriptor = await blobStorage.CreateUploadAsync(

@@ -1,8 +1,8 @@
-# MinimalCleanArch + .NET Aspire (spike)
+# MinimalCleanArch + .NET Aspire (sample)
 
-Local orchestration spike for the MCA sample: **AppHost** runs Postgres, Redis, and the API with the Aspire dashboard (OTLP).
+Local orchestration sample for the MCA API: **AppHost** runs Postgres, Redis, and the API with the Aspire dashboard (OTLP).
 
-This is **not** a `dotnet new mca --aspire` template yet (Sprint 7). It validates connection naming, service defaults, and OTel before baking into the product template.
+The `--aspire` template flag is now available (`dotnet new mca --aspire ...`) and generates an AppHost + ServiceDefaults for new projects. **This sample** is the reference implementation the template was derived from — it stays in the repo to validate Aspire integration against the live MCA packages without a scaffolding step.
 
 ## Prerequisites
 
@@ -61,13 +61,15 @@ Fallback for local non-Aspire runs:
 
 The sample keeps **in-memory Wolverine** even under Aspire for this spike. Durable outbox against the Aspire Postgres connection is a follow-up (`AddMinimalCleanArchMessagingWithPostgres` using the `mca` connection string).
 
-## Lessons for Sprint 7 (`--aspire` template)
+## Generating a new Aspire project
 
-1. AppHost + ServiceDefaults are outer composition only — Domain/Application stay unchanged.
-2. Prefer named connection strings (`mca`, `redis`) over hand-built compose URLs.
-3. `WaitFor` resources before starting the API.
-4. Disable console OTel exporters when Aspire OTLP is configured.
-5. Keep docker-compose and Aspire mutually exclusive in the template matrix.
+To scaffold a new MCA app with Aspire orchestration instead of using this sample:
+
+```bash
+dotnet new mca -n MyApp --aspire --recommended --db postgres
+```
+
+See the template README (`templates/README.md`) for the full `--aspire` flag matrix (Postgres/SQL Server, optional Redis, mutual exclusion with `--docker`).
 
 ## Build only
 

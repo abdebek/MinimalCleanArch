@@ -19,23 +19,22 @@ public sealed class AzureBlobStorage(
     private readonly AzureBlobStorageOptions _options = options.Value;
     private readonly string _keyPrefix = options.Value.ResolveKeyPrefix();
 
-    private string StorageKey(string blobKey) => _keyPrefix + blobKey;
-
     public async Task<BlobUploadDescriptor> CreateUploadAsync(
         string blobKey,
         string contentType,
         long byteLength,
         CancellationToken cancellationToken = default)
     {
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
         var containerClient = await GetContainerClientAsync(cancellationToken);
         var normalizedContentType = string.IsNullOrWhiteSpace(contentType)
             ? DefaultContentType
             : contentType.Trim();
-        var blobClient = containerClient.GetBlobClient(StorageKey(blobKey));
+        var blobClient = containerClient.GetBlobClient(_keyPrefix + normalizedKey);
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(Math.Max(1, _options.UploadUrlTtlMinutes));
 
         return new BlobUploadDescriptor(
-            blobKey,
+            normalizedKey,
             CreateSasUri(blobClient, BlobSasPermissions.Create | BlobSasPermissions.Write, expiresAt),
             expiresAt.UtcDateTime,
             normalizedContentType,
@@ -45,8 +44,9 @@ public sealed class AzureBlobStorage(
 
     public async Task<BlobObjectInfo?> GetBlobAsync(string blobKey, CancellationToken cancellationToken = default)
     {
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
         var containerClient = await GetContainerClientAsync(cancellationToken);
-        var blobClient = containerClient.GetBlobClient(StorageKey(blobKey));
+        var blobClient = containerClient.GetBlobClient(_keyPrefix + normalizedKey);
         if (!await blobClient.ExistsAsync(cancellationToken))
         {
             return null;
@@ -56,7 +56,7 @@ public sealed class AzureBlobStorage(
         var sha256Hash = await ComputeSha256Async(blobClient, cancellationToken);
 
         return new BlobObjectInfo(
-            blobKey,
+            normalizedKey,
             properties.Value.ContentType ?? DefaultContentType,
             properties.Value.ContentLength,
             sha256Hash);
@@ -64,16 +64,18 @@ public sealed class AzureBlobStorage(
 
     public async Task<Uri> CreateDownloadUrlAsync(string blobKey, CancellationToken cancellationToken = default)
     {
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
         var containerClient = await GetContainerClientAsync(cancellationToken);
-        var blobClient = containerClient.GetBlobClient(StorageKey(blobKey));
+        var blobClient = containerClient.GetBlobClient(_keyPrefix + normalizedKey);
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(Math.Max(1, _options.DownloadUrlTtlMinutes));
         return CreateSasUri(blobClient, BlobSasPermissions.Read, expiresAt);
     }
 
     public async Task DeleteAsync(string blobKey, CancellationToken cancellationToken = default)
     {
+        var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
         var containerClient = await GetContainerClientAsync(cancellationToken);
-        await containerClient.DeleteBlobIfExistsAsync(StorageKey(blobKey), cancellationToken: cancellationToken);
+        await containerClient.DeleteBlobIfExistsAsync(_keyPrefix + normalizedKey, cancellationToken: cancellationToken);
     }
 
     private async Task<BlobContainerClient> GetContainerClientAsync(CancellationToken cancellationToken)

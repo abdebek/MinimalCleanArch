@@ -273,8 +273,17 @@ else
     builder.Services.AddMinimalCleanArchCaching();
 }
 #else
-builder.Services.AddMemoryCache();
-builder.Services.AddMinimalCleanArchCaching();
+var redisConfigured = builder.Configuration["Caching:Redis:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(redisConfigured))
+{
+    builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConfigured);
+    builder.Services.AddMinimalCleanArchDistributedCaching();
+}
+else
+{
+    builder.Services.AddMemoryCache();
+    builder.Services.AddMinimalCleanArchCaching();
+}
 #endif
 #endif
 
