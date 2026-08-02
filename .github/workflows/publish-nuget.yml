@@ -1,0 +1,157 @@
+name: Publish to NuGet
+
+# Trusted Publishing (nuget.org):
+# - Policy workflow file name must be: publish-nuget.yml  (filename only, NOT .github/workflows)
+# - Repository: abdebek/MinimalCleanArch
+# - Environment: leave empty (this job does not set environment:)
+# - nuget.org username for NuGet/login is the policy creator profile slug (default: abdebek).
+#   Override with secrets/vars.NUGET_USER or workflow_dispatch nuget_user if needed.
+#
+# Existing nuget.yml still builds/packs on branches. This workflow is the OIDC publish path.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.21-preview)'
+        required: true
+      nuget_user:
+        description: 'Optional nuget.org username override (default: abdebek)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # No `environment:` — matches empty Environment on nuget.org Trusted Publishing policy
+    permissions:
+      contents: write
+      id-token: write   # required for GitHub OIDC → NuGet short-lived API key
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Resolve NuGet username
+      id: nuget_user
+      env:
+        SECRET_USER: ${{ secrets.NUGET_USER }}
+        VAR_USER: ${{ vars.NUGET_USER }}
+        INPUT_USER: ${{ github.event.inputs.nuget_user }}
+      run: |
+        # Prefer: workflow_dispatch input → secret → repository variable → package owner default
+        # Public profile: https://www.nuget.org/profiles/abdebek (not email, not API key)
+        USER_NAME="${INPUT_USER:-}"
+        if [ -z "$USER_NAME" ]; then USER_NAME="${SECRET_USER:-}"; fi
+        if [ -z "$USER_NAME" ]; then USER_NAME="${VAR_USER:-}"; fi
+        if [ -z "$USER_NAME" ]; then USER_NAME="abdebek"; fi
+        echo "name=$USER_NAME" >> "$GITHUB_OUTPUT"
+        echo "Using nuget.org username: $USER_NAME"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Set version from tag
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+
+    - name: Set version from input
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "PACKAGE_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+    - name: Restore dependencies
+      run: |
+        dotnet restore MinimalCleanArch.CI.slnx
+        dotnet restore templates/MinimalCleanArch.Templates.csproj
+
+    - name: Build
+      run: |
+        dotnet build MinimalCleanArch.CI.slnx \
+          --configuration Release \
+          --no-restore \
+          -p:Version=${{ env.PACKAGE_VERSION }} \
+          -p:PackageVersion=${{ env.PACKAGE_VERSION }}
+
+    - name: Pack
+      run: |
+        mkdir -p ./artifacts/packages
+        rm -f ./artifacts/packages/*.nupkg ./artifacts/packages/*.snupkg
+
+        projects=(
+          "src/MinimalCleanArch/MinimalCleanArch.csproj"
+          "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj"
+          "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
+          "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
+          "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
+          "src/MinimalCleanArch.Storage/MinimalCleanArch.Storage.csproj"
+          "src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj"
+          "src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj"
+          "templates/MinimalCleanArch.Templates.csproj"
+        )
+
+        set -e
+        for project in "${projects[@]}"; do
+          extra_args=("/p:PackageVersion=${PACKAGE_VERSION}")
+          if [ "$project" = "templates/MinimalCleanArch.Templates.csproj" ]; then
+            extra_args+=("/p:Version=${PACKAGE_VERSION}")
+          fi
+          echo "Packing $project"
+          dotnet pack "$project" \
+            --configuration Release \
+            --output ./artifacts/packages \
+            --include-symbols \
+            --verbosity minimal \
+            "${extra_args[@]}"
+        done
+
+        ls -la ./artifacts/packages/
+        package_count=$(ls ./artifacts/packages/*.nupkg 2>/dev/null | wc -l)
+        if [ "$package_count" -eq 0 ]; then
+          echo "Error: No packages were created"
+          exit 1
+        fi
+
+    - name: NuGet login (OIDC → temporary API key)
+      uses: NuGet/login@v1
+      id: login
+      with:
+        # nuget.org profile username (Trusted Publishing policy creator), NOT email and NOT a long-lived API key
+        user: ${{ steps.nuget_user.outputs.name }}
+
+    - name: Publish to NuGet (Trusted Publishing)
+      run: |
+        shopt -s nullglob
+        packages=(./artifacts/packages/*.*nupkg)
+        if [ ${#packages[@]} -eq 0 ]; then
+          echo "No packages found in ./artifacts/packages"
+          ls -la ./artifacts/packages || true
+          exit 1
+        fi
+        for pkg in "${packages[@]}"; do
+          echo "Pushing $pkg"
+          dotnet nuget push "$pkg" \
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          sleep 2
+        done
+
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ./artifacts/packages/*.nupkg
+          ./artifacts/packages/*.snupkg
+        generate_release_notes: true
+        prerelease: ${{ contains(github.ref, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,14 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Generic blob storage abstractions and Azure Blob Storage integration for MinimalCleanArch.</Description>
-    <PackageTags>clean-architecture;blob-storage;azure-storage;file-storage</PackageTags>
+    <Description>Generic blob storage abstractions with Azure Blob Storage and Cloudflare R2 (S3 API) for MinimalCleanArch.</Description>
+    <PackageTags>clean-architecture;blob-storage;azure-storage;cloudflare-r2;s3;file-storage</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" />
+    <PackageReference Include="AWSSDK.S3" />
     <!-- Microsoft.Extensions 10.x supports net9; Azure.Storage.Blobs latest requires Extensions 10 -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
   </ItemGroup>

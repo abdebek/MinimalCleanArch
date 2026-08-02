@@ -373,20 +373,65 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         var apiCsproj = Path.Combine(projectDir, $"{projectName}.Api", $"{projectName}.Api.csproj");
         File.Exists(apiCsproj).Should().BeTrue();
         File.ReadAllText(apiCsproj).Should().Contain("MinimalCleanArch.Storage");
+        // Scaffolded TFM is fixed — no dead dual-package groups for the other TFM
+        File.ReadAllText(apiCsproj).Should().NotContain("net9.0");
+        File.ReadAllText(apiCsproj).Should().Contain("net10.0");
 
         var storageEndpoints = Path.Combine(projectDir, $"{projectName}.Api", "Endpoints", "StorageEndpoints.cs");
         File.Exists(storageEndpoints).Should().BeTrue();
 
         var apiProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "Program.cs"));
-        apiProgram.Should().Contain("AddAzureBlobStorage");
+        apiProgram.Should().Contain("AddBlobStorage");
         apiProgram.Should().Contain("MapStorageEndpoints");
+        apiProgram.Should().NotContain("using MCA.Application.Commands");
 
         var appsettings = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "appsettings.json"));
         appsettings.Should().Contain("BlobStorage");
+        appsettings.Should().Contain("\"Provider\"");
+        appsettings.Should().Contain("R2ServiceUrl");
+        appsettings.Should().NotContain("OpenIddict");
+        appsettings.Should().NotContain("RateLimiting");
 
         AssertTargetFramework(projectDir, projectName);
 
         _output.WriteLine("Building storage-enabled solution...");
+        await BuildGeneratedProjectAsync(projectDir);
+    }
+
+    [Fact]
+    public async Task Create_Minimal_HasNoDeadFeatureCode()
+    {
+        var projectName = "TestAppMinimal";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir));
+
+        var endpointsDir = Path.Combine(projectDir, $"{projectName}.Api", "Endpoints");
+        Directory.GetFiles(endpointsDir, "*.cs").Select(Path.GetFileName)
+            .Should().BeEquivalentTo(new[] { "TodoEndpoints.cs" });
+
+        var apiCsproj = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", $"{projectName}.Api.csproj"));
+        apiCsproj.Should().NotContain("MinimalCleanArch.Storage");
+        apiCsproj.Should().NotContain("OpenIddict");
+        apiCsproj.Should().NotContain("WolverineFx.FluentValidation");
+        // Only the selected TFM package line (net10 default)
+        apiCsproj.Should().NotContain("Version=\"9.0.");
+        apiCsproj.Should().NotContain("Condition=\"'$(TargetFramework)'");
+
+        var appsettings = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "appsettings.json"));
+        appsettings.Should().NotContain("BlobStorage");
+        appsettings.Should().NotContain("OpenIddict");
+        appsettings.Should().NotContain("RateLimiting");
+        appsettings.Should().NotContain("Encryption");
+        appsettings.Should().Contain("Database");
+
+        var program = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.Api", "Program.cs"));
+        program.Should().Contain("MapScalarApiReference()");
+        program.Should().NotContain("AddPasswordFlow");
+        program.Should().NotContain("MapStorageEndpoints");
+
         await BuildGeneratedProjectAsync(projectDir);
     }
 

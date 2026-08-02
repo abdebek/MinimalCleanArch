@@ -80,6 +80,7 @@ Preferred guidance:
 - keep transport-specific edge cases in the provided raw Wolverine callback when needed
 - avoid duplicating domain event publishing logic in application DbContexts
 - rely on `IExecutionContext` for correlation and tenant data inside message handlers
+- Wolverine 6 defaults `ServiceLocationPolicy` to `NotAllowed`; MCA sets `AllowedButWarn` so constructor-injected MS.DI handlers work. Override via `MessagingOptions.ServiceLocationPolicy` for stricter codegen-only DI
 
 Claim resolution for the built-in execution-context implementations can be customized with `ExecutionContextOptions`:
 

@@ -8,9 +8,12 @@ The format is based on Keep a Changelog.
 
 ### Added
 - template flag **`--storage`**: `MinimalCleanArch.Storage` + signed upload/download endpoints; Azurite service when `--docker` is set; included in `--all`
+- **Cloudflare R2** in `MinimalCleanArch.Storage`: `R2BlobStorage`, unified `BlobStorageOptions` (`Provider` = `Azure` | `R2`), `AddBlobStorage` / `AddR2BlobStorage`
+- template storage uses `AddBlobStorage`; appsettings include R2 fields; `ApiEmailSender` posts Cloudflare Email Sending–compatible payload (`address`/`name`, camelCase, omit nulls)
 - architecture test: Domain must not reference `MinimalCleanArch.Storage`
 - template integration test `Create_Build_Storage_MultiProject`
 - validate-templates scenario `multi-storage-sqlite`
+- template hygiene: feature-gated appsettings sections, StorageEndpoints exclude, single-TFM package groups (`UseNet9`/`UseNet10`), no empty Scalar options, Wolverine FV only with messaging
 - Aspire orchestration spike under `samples/MinimalCleanArch.Aspire/` (AppHost + ServiceDefaults; Postgres + Redis + Sample API)
 - Sample app supports Aspire-injected connection names `mca` (Postgres) and `redis` (distributed cache); skips MCA OTel console path when Aspire OTLP is present
 - template flag **`--aspire`**: generates `{Name}.AppHost` + `{Name}.ServiceDefaults` (Postgres/SQL Server → connection `appdb`, optional Redis → `redis`; mutual exclusion with docker-compose)
@@ -27,6 +30,10 @@ The format is based on Keep a Changelog.
 - template `Database` and `Cors` configuration sections
 - repo **Central Package Management** via `eng/Directory.Packages.props` (imported from src/tests/samples only)
 - `docs/package-management.md` for CPM, template pin policy, and FluentValidation/Wolverine notes
+
+### Fixed
+- Wolverine 6: `AddMinimalCleanArchMessaging*` sets `ServiceLocationPolicy.AllowedButWarn` so constructor-injected MS.DI handlers work (6.0 default `NotAllowed` caused 500s on `IMessageBus.InvokeAsync`)
+- `validate-templates.ps1` ignores `*.symbols.nupkg` when selecting the template package to install
 
 ### Changed
 - template Todo use cases live in `TodoCommandHandler` (repository + unit of work); removed `ITodoService` / `TodoService` double abstraction

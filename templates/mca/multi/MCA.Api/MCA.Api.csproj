@@ -31,7 +31,9 @@
     <!--#if (UseValidation)-->
     <PackageReference Include="MinimalCleanArch.Validation" Version="__MCA_VERSION__" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <!--#if (UseMessaging)-->
     <PackageReference Include="WolverineFx.FluentValidation" Version="6.24.0" />
+    <!--#endif-->
     <!--#endif-->
     <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
     <!--#if (UseSecurity)-->
@@ -72,7 +74,8 @@
     <!--#endif-->
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+  <!--#if (UseNet9)-->
+  <ItemGroup>
     <!--#if (UseSerilog)-->
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <!--#endif-->
@@ -81,8 +84,10 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
     <!--#endif-->
   </ItemGroup>
+  <!--#endif-->
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+  <!--#if (UseNet10)-->
+  <ItemGroup>
     <!--#if (UseSerilog)-->
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <!--#endif-->
@@ -91,6 +96,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
     <!--#endif-->
   </ItemGroup>
+  <!--#endif-->
 
   <ItemGroup>
     <ProjectReference Include="..\MCA.Domain\MCA.Domain.csproj" />

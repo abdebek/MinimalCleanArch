@@ -175,15 +175,34 @@ Notes:
 }
 ```
 
-The API sender posts JSON in this shape:
+The API sender posts Cloudflare Email Sending–compatible JSON (camelCase, nulls omitted):
 
 ```json
 {
-  "from": { "email": "no-reply@example.com", "name": "MCA" },
-  "to": [{ "email": "user@example.com" }],
+  "from": { "address": "no-reply@example.com", "name": "MCA" },
+  "to": "user@example.com",
   "subject": "Subject",
   "html": "<p>Body</p>",
   "text": "Body"
+}
+```
+
+Cloudflare Email Sending example:
+
+```json
+{
+  "EmailSettings": {
+    "Provider": "Api",
+    "SenderEmail": "no-reply@yourdomain.com",
+    "SenderName": "MCA",
+    "AppBaseUrl": "https://localhost:5001",
+    "Api": {
+      "Endpoint": "https://api.cloudflare.com/client/v4/accounts/<account_id>/email/routing/send",
+      "ApiKey": "<api-token>",
+      "ApiKeyHeaderName": "Authorization",
+      "ApiKeyPrefix": "Bearer"
+    }
+  }
 }
 ```
 
@@ -431,11 +450,12 @@ dotnet run --project OrderService.AppHost
 When `--storage` (or `--all`) is set:
 
 - References `MinimalCleanArch.Storage`
-- Registers `AddAzureBlobStorage(configuration)` (section `BlobStorage`)
+- Registers `AddBlobStorage(configuration)` (section `BlobStorage`)
+- `BlobStorage:Provider` = `Azure` (default, Azurite-compatible) or `R2` (Cloudflare R2)
 - Maps `/api/storage/upload-url` and `/api/storage/download-url`
-- With `--docker`, adds an **Azurite** service and wires the API connection string
+- With `--docker`, adds an **Azurite** service and wires the API connection string (Azure provider)
 
-Local defaults use the Azurite/devstore connection (`UseDevelopmentStorage=true`). Override `BlobStorage:ConnectionString` / `ContainerName` for production accounts.
+Local defaults use the Azurite/devstore connection (`UseDevelopmentStorage=true`). Override `BlobStorage:ConnectionString` / `ContainerName` for production Azure accounts, or set `Provider` to `R2` and fill `R2ServiceUrl`, `R2AccessKeyId`, `R2SecretAccessKey`, `R2BucketName` (optional `R2PublicBaseUrl`, `KeyPrefix`).
 
 ```bash
 dotnet new mca -n MediaApi --recommended --storage --docker

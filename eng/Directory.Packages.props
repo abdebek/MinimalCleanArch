@@ -72,10 +72,12 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.0.0" />
 
-    <!-- Azure -->
+    <!-- Azure / S3-compatible (Cloudflare R2) -->
     <PackageVersion Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.3" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.29.1" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.101.5" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
 
     <!-- .NET Aspire (local orchestration spike) -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.6" />

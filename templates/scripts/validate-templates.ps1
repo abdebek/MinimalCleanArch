@@ -225,8 +225,12 @@ $templatePackage = $null
 if (Test-Path -Path $TemplatePackagePath -PathType Leaf) {
     $templatePackage = (Resolve-Path -Path $TemplatePackagePath).Path
 } elseif (Test-Path -Path $TemplatePackagePath -PathType Container) {
+    # Prefer the real package; exclude symbol packages (*.snupkg and *.symbols.nupkg).
     $templatePackage = Get-ChildItem -Path $TemplatePackagePath -Filter "MinimalCleanArch.Templates*.nupkg" |
-        Where-Object { $_.Name -notlike "*.snupkg" } |
+        Where-Object {
+            $_.Name -notlike "*.snupkg" -and
+            $_.Name -notlike "*.symbols.nupkg"
+        } |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
     if ($templatePackage) {

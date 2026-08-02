@@ -1,4 +1,3 @@
-#if (UseStorage)
 using MinimalCleanArch.Storage;
 
 namespace MCA.Endpoints;
@@ -67,4 +66,3 @@ public static class StorageEndpoints
 
     public sealed record CreateUploadUrlRequest(string BlobKey, string ContentType, long ByteLength);
 }
-#endif

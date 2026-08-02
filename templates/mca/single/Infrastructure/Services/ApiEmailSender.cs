@@ -3,14 +3,25 @@ using MCA.Application.Interfaces;
 using MCA.Infrastructure.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MCA.Infrastructure.Services;
 
+/// <summary>
+/// HTTP email transport suitable for Cloudflare Email Sending (and similar REST APIs).
+/// Uses camelCase JSON, address objects with <c>address</c>/<c>name</c>, and omits null fields.
+/// </summary>
 public class ApiEmailSender : IEmailSender
 {
     private const string HttpClientName = "AuthEmailApi";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     private readonly EmailSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -38,21 +49,22 @@ public class ApiEmailSender : IEmailSender
         AddAuthenticationHeader(request.Headers);
         AddCustomHeaders(request.Headers);
 
-        request.Content = JsonContent.Create(new ApiEmailPayload
+        // Cloudflare Email Sending expects camelCase and address as { address, name }
+        // (not { email, name }) and string "to" for a single recipient.
+        var payload = new ApiEmailPayload
         {
             From = new ApiEmailAddress
             {
-                Email = _settings.SenderEmail,
+                Address = _settings.SenderEmail,
                 Name = _settings.SenderName
             },
-            To =
-            [
-                new ApiEmailAddress { Email = message.To }
-            ],
+            To = message.To,
             Subject = message.Subject,
             Html = message.HtmlBody,
             Text = message.TextBody
-        });
+        };
+
+        request.Content = JsonContent.Create(payload, options: JsonOptions);
 
         _logger.LogDebug("Sending API email to {To}: {Subject}", message.To, message.Subject);
 
@@ -60,7 +72,7 @@ public class ApiEmailSender : IEmailSender
         if (response.IsSuccessStatusCode)
             return;
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         var summary = responseBody.Length <= 500 ? responseBody : responseBody[..500] + "...";
 
         throw new InvalidOperationException(
@@ -100,7 +112,7 @@ public class ApiEmailSender : IEmailSender
     private sealed class ApiEmailPayload
     {
         public ApiEmailAddress From { get; set; } = new();
-        public ApiEmailAddress[] To { get; set; } = [];
+        public string To { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
         public string Html { get; set; } = string.Empty;
         public string? Text { get; set; }
@@ -108,7 +120,7 @@ public class ApiEmailSender : IEmailSender
 
     private sealed class ApiEmailAddress
     {
-        public string Email { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
         public string? Name { get; set; }
     }
 }

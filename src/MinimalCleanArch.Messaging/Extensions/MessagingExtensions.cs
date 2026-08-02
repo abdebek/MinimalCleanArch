@@ -1,4 +1,5 @@
 using System.Reflection;
+using JasperFx.CodeGeneration.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -180,6 +181,12 @@ public static class MessagingExtensions
         string serviceName)
     {
         opts.ServiceName = serviceName;
+
+        // Wolverine 6 defaults to ServiceLocationPolicy.NotAllowed. MCA templates (and most
+        // MS.DI hosts) use constructor-injected handler classes registered as scoped services;
+        // codegen resolves those via the root provider (service location). Restore the 5.x
+        // behavior so message handlers work without rewriting every handler for pure IoC.
+        opts.ServiceLocationPolicy = options.ServiceLocationPolicy;
 
         // Configure handler discovery
         if (options.HandlerAssemblies.Count > 0)

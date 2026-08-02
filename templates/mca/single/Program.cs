@@ -5,7 +5,6 @@ using Scalar.AspNetCore;
 using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
-using MCA.Application.Commands;
 using MCA.Application.Handlers;
 using MCA.Endpoints;
 #if (UseAuth)
@@ -209,8 +208,8 @@ else
 #endif
 
 #if (UseStorage)
-// Blob storage (Azure Blob Storage / Azurite). Configure BlobStorage:* in appsettings or env.
-builder.Services.AddAzureBlobStorage(builder.Configuration);
+// Blob storage: BlobStorage:Provider = Azure (default, Azurite) or R2 (Cloudflare).
+builder.Services.AddBlobStorage(builder.Configuration);
 #endif
 
 #if (UseSecurity)
@@ -357,9 +356,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+#if (UseAuth)
     app.MapScalarApiReference(options =>
     {
-#if (UseAuth)
         var webClientSecret = app.Configuration["OpenIddict:Clients:Web:Secret"];
         var webClientId = app.Configuration["OpenIddict:Clients:Web:ClientId"] ?? "mca-web-client";
         options.AddPasswordFlow("oauth2", flow =>
@@ -377,9 +376,11 @@ if (app.Environment.IsDevelopment())
             };
         });
         options.AddPreferredSecuritySchemes(new[] { "oauth2" });
-        options.WithPersistentAuthentication();
-#endif
+        options.EnablePersistentAuthentication();
     });
+#else
+    app.MapScalarApiReference();
+#endif
 }
 
 #if (UseMcaApiBootstrap)
