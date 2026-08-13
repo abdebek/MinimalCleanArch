@@ -1,0 +1,41 @@
+direction: right
+
+title: "Todo lifecycle (template is the complete path)" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+created: Created {
+  shape: oval
+  style.fill: "#e8f0e8"
+}
+
+active: Active incomplete {
+  shape: rectangle
+}
+
+completed: Completed {
+  shape: rectangle
+  style.fill: "#e8eef8"
+}
+
+soft_deleted: Soft deleted {
+  shape: rectangle
+  style.fill: "#fde8e8"
+}
+
+created -> active: "new Todo(...) then AddAsync + SaveChanges"
+active -> active: Update
+active -> completed: MarkAsCompleted
+completed -> active: "MarkAsIncomplete (template) or MarkAsNotCompleted (sample)"
+active -> soft_deleted: "template: Todo.Delete() then UpdateAsync\nsample: IRepository.DeleteAsync sets IsDeleted"
+completed -> soft_deleted: same delete path
+
+note: "Hidden from queries by ISoftDelete global filter on DbContextBase. No restore command is mapped." {
+  near: bottom-center
+  shape: text
+  style.font-size: 14
+  style.italic: true
+}

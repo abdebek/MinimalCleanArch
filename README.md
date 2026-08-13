@@ -2,6 +2,8 @@
 
 A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10, with vertical-slice-style application organization inside clean dependency boundaries.
 
+**Navigate the repo:** start at [`docs/index.md`](docs/index.md). That index maps packages, the sample host, generated apps, request paths, lifecycles, and events as the code actually works.
+
 ## Quick Start
 
 Default multi-project app:
@@ -137,7 +139,9 @@ The sample app and generated templates follow this bootstrap and HTTP mapping pa
 | [`MinimalCleanArch.Templates`](templates/README.md) | scaffold new MCA-based applications | packaged templates | Project scaffolding |
 
 Additional docs:
+- Repo navigation (DDD-style map of the system as built): [`docs/index.md`](docs/index.md)
 - Sample app: [`samples/MinimalCleanArch.Sample/README.md`](samples/MinimalCleanArch.Sample/README.md)
+- Package management: [`docs/package-management.md`](docs/package-management.md)
 - Release notes template: [`release-notes.md`](release-notes.md)
 - Third-party notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 

@@ -1,0 +1,69 @@
+direction: down
+
+title: "Request path (template with messaging vs sample)" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+http: HTTP request {
+  shape: rectangle
+}
+
+mw: UseMinimalCleanArchApiDefaults {
+  shape: rectangle
+  corr: CorrelationIdMiddleware
+  headers: SecurityHeadersMiddleware
+  errors: ErrorHandlingMiddleware
+  rate: optional rate limiting
+}
+
+authn: UseAuthentication then UseAuthorization {
+  shape: rectangle
+}
+
+endpoint: Endpoint mapping {
+  shape: rectangle
+  sample: "Sample: TodoEndpoints talks to IRepository"
+  template: "Template: TodoEndpoints builds command or query"
+}
+
+validate: Optional FluentValidation {
+  shape: rectangle
+  body: WithValidation of T
+  handler: ValidateAsync on command or query
+}
+
+dispatch: Use case dispatch {
+  shape: diamond
+  off: "Messaging off: call TodoCommandHandler.Handle"
+  on: "Messaging on: IMessageBus.InvokeAsync"
+}
+
+handler: Application handler {
+  shape: rectangle
+  types: "TodoCommandHandler, RegisterUserHandler, ..."
+}
+
+domain: Domain method {
+  shape: rectangle
+  todo: "new Todo, Update, MarkAsCompleted, Delete"
+}
+
+persist: IUnitOfWork.SaveChangesAsync {
+  shape: rectangle
+}
+
+save: DbContext.SaveChangesAsync {
+  shape: rectangle
+  audit_stamp: DbContextBase.ApplyAuditInfo
+  interceptors: "Audit then domain event interceptor if wired"
+}
+
+http_out: MatchHttp or Results.* {
+  shape: rectangle
+}
+
+http -> mw -> authn -> endpoint -> validate -> dispatch
+dispatch -> handler -> domain -> persist -> save -> http_out

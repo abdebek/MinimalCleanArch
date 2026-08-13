@@ -1,0 +1,70 @@
+direction: down
+
+title: "Domain event and side effect path" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+raise: Entity raises IDomainEvent {
+  shape: rectangle
+  how: DomainEventCollection.RaiseDomainEvent
+  when: "Todo ctor, Update, MarkAsCompleted, Delete\nApplicationUser.MarkAsRegistered"
+}
+
+uow: IUnitOfWork.SaveChangesAsync {
+  shape: rectangle
+}
+
+saving: SavingChanges interceptors {
+  shape: rectangle
+  audit: AuditSaveChangesInterceptor writes AuditLog
+  stamp: DbContextBase.ApplyAuditInfo stamps CreatedBy
+}
+
+saved: SavedChangesAsync {
+  shape: rectangle
+}
+
+gate: UseDomainEventPublishing wired? {
+  shape: diamond
+}
+
+publish: DomainEventPublishingInterceptor {
+  shape: rectangle
+  collect: ChangeTracker entries of IHasDomainEvents
+  bus: IMessageBus.PublishAsync
+  clear: ClearDomainEvents after success
+}
+
+lost: Events stay on the entity and are not dispatched {
+  shape: rectangle
+  style.fill: "#fde8e8"
+  sample: "Sample Program.cs does not call UseDomainEventPublishing"
+}
+
+wolverine: Wolverine local queue {
+  shape: rectangle
+  name: "domain-events (optional QueuePrefix)"
+  durable: "SQL Server or Postgres: PersistMessages + EF transactions"
+  memory: "SQLite and sample: DurabilityMode.Solo, in memory"
+}
+
+handlers: Convention handlers {
+  shape: rectangle
+  todo: TodoEventHandler.Handle
+  auth: AuthEventHandler.Handle(UserRegisteredEvent)
+  sample: TodoEventHandlers.Handle
+}
+
+side: Side effects {
+  shape: rectangle
+  log: ILogger only in Todo handlers
+  email: IEmailService on UserRegisteredEvent
+}
+
+raise -> uow -> saving -> saved -> gate
+gate -> publish: "templates with --messaging"
+gate -> lost: "sample, or messaging off"
+publish -> wolverine -> handlers -> side

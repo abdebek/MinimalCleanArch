@@ -55,7 +55,7 @@ Template packaging under `templates/` sets `ManagePackageVersionsCentrally=false
 
 ## Wolverine / Roslyn
 
-WolverineFx **6.24.0** is pinned centrally, including **`WolverineFx.RuntimeCompilation`** (required for `TypeLoadMode.Dynamic` — runtime codegen is no longer in the core package). Hosts that reference `MinimalCleanArch.Messaging` get RuntimeCompilation transitively.
+WolverineFx **6.24.0** is pinned centrally, including **`WolverineFx.RuntimeCompilation`** (required for `TypeLoadMode.Dynamic`; runtime codegen is no longer in the core package). Hosts that reference `MinimalCleanArch.Messaging` get RuntimeCompilation transitively.
 
 `Microsoft.CodeAnalysis.Common` / `Workspaces.Common` remain at **5.0.0** so BenchmarkDotNet’s exact pin does not conflict. Residual `NU1608` may still be suppressed on the messaging project.
 

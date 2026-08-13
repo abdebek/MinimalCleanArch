@@ -1,0 +1,86 @@
+direction: right
+
+title: "Core types in consumer apps (not a strict aggregate model)" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+todo_cluster: Todo (sample and templates) {
+  style.fill: "#e8f0e8"
+
+  todo: Todo {
+    shape: class
+    Id: int
+    Title: string
+    Description: string?
+    IsCompleted: bool
+    Priority: int
+    DueDate: DateTime?
+    IsDeleted: bool
+    CreatedAt: DateTime
+  }
+
+  events: Domain events {
+    created: TodoCreatedEvent
+    updated: TodoUpdatedEvent
+    completed: TodoCompletedEvent
+    deleted: TodoDeletedEvent
+    reminder: "TodoReminderEvent (sample only, never scheduled)"
+  }
+
+  todo -> events: RaiseDomainEvent when messaging is on
+}
+
+identity_cluster: Identity (not a DDD aggregate) {
+  style.fill: "#f4f1ea"
+
+  sample_user: "Sample User : IdentityUser" {
+    shape: class
+    FullName: string?
+    DateOfBirth: DateTime?
+    PersonalNotes: "[Encrypted] string?"
+    IAuditableEntity: yes
+    ISoftDelete: yes
+  }
+
+  app_user: "Template ApplicationUser : IdentityUser of Guid" {
+    shape: class
+    FirstName: string
+    LastName: string
+    IAuditableEntity: yes
+    IHasDomainEvents: "only with --messaging"
+    lives_in: MCA.Application.Identity
+  }
+
+  identity_tables: ASP.NET Identity tables {
+    roles: IdentityRole
+    claims: UserClaims
+    logins: UserLogins
+  }
+
+  sample_user -> identity_tables
+  app_user -> identity_tables
+}
+
+infra_cluster: Same DbContext extras {
+  style.fill: "#e8eef8"
+
+  audit: AuditLog {
+    shape: class
+    Operation: AuditOperation
+    EntityType: string
+    EntityId: string
+  }
+
+  openiddict: "OpenIddict entities (templates --auth)"
+  wolverine: "wolverine schema (durable messaging only)"
+}
+
+note: "EF does not enforce aggregate boundaries. Todo has no child entities. Identity owns User or ApplicationUser." {
+  near: bottom-center
+  shape: text
+  style.font-size: 14
+  style.italic: true
+}
