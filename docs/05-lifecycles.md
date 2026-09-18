@@ -18,7 +18,7 @@ Two real state machines exist: Todo and Identity/auth. Everything else is infras
 
 There is no `TodoStatus` enum. Completion and deletion are independent booleans. A completed todo can still be soft deleted.
 
-Global query filter hides `IsDeleted == true`. Nothing in sample or template restores a deleted todo.
+Global query filter hides `IsDeleted == true`. Template restore: `POST /api/todos/{id}/restore` (`RestoreTodoCommand` → `Todo.Restore()`). Optional: omit the route if the app should not undelete. With `--auth` the route requires the `Admin` role. The sample still has no restore.
 
 ### Happy path (template, messaging on)
 
@@ -38,9 +38,11 @@ Complete: `POST /api/todos/{id}/complete` → `CompleteTodoCommand` → `MarkAsC
 
 Delete: `DeleteTodoCommand` → `todo.Delete()` → `UpdateAsync` (not `Repository.DeleteAsync`) → save. Soft delete is explicit on the entity.
 
-List/get (single project): `GetTodosQuery` / `GetTodoByIdQuery` use `TodoFilterSpecification`, `TodoPaginatedSpecification`, `TodoByIdSpecification`. Get by id uses `UseNoTracking` and optional 5 minute memory cache.
+Restore (template, optional): `POST /api/todos/{id}/restore` → `RestoreTodoCommand` → `GetByIdIncludingDeletedAsync` (`IgnoreQueryFilters`, still tenant-scoped when `--multitenant`) → `todo.Restore()` → save. With `--auth` this is Admin-only.
 
-List (multi project): `GET /api/todos` sends `GetAllTodosQuery`. `TodoCommandHandler.Handle` calls `ITodoRepository.GetAllAsync` (optional cache key `todos_all`). There is no filter or paging in the multi template.
+List/get (single project): `GetTodosQuery` / `GetTodoByIdQuery` use `TodoFilterSpecification`, `TodoPaginatedSpecification`, `TodoByIdSpecification`. Get by id uses `UseNoTracking` and, with `--caching`, a 5 minute `ICacheService` entry of the `TodoResponse` DTO (not the entity — Redis JSON cannot round-trip private setters).
+
+List (multi project): `GET /api/todos` sends `GetAllTodosQuery`. `TodoCommandHandler.Handle` calls `ITodoRepository.GetAllAsync` (optional `ICacheService` key `todos_all` of `TodoResponse` DTOs). There is no filter or paging in the multi template.
 
 ### Happy path (sample)
 
@@ -62,6 +64,7 @@ Sample `TodoCreatedEvent` is raised, but `UseDomainEventPublishing` is not wired
 | Complete | `CompleteTodoCommand` | `UpdateTodo` when `IsCompleted` | `MarkAsCompleted` |
 | Incomplete | none | `UpdateTodo` when not completed | `MarkAsIncomplete` / `MarkAsNotCompleted` |
 | Delete | `DeleteTodoCommand` | `DeleteTodo` | `Delete` (template) or repo soft delete (sample) |
+| Restore | `RestoreTodoCommand` (template; Admin when `--auth`) | none | `Restore` |
 | List | `GetTodosQuery` | `GetTodos` | none |
 | Get | `GetTodoByIdQuery` | `GetTodoById` | none |
 
@@ -97,19 +100,47 @@ Identity is ASP.NET Identity, not a domain aggregate. Persistence is `UserManage
 |---|---|---|---|
 | Register | `RegisterUserCommand` | `RegisterUserHandler` | `new ApplicationUser`, optional `MarkAsRegistered`, `UserManager.CreateAsync` |
 | Confirm email | `ConfirmEmailCommand` | `ConfirmEmailHandler` | `UserManager.ConfirmEmailAsync` |
-| Login | `AuthLoginCommand` | `AuthLoginHandler` | `IAuthSessionService.ValidateCredentialsAsync` + `SignInAsync` |
-| Logout | `AuthLogoutCommand` | `AuthLogoutHandler` | session sign out |
+| Login | `AuthLoginCommand` | `AuthLoginHandler` | cookie: `IAuthSessionService.ValidateCredentialsAsync` + `SignInAsync`. Tokens: `POST /connect/token` (password or authorization_code) |
+| Refresh | none (OpenIddict grant) | `OpenIddictEndpoints` `/connect/token` | `grant_type=refresh_token`; `AllowRefreshTokenFlow` + reference refresh tokens |
+| Logout | `AuthLogoutCommand` | `AuthLogoutHandler` | cookie sign-out. Tokens: `POST /connect/logout` revokes all OpenIddict tokens |
 | Change password | `ChangePasswordCommand` | `ChangePasswordHandler` | `UserManager.ChangePasswordAsync` |
 | Forgot password | `ForgotPasswordCommand` | `ForgotPasswordHandler` | generate token, send email |
 | Reset password | `ResetPasswordCommand` | `ResetPasswordHandler` | `UserManager.ResetPasswordAsync` |
 | External sign-in | `ExternalAuthSignInCommand` | `ExternalAuthSignInHandler` | create/link user, sign in |
+
+Cookie login and OpenIddict tokens are **two sessions**. `POST /api/auth/login` / `/api/auth/logout` only touch the Identity cookie (SSR / `/connect/authorize`). Bearer clients use `/connect/token` and `/connect/logout`.
+
+#### Login → refresh → logout (tokens)
+
+OpenIddict is enabled with `AllowRefreshTokenFlow()`, `UseReferenceRefreshTokens()`, and `offline_access`. Seeded clients (`mca-web-client`, `mca-mobile-client`) have `GrantTypes.RefreshToken`. Lifetimes come from `OpenIddict:TokenLifetimes` (default access `01:00:00`, refresh `14.00:00:00`).
+
+1. **Login (tokens).** `POST /connect/token`
+   - Password grant: `grant_type=password`, username/password, `client_id` (and secret for the confidential web client), scopes including `offline_access` and `mca.api`. Scalar’s Development password flow does this (`Program.cs` `SelectedScopes` includes `offline_access`).
+   - Authorization-code grant: cookie login first (`POST /api/auth/login`), then `/connect/authorize` (PKCE), then `grant_type=authorization_code` at `/connect/token`.
+2. Response includes `access_token` and `refresh_token` (opaque **reference** tokens stored by OpenIddict, not JWTs you can decode locally).
+3. Call APIs with `Authorization: Bearer {access_token}` until the access token expires.
+4. **Refresh.** `POST /connect/token` with `grant_type=refresh_token`, the refresh token, and client credentials. `OpenIddictEndpoints` authenticates that token, reloads the user (`UserManager.FindByIdAsync`), and signs in a new principal with the previous scopes. If the user no longer exists → `invalid_grant`.
+5. **Logout (tokens).** `POST /connect/logout` calls `ITokenService.RevokeAllTokensAsync` (every OpenIddict token for that subject) then `SignOut`. One token: `POST /connect/revoke`. Cookie logout (`POST /api/auth/logout`) does **not** revoke refresh tokens.
+
+#### Browser PKCE (`--frontend` + `--auth`)
+
+Generated `apps/web/src/lib/auth` (`createMcaAuth`) is the first-party SPA contract:
+
+1. `login()` → `/connect/authorize` (authorization-code + PKCE, public client `mca-spa-client`).
+2. `/callback` → `handleCallback()` exchanges the code at `/connect/token`.
+3. `fetch(apiUrl)` attaches `Authorization: Bearer` and on 401 refreshes (`grant_type=refresh_token`).
+4. Origins listed on the SPA client and in `Cors:AllowedOrigins`: `http://localhost:4321`, `http://localhost:3000`.
+
+The sample has no this client.
+
+The sample (`AddIdentityApiEndpoints`) has cookie/Identity-API login and logout only. It has **no** refresh-token grant.
 
 Email confirmation after register:
 
 - Messaging on: `UserRegisteredEvent` → `AuthEventHandler` generates token and calls `IEmailService.SendEmailConfirmationAsync`.
 - Messaging off: `RegisterUserHandler` sends the email inline. Failure is logged, register still succeeds.
 
-OpenIddict token, authorize, and userinfo live on `/connect/*` and Development `/oauth/demo/*`, `/dev/openiddict/*`. That is framework hosting, not a domain lifecycle.
+OpenIddict authorize, token (including refresh), userinfo, revoke, and end-session live on `/connect/*` and Development `/oauth/demo/*`, `/dev/openiddict/*`. That is framework hosting, not a domain aggregate — but refresh **is** part of the auth lifecycle above.
 
 Seeded Development admin (`admin@example.com` / `Admin123!`) is controlled by `Seed:*` in generated `appsettings.Development.json`.
 
