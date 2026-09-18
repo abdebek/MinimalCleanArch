@@ -1,8 +1,6 @@
-using MinimalCleanArch.Email;
+namespace MinimalCleanArch.Email;
 
-namespace MCA.Infrastructure.Configuration;
-
-public class EmailSettings
+public sealed class EmailOptions
 {
     public const string SectionName = "EmailSettings";
 
@@ -13,15 +11,19 @@ public class EmailSettings
     public string SenderName { get; set; } = "MCA";
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public bool EnableSsl { get; set; } = false;
-    public bool UseDefaultCredentials { get; set; } = false;
+    public bool EnableSsl { get; set; }
+    public bool UseDefaultCredentials { get; set; }
     public int TimeoutSeconds { get; set; } = 30;
-    public string AppBaseUrl { get; set; } = "https://localhost:5001";
-    public string AppName { get; set; } = "MCA";
-    public ApiEmailSettings Api { get; set; } = new();
+    public ApiEmailOptions Api { get; set; } = new();
 }
 
-public class ApiEmailSettings
+public static class EmailProviders
+{
+    public const string Smtp = "Smtp";
+    public const string Api = "Api";
+}
+
+public sealed class ApiEmailOptions
 {
     public string Endpoint { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;

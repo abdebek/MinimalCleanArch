@@ -1,62 +1,64 @@
-#if (UseAuth)
-using MCA.Application.Interfaces;
-using MCA.Infrastructure.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-namespace MCA.Infrastructure.Services;
+namespace MinimalCleanArch.Email;
 
 /// <summary>
-/// HTTP email transport suitable for Cloudflare Email Sending (and similar REST APIs).
-/// Uses camelCase JSON, address objects with <c>address</c>/<c>name</c>, and omits null fields.
+/// HTTP email transport (Cloudflare Email Sending and similar REST APIs).
+/// Uses camelCase JSON and address objects with <c>address</c>/<c>name</c>.
 /// </summary>
-public class ApiEmailSender : IEmailSender
+public sealed class HttpApiEmailSender : IEmailSender
 {
-    private const string HttpClientName = "AuthEmailApi";
+    public const string HttpClientName = "McaEmailApi";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    private readonly EmailSettings _settings;
+    private readonly EmailOptions _options;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<ApiEmailSender> _logger;
+    private readonly ILogger<HttpApiEmailSender> _logger;
 
-    public ApiEmailSender(
-        IOptions<EmailSettings> settings,
+    public HttpApiEmailSender(
+        IOptions<EmailOptions> options,
         IHttpClientFactory httpClientFactory,
-        ILogger<ApiEmailSender> logger)
+        ILogger<HttpApiEmailSender> logger)
     {
-        _settings = settings.Value;
+        _options = options.Value;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_settings.Api.Endpoint))
+        if (string.IsNullOrWhiteSpace(_options.Api.Endpoint))
+        {
             throw new InvalidOperationException("EmailSettings:Api:Endpoint is required when Provider is Api.");
+        }
 
         var client = _httpClientFactory.CreateClient(HttpClientName);
-        using var request = new HttpRequestMessage(HttpMethod.Post, _settings.Api.Endpoint);
+        using var request = new HttpRequestMessage(HttpMethod.Post, _options.Api.Endpoint);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         AddAuthenticationHeader(request.Headers);
         AddCustomHeaders(request.Headers);
 
-        // Cloudflare Email Sending expects camelCase and address as { address, name }
-        // (not { email, name }) and string "to" for a single recipient.
+        if (!string.IsNullOrWhiteSpace(message.CorrelationId))
+        {
+            request.Headers.TryAddWithoutValidation("X-Correlation-ID", message.CorrelationId);
+        }
+
         var payload = new ApiEmailPayload
         {
             From = new ApiEmailAddress
             {
-                Address = _settings.SenderEmail,
-                Name = _settings.SenderName
+                Address = _options.SenderEmail,
+                Name = _options.SenderName
             },
             To = message.To,
             Subject = message.Subject,
@@ -70,7 +72,9 @@ public class ApiEmailSender : IEmailSender
 
         using var response = await client.SendAsync(request, cancellationToken);
         if (response.IsSuccessStatusCode)
+        {
             return;
+        }
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         var summary = responseBody.Length <= 500 ? responseBody : responseBody[..500] + "...";
@@ -81,29 +85,35 @@ public class ApiEmailSender : IEmailSender
 
     private void AddAuthenticationHeader(HttpRequestHeaders headers)
     {
-        if (string.IsNullOrWhiteSpace(_settings.Api.ApiKey))
+        if (string.IsNullOrWhiteSpace(_options.Api.ApiKey))
+        {
             return;
+        }
 
-        var headerName = string.IsNullOrWhiteSpace(_settings.Api.ApiKeyHeaderName)
+        var headerName = string.IsNullOrWhiteSpace(_options.Api.ApiKeyHeaderName)
             ? "Authorization"
-            : _settings.Api.ApiKeyHeaderName;
+            : _options.Api.ApiKeyHeaderName;
 
-        var headerValue = string.IsNullOrWhiteSpace(_settings.Api.ApiKeyPrefix)
-            ? _settings.Api.ApiKey
-            : $"{_settings.Api.ApiKeyPrefix} {_settings.Api.ApiKey}";
+        var headerValue = string.IsNullOrWhiteSpace(_options.Api.ApiKeyPrefix)
+            ? _options.Api.ApiKey
+            : $"{_options.Api.ApiKeyPrefix} {_options.Api.ApiKey}";
 
         headers.TryAddWithoutValidation(headerName, headerValue);
     }
 
     private void AddCustomHeaders(HttpRequestHeaders headers)
     {
-        if (_settings.Api.Headers.Count == 0)
+        if (_options.Api.Headers.Count == 0)
+        {
             return;
+        }
 
-        foreach (var header in _settings.Api.Headers)
+        foreach (var header in _options.Api.Headers)
         {
             if (string.IsNullOrWhiteSpace(header.Key) || string.IsNullOrWhiteSpace(header.Value))
+            {
                 continue;
+            }
 
             headers.TryAddWithoutValidation(header.Key, header.Value);
         }
@@ -124,4 +134,3 @@ public class ApiEmailSender : IEmailSender
         public string? Name { get; set; }
     }
 }
-#endif

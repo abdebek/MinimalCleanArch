@@ -19,6 +19,11 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Moq" />
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
@@ -38,6 +43,10 @@
     <ProjectReference Include="..\..\src\MinimalCleanArch.Validation\MinimalCleanArch.Validation.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.Security\MinimalCleanArch.Security.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.Storage\MinimalCleanArch.Storage.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Email\MinimalCleanArch.Email.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Jobs\MinimalCleanArch.Jobs.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Realtime\MinimalCleanArch.Realtime.csproj" />
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Features\MinimalCleanArch.Features.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.Messaging\MinimalCleanArch.Messaging.csproj" />
     <ProjectReference Include="..\..\samples\MinimalCleanArch.Sample\MinimalCleanArch.Sample.csproj" />
   </ItemGroup>
