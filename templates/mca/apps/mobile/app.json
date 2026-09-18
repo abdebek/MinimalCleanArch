@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "MCA",
+    "slug": "mca",
+    "scheme": "mca",
+    "version": "1.0.0",
+    "platforms": ["ios", "android"]
+  }
+}
