@@ -1,0 +1,32 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout title="Create account">
+  <div class="card stack">
+    <h1 data-i18n="signUp">Create account</h1>
+    <form id="form" class="stack">
+      <label>Email <input name="email" type="email" required autocomplete="username" /></label>
+      <label>Password <input name="password" type="password" required minlength="8" autocomplete="new-password" /></label>
+      <label>First name <input name="firstName" /></label>
+      <label>Last name <input name="lastName" /></label>
+      <button type="submit">Register</button>
+    </form>
+    <p id="msg" class="muted"></p>
+  </div>
+  <script>
+    import { apiUrl } from "../lib/config";
+    const form = document.getElementById("form") as HTMLFormElement;
+    const msg = document.getElementById("msg")!;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      const res = await fetch(`${apiUrl}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      msg.textContent = res.ok ? "Registered. Sign in with OpenID Connect." : await res.text();
+      if (res.ok) window.location.href = "/login";
+    });
+  </script>
+</Layout>

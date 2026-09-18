@@ -1,0 +1,12 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout title="Signing in">
+  <div class="card"><p>Finishing sign-in…</p></div>
+  <script>
+    import { auth } from "../lib/auth-instance";
+    auth.handleCallback()
+      .then(() => { window.location.replace("/todos"); })
+      .catch(() => { window.location.replace("/login"); });
+  </script>
+</Layout>

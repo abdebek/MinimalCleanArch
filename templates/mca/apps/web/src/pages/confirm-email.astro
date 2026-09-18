@@ -1,0 +1,26 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout title="Confirm email">
+  <div class="card stack">
+    <h1 data-i18n="confirm">Confirm email</h1>
+    <p id="msg" class="muted">Confirming…</p>
+  </div>
+  <script>
+    import { apiUrl } from "../lib/config";
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get("userId");
+    const token = params.get("token");
+    const msg = document.getElementById("msg")!;
+    if (!userId || !token) {
+      msg.textContent = "Missing userId or token.";
+    } else {
+      const res = await fetch(`${apiUrl}/api/auth/confirm-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, token }),
+      });
+      msg.textContent = res.ok ? "Email confirmed. You can sign in." : await res.text();
+    }
+  </script>
+</Layout>

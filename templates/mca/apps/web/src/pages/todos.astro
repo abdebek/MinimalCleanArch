@@ -1,0 +1,61 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout title="Todos">
+  <div class="card stack">
+    <h1 data-i18n="todos">Todos</h1>
+    <p id="who" class="muted"></p>
+    <form id="form" class="stack">
+      <label>Title <input name="title" required data-testid="todo-title" /></label>
+      <button type="submit" data-i18n="add" data-testid="todo-add">Add</button>
+    </form>
+    <ul id="list"></ul>
+    <p><a href="/logout" data-i18n="signOut">Sign out</a></p>
+  </div>
+  <script>
+    import { auth } from "../lib/auth-instance";
+    import { apiUrl } from "../lib/config";
+
+    const list = document.getElementById("list")!;
+    const who = document.getElementById("who")!;
+
+    async function requireUser() {
+      const user = await auth.getUser();
+      if (!user) {
+        window.location.replace("/login");
+        return null;
+      }
+      who.textContent = user.profile?.email ?? user.profile?.sub ?? "";
+      return user;
+    }
+
+    async function load() {
+      const res = await auth.fetch(`${apiUrl}/api/todos`);
+      if (res.status === 401) {
+        window.location.replace("/login");
+        return;
+      }
+      const items = (await res.json()) as { id: number; title: string; isCompleted: boolean }[];
+      list.innerHTML = items
+        .map((t) => `<li data-testid="todo-item">${t.isCompleted ? "✓ " : ""}${t.title}</li>`)
+        .join("");
+    }
+
+    const form = document.getElementById("form") as HTMLFormElement;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = (new FormData(form).get("title") as string) ?? "";
+      const res = await auth.fetch(`${apiUrl}/api/todos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, priority: 0 }),
+      });
+      if (res.ok) {
+        form.reset();
+        await load();
+      }
+    });
+
+    if (await requireUser()) await load();
+  </script>
+</Layout>
