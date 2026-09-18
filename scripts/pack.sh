@@ -60,12 +60,16 @@ rm -f "$OUTPUT_PATH"/*.snupkg
 projects=(
     "src/MinimalCleanArch/MinimalCleanArch.csproj"
     "src/MinimalCleanArch.Audit/MinimalCleanArch.Audit.csproj"
+    "src/MinimalCleanArch.Jobs/MinimalCleanArch.Jobs.csproj"
+    "src/MinimalCleanArch.Realtime/MinimalCleanArch.Realtime.csproj"
+    "src/MinimalCleanArch.Features/MinimalCleanArch.Features.csproj"
     "src/MinimalCleanArch.Messaging/MinimalCleanArch.Messaging.csproj"
     "src/MinimalCleanArch.DataAccess/MinimalCleanArch.DataAccess.csproj"
     "src/MinimalCleanArch.Extensions/MinimalCleanArch.Extensions.csproj"
     "src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj"
     "src/MinimalCleanArch.Security/MinimalCleanArch.Security.csproj"
     "src/MinimalCleanArch.Storage/MinimalCleanArch.Storage.csproj"
+    "src/MinimalCleanArch.Email/MinimalCleanArch.Email.csproj"
     "templates/MinimalCleanArch.Templates.csproj"
 )
 

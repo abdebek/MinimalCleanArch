@@ -16,7 +16,7 @@ Minimal API extensions for MinimalCleanArch.
 - skip it in non-HTTP projects or when you intentionally want to assemble the host without MCA API helpers
 
 ## Dependency Direction
-- Depends on: `MinimalCleanArch`
+- Depends on: `MinimalCleanArch`, `MinimalCleanArch.Realtime` (SignalR adapter for `IRealtimePublisher`), `MinimalCleanArch.Features` (`RequireFeature`)
 - Typically referenced by: API/host projects
 - Used by: `MinimalCleanArch.Validation` for validation integration
 - Do not reference from: domain projects; infrastructure projects should not need it except in very host-specific composition code
@@ -28,6 +28,9 @@ Minimal API extensions for MinimalCleanArch.
 - OpenAPI helpers: standard response definitions and filters.
 - Rate limiting: global and named endpoint policies with consistent `429` responses.
 - Misc: path parameter validation, minimal API conveniences.
+- Caching: `AddMinimalCleanArchCaching` / `AddMinimalCleanArchDistributedCaching` register `ICacheService` (memory or Redis). Cache DTOs, not domain entities with private setters.
+- Realtime: `AddMinimalCleanArchRealtime` / `MapMinimalCleanArchRealtime` is the SignalR adapter for `IRealtimePublisher` (port in `MinimalCleanArch.Realtime`).
+- Features: `RequireFeature` is the HTTP adapter for `IFeatureGate` (port in `MinimalCleanArch.Features`).
 
 ## Usage
 ```bash
@@ -48,6 +51,7 @@ Equivalent explicit registration:
 builder.Services.AddMinimalCleanArchExtensions();
 builder.Services.AddValidationFromAssemblyContaining<CreateTodoCommandValidator>();
 builder.Services.AddMinimalCleanArchRateLimiting();
+builder.Services.AddMinimalCleanArchApiVersioning();
 ```
 
 Middleware:
@@ -73,7 +77,7 @@ if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
 group.MapPost("/", handler).WithValidation<CreateTodoRequest>();
 ```
 
-`AddMinimalCleanArchApi(...)` is the preferred entry point when you want a single bootstrap method. Use the explicit registrations when you need tighter control over the service graph.
+`AddMinimalCleanArchApi(...)` is the preferred entry point when you want a single bootstrap method. Use the explicit registrations when you need tighter control over the service graph. `AddMinimalCleanArchExecutionContext()` registers HTTP `IExecutionContext` (claim → `TenantId`) without the rest of the API bootstrap.
 
 Execution-context claim mapping can be customized without replacing `IExecutionContext`:
 

@@ -6,6 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Tenancy isolation: kernel `ITenantEntity`; `DbContextBase` / `IdentityDbContextBase` apply a fail-closed EF query filter and stamp `TenantId` on insert. Default is the EF filter, not Postgres RLS.
+- Template flag **`--multitenant`**: Todo is tenant-owned; `--auth` issues a `tenant_id` claim. Tests prove tenant A cannot read tenant B Todos.
+- Organization membership when `--auth --multitenant`: create org, invite-by-code, org-scoped role rows (data, not Identity seed constants). Join switches the invitee onto the org tenant so Todos are shared.
+- Template `--recommended` / `--versioning` / `--all` register `AddMinimalCleanArchApiVersioning` the same way the sample does.
+- Template `--caching`: Todo handlers use `ICacheService.GetOrCreateAsync` (memory or Redis), not raw `IMemoryCache`. Cached values are `TodoResponse` DTOs so Redis JSON round-trips.
+- `MinimalCleanArch.Jobs`: `IJobScheduler` (recurring + delayed) with `IHostedService` fallback and Wolverine `AddWolverineJobs`. Template `--jobs` / `--messaging` / `--all` run `PurgeSoftDeletedTodos`.
+- `MinimalCleanArch.Realtime`: `IRealtimePublisher` (no SignalR types). SignalR adapter in Extensions. Template `--realtime` / `--all` maps `/hubs/realtime` and publishes Todo writes.
+- `MinimalCleanArch.Features`: `IFeatureGate.IsEnabled(feature, tenant)` with config backing and optional `IFeatureStore`. Template `--features` / `--all` gates `GET /api/todos/export` (`todo-export`). Flipping the flag in config changes 403 vs 200 without domain changes.
+- Template soft-delete restore: `POST /api/todos/{id}/restore` (`RestoreTodoCommand` / `Todo.Restore()`). Optional; `--auth` requires the Admin role.
+- Template `--frontend` / `--mobile` emit `apps/web` and `apps/mobile` next to the API (layout slots). API-only generation is unchanged; the API still runs with `dotnet run --project src/{Name}.Api`.
+- `--frontend` includes `apps/web/src/lib/auth` (`oidc-client-ts`: authorization-code + PKCE, refresh, Bearer `fetch`). `--auth` seeds public OpenIddict client `mca-spa-client` and CORS for `http://localhost:4321` / `http://localhost:3000`.
+
 ## [0.1.20-preview] - 2026-08-02
 
 ### Added
