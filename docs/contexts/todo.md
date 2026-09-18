@@ -48,10 +48,11 @@ Single project (`templates/mca/single`):
 | `UpdateTodoCommand` | `Handle` → `TodoResponse` | `PUT /api/todos/{id}` |
 | `CompleteTodoCommand` | `Handle` → `Result` | `POST /api/todos/{id}/complete` |
 | `DeleteTodoCommand` | `Handle` → `Result` | `DELETE /api/todos/{id}` |
+| `RestoreTodoCommand` | `Handle` → `TodoResponse` | `POST /api/todos/{id}/restore` (Admin when `--auth`; optional) |
 
 `GetAllTodosQuery` is declared in the single project command file and has no handler.
 
-Multi project (`templates/mca/multi`): `GET /api/todos` uses `GetAllTodosQuery` and returns all items. There is no `GetTodosQuery`, no specification folder, and no paging. Multi `TodoListResult` is only `Items`. Multi `TodoResponse` also includes `CreatedAt` and `LastModifiedAt`.
+Multi project (`templates/mca/multi`): `GET /api/todos` uses `GetAllTodosQuery` and returns all items. There is no `GetTodosQuery`, no specification folder, and no paging. Multi `TodoListResult` is only `Items`. Multi `TodoResponse` includes `CreatedAt` and `UpdatedAt` (mapped from `todo.LastModifiedAt`). Single-project `TodoResponse` has neither timestamp field.
 
 Sample routes omit `/complete`. Completion is a field on `UpdateTodoRequest`.
 
@@ -68,6 +69,7 @@ Same process as Identity. No dedicated Todo service.
 | Messaging | Events published only if interceptor is on the context. |
 | Audit | `AuditLog` rows for Todo changes when enabled. |
 | Security | Sample encrypts `Description`. |
+| Caching | Template `--caching`: Todo reads go through `ICacheService` (memory or Redis). Values are `TodoResponse` DTOs. |
 
 ## Honesty
 
@@ -75,4 +77,4 @@ Same process as Identity. No dedicated Todo service.
 - Generic repository (sample) or a thin typed wrapper (template).
 - No value objects.
 - Sample use cases sit in the endpoint class (fat endpoint, thin/no application layer).
-- `ITodoRepository.GetByPriorityAsync` is dead API surface.
+- Dead `ITodoRepository` extras (no handler callers): single-project `GetByPriorityAsync`; multi-project `GetIncompleteByPriorityAsync` and `GetDueBeforeAsync`.
