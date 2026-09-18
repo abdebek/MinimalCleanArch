@@ -17,10 +17,15 @@ uow: IUnitOfWork.SaveChangesAsync {
   shape: rectangle
 }
 
+stamp: DbContextBase.ApplyAuditInfo {
+  shape: rectangle
+  when: "SaveChanges / SaveChangesAsync, before interceptors"
+  fields: "CreatedAt/By, LastModifiedAt/By"
+}
+
 saving: SavingChanges interceptors {
   shape: rectangle
   audit: AuditSaveChangesInterceptor writes AuditLog
-  stamp: DbContextBase.ApplyAuditInfo stamps CreatedBy
 }
 
 saved: SavedChangesAsync {
@@ -64,7 +69,7 @@ side: Side effects {
   email: IEmailService on UserRegisteredEvent
 }
 
-raise -> uow -> saving -> saved -> gate
+raise -> uow -> stamp -> saving -> saved -> gate
 gate -> publish: "templates with --messaging"
 gate -> lost: "sample, or messaging off"
 publish -> wolverine -> handlers -> side

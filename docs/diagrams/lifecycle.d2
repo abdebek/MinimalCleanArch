@@ -32,8 +32,9 @@ active -> completed: MarkAsCompleted
 completed -> active: "MarkAsIncomplete (template) or MarkAsNotCompleted (sample)"
 active -> soft_deleted: "template: Todo.Delete() then UpdateAsync\nsample: IRepository.DeleteAsync sets IsDeleted"
 completed -> soft_deleted: same delete path
+soft_deleted -> active: "template: POST /api/todos/{id}/restore (Admin when --auth)"
 
-note: "Hidden from queries by ISoftDelete global filter on DbContextBase. No restore command is mapped." {
+note: "Hidden from queries by ISoftDelete global filter. Template restore is optional; sample has none." {
   near: bottom-center
   shape: text
   style.font-size: 14
