@@ -7,7 +7,10 @@ using MCA.Domain.Interfaces;
 using MinimalCleanArch.Domain.Common;
 using MinimalCleanArch.Repositories;
 #if (UseCaching)
-using Microsoft.Extensions.Caching.Memory;
+using MinimalCleanArch.Extensions.Caching;
+#endif
+#if (UseRealtime)
+using MinimalCleanArch.Realtime;
 #endif
 
 namespace MCA.Application.Handlers;
@@ -21,14 +24,21 @@ public class TodoCommandHandler
     private readonly ITodoRepository _todoRepository;
     private readonly IUnitOfWork _unitOfWork;
 #if (UseCaching)
-    private readonly IMemoryCache _cache;
+    private readonly ICacheService _cache;
+    private static readonly CacheEntryOptions ItemCacheOptions = CacheEntryOptions.Absolute(TimeSpan.FromMinutes(5));
+#endif
+#if (UseRealtime)
+    private readonly IRealtimePublisher _realtime;
 #endif
 
     public TodoCommandHandler(
         ITodoRepository todoRepository,
         IUnitOfWork unitOfWork
 #if (UseCaching)
-        , IMemoryCache cache
+        , ICacheService cache
+#endif
+#if (UseRealtime)
+        , IRealtimePublisher realtime
 #endif
         )
     {
@@ -36,6 +46,9 @@ public class TodoCommandHandler
         _unitOfWork = unitOfWork;
 #if (UseCaching)
         _cache = cache;
+#endif
+#if (UseRealtime)
+        _realtime = realtime;
 #endif
     }
 
@@ -84,26 +97,25 @@ public class TodoCommandHandler
 
     public async Task<Result<TodoResponse>> Handle(GetTodoByIdQuery query, CancellationToken cancellationToken)
     {
-        Todo? todo;
+        TodoResponse? response;
 #if (UseCaching)
-        if (_cache.TryGetValue(GetTodoCacheKey(query.Id), out Todo? cached) && cached is not null)
-        {
-            todo = cached;
-        }
-        else
-        {
-            todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(query.Id), cancellationToken);
-            if (todo is not null)
+        // Cache DTOs, not Todo entities: Redis JSON cannot round-trip private setters.
+        response = await _cache.GetOrCreateAsync(
+            GetTodoCacheKey(query.Id),
+            async ct =>
             {
-                _cache.Set(GetTodoCacheKey(query.Id), todo, TimeSpan.FromMinutes(5));
-            }
-        }
+                var todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(query.Id), ct);
+                return todo is null ? null : MapToResponse(todo);
+            },
+            ItemCacheOptions,
+            cancellationToken);
 #else
-        todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(query.Id), cancellationToken);
+        var todo = await _todoRepository.GetFirstAsync(new TodoByIdSpecification(query.Id), cancellationToken);
+        response = todo is null ? null : MapToResponse(todo);
 #endif
-        return todo is null
+        return response is null
             ? Result.Failure<TodoResponse>(DomainErrors.General.NotFound(nameof(Todo), query.Id))
-            : Result.Success(MapToResponse(todo));
+            : Result.Success(response);
     }
 
     public async Task<Result<TodoResponse>> Handle(CreateTodoCommand command, CancellationToken cancellationToken)
@@ -112,7 +124,10 @@ public class TodoCommandHandler
         await _todoRepository.AddAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 #if (UseCaching)
-        InvalidateCache(todo.Id);
+        await InvalidateCacheAsync(todo.Id, cancellationToken);
+#endif
+#if (UseRealtime)
+        await PublishTodoChangedAsync(todo, "created", cancellationToken);
 #endif
         return Result.Success(MapToResponse(todo));
     }
@@ -129,7 +144,10 @@ public class TodoCommandHandler
         await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 #if (UseCaching)
-        InvalidateCache(todo.Id);
+        await InvalidateCacheAsync(todo.Id, cancellationToken);
+#endif
+#if (UseRealtime)
+        await PublishTodoChangedAsync(todo, "updated", cancellationToken);
 #endif
         return Result.Success(MapToResponse(todo));
     }
@@ -146,7 +164,10 @@ public class TodoCommandHandler
         await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 #if (UseCaching)
-        InvalidateCache(todo.Id);
+        await InvalidateCacheAsync(todo.Id, cancellationToken);
+#endif
+#if (UseRealtime)
+        await PublishTodoChangedAsync(todo, "completed", cancellationToken);
 #endif
         return Result.Success();
     }
@@ -163,9 +184,32 @@ public class TodoCommandHandler
         await _todoRepository.UpdateAsync(todo, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 #if (UseCaching)
-        InvalidateCache(todo.Id);
+        await InvalidateCacheAsync(todo.Id, cancellationToken);
+#endif
+#if (UseRealtime)
+        await PublishTodoChangedAsync(todo, "deleted", cancellationToken);
 #endif
         return Result.Success();
+    }
+
+    public async Task<Result<TodoResponse>> Handle(RestoreTodoCommand command, CancellationToken cancellationToken)
+    {
+        var todo = await _todoRepository.GetByIdIncludingDeletedAsync(command.Id, cancellationToken);
+        if (todo is null)
+        {
+            return Result.Failure<TodoResponse>(DomainErrors.General.NotFound(nameof(Todo), command.Id));
+        }
+
+        todo.Restore();
+        await _todoRepository.UpdateAsync(todo, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+#if (UseCaching)
+        await InvalidateCacheAsync(todo.Id, cancellationToken);
+#endif
+#if (UseRealtime)
+        await PublishTodoChangedAsync(todo, "restored", cancellationToken);
+#endif
+        return Result.Success(MapToResponse(todo));
     }
 
     private static TodoResponse MapToResponse(Todo todo) =>
@@ -174,9 +218,21 @@ public class TodoCommandHandler
 #if (UseCaching)
     private static string GetTodoCacheKey(int id) => $"todo_{id}";
 
-    private void InvalidateCache(int id)
-    {
-        _cache.Remove(GetTodoCacheKey(id));
-    }
+    private Task InvalidateCacheAsync(int id, CancellationToken cancellationToken) =>
+        _cache.RemoveAsync(GetTodoCacheKey(id), cancellationToken);
+#endif
+
+#if (UseRealtime)
+    private Task PublishTodoChangedAsync(Todo todo, string action, CancellationToken cancellationToken) =>
+        _realtime.PublishAsync(
+            new RealtimeMessage
+            {
+                Channel = "todos",
+                Payload = new { id = todo.Id, title = todo.Title, action },
+#if (UseMultiTenant)
+                TenantId = todo.TenantId,
+#endif
+            },
+            cancellationToken);
 #endif
 }
