@@ -32,6 +32,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.18" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.18" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <!--#if (UseRealtime)-->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.18" />
+    <!--#endif-->
   </ItemGroup>
   <!--#endif-->
 
@@ -41,6 +44,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <!--#if (UseRealtime)-->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.10" />
+    <!--#endif-->
   </ItemGroup>
   <!--#endif-->
 
@@ -48,10 +54,10 @@
     <!--#if (SingleProject)-->
     <ProjectReference Include="..\\..\\MCA.csproj" />
     <!--#else-->
-    <ProjectReference Include="..\\..\\MCA.Domain\\MCA.Domain.csproj" />
-    <ProjectReference Include="..\\..\\MCA.Application\\MCA.Application.csproj" />
-    <ProjectReference Include="..\\..\\MCA.Infrastructure\\MCA.Infrastructure.csproj" />
-    <ProjectReference Include="..\\..\\MCA.Api\\MCA.Api.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Domain\\MCA.Domain.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Application\\MCA.Application.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Infrastructure\\MCA.Infrastructure.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Api\\MCA.Api.csproj" />
     <!--#endif-->
   </ItemGroup>
   <!--#endif-->

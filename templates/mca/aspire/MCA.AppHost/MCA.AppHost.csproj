@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <!--#if (MultiProject)-->
-    <ProjectReference Include="..\MCA.Api\MCA.Api.csproj" />
+    <ProjectReference Include="..\src\MCA.Api\MCA.Api.csproj" />
     <!--#else-->
     <ProjectReference Include="..\MCA.csproj" />
     <!--#endif-->

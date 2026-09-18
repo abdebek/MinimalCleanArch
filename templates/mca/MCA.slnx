@@ -1,11 +1,11 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="MCA.Api/MCA.Api.csproj" />
-    <Project Path="MCA.Application/MCA.Application.csproj" />
-    <Project Path="MCA.Domain/MCA.Domain.csproj" />
-    <Project Path="MCA.Infrastructure/MCA.Infrastructure.csproj" />
+    <Project Path="src/MCA.Api/MCA.Api.csproj" />
+    <Project Path="src/MCA.Application/MCA.Application.csproj" />
+    <Project Path="src/MCA.Domain/MCA.Domain.csproj" />
+    <Project Path="src/MCA.Infrastructure/MCA.Infrastructure.csproj" />
     <!--#if (UseAspire)-->
-    <Project Path="MCA.ServiceDefaults/MCA.ServiceDefaults.csproj" />
+    <Project Path="src/MCA.ServiceDefaults/MCA.ServiceDefaults.csproj" />
     <!--#endif-->
   </Folder>
   <!--#if (UseAspire)-->

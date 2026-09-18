@@ -21,11 +21,11 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
 #if (UsePostgres)
-            ?? "Host=localhost;Database=MCA;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Database=__DB_NAME__;Username=postgres;Password=postgres";
 #elif (UseSqlServer)
-            ?? "Server=localhost;Database=MCA;Trusted_Connection=True;TrustServerCertificate=True";
+            ?? "Server=localhost;Database=__DB_NAME__;Trusted_Connection=True;TrustServerCertificate=True";
 #else
-            ?? "Data Source=MCA.db";
+            ?? "Data Source=__DB_NAME__.db";
 #endif
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();

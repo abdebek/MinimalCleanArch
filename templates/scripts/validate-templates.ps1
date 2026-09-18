@@ -130,7 +130,7 @@ function Assert-AspireScaffold {
         }
     }
     else {
-        $apiProgramPath = Join-Path $OutDir "$ProjName.Api" "Program.cs"
+        $apiProgramPath = Join-Path $OutDir "src" "$ProjName.Api" "Program.cs"
         if ($appHostProgram -notmatch [regex]::Escape("Projects.${ProjName}_Api")) {
             throw "Multi-project AppHost should reference Projects.${ProjName}_Api"
         }

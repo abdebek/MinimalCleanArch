@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--#if (UseCaching)-->
+    <PackageReference Include="MinimalCleanArch" Version="__MCA_VERSION__" />
+    <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
+    <!--#endif-->
     <PackageReference Include="FluentAssertions" Version="8.10.0" />
     <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
@@ -27,10 +31,10 @@
     <!--#if (SingleProject)-->
     <ProjectReference Include="..\\..\\MCA.csproj" />
     <!--#else-->
-    <ProjectReference Include="..\\..\\MCA.Domain\\MCA.Domain.csproj" />
-    <ProjectReference Include="..\\..\\MCA.Application\\MCA.Application.csproj" />
-    <ProjectReference Include="..\\..\\MCA.Infrastructure\\MCA.Infrastructure.csproj" />
-    <ProjectReference Include="..\\..\\MCA.Api\\MCA.Api.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Domain\\MCA.Domain.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Application\\MCA.Application.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Infrastructure\\MCA.Infrastructure.csproj" />
+    <ProjectReference Include="..\\..\\src\\MCA.Api\\MCA.Api.csproj" />
     <!--#endif-->
   </ItemGroup>
 </Project>
