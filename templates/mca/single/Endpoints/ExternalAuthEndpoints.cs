@@ -13,20 +13,53 @@ namespace MCA.Endpoints;
 
 /// <summary>
 /// External OAuth provider endpoints (Google, Microsoft, GitHub).
-/// To enable: uncomment the relevant provider in IdentityServiceExtensions and add the NuGet packages.
+/// A provider is enabled when <c>Authentication:{Provider}:ClientId</c> and <c>ClientSecret</c> are set (user-secrets or environment). Empty values keep the scheme unregistered.
 /// </summary>
 public static class ExternalAuthEndpoints
 {
     public static void MapExternalAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/auth/external/{provider}", (
+        var knownProviders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Google", "Microsoft", "GitHub"
+        };
+
+        app.MapGet("/api/auth/external/providers", (HttpContext context) =>
+        {
+            var configuration = context.RequestServices.GetRequiredService<IConfiguration>();
+            var providers = knownProviders
+                .Where(name => IsProviderConfigured(configuration, name))
+                .ToArray();
+            return Results.Ok(new { providers });
+        })
+        .AllowAnonymous()
+        .WithName("ExternalLoginProviders")
+        .WithTags("Authentication")
+        .WithSummary("List configured external authentication providers");
+
+        app.MapGet("/api/auth/external/{provider}", async (
             string provider,
             [FromQuery] string? returnUrl,
             HttpContext context) =>
         {
-            var redirectUrl = $"/api/auth/external/{provider}/callback?returnUrl={Uri.EscapeDataString(returnUrl ?? "/")}";
+            var schemes = await context.RequestServices
+                .GetRequiredService<IAuthenticationSchemeProvider>()
+                .GetAllSchemesAsync();
+            var configuration = context.RequestServices.GetRequiredService<IConfiguration>();
+            var scheme = schemes.FirstOrDefault(s =>
+                string.Equals(s.Name, provider, StringComparison.OrdinalIgnoreCase)
+                && IsProviderConfigured(configuration, s.Name));
+            if (scheme is null)
+            {
+                return Results.NotFound(new
+                {
+                    error = $"External provider '{provider}' is not configured. Set Authentication:{provider}:ClientId and ClientSecret."
+                });
+            }
+
+            var redirectUrl = $"/api/auth/external/{scheme.Name}/callback?returnUrl={Uri.EscapeDataString(returnUrl ?? "/")}";
             var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
-            return Results.Challenge(properties, new[] { provider });
+            return Results.Challenge(properties, new[] { scheme.Name });
         })
         .AllowAnonymous()
         .WithName("ExternalLoginChallenge")
@@ -85,16 +118,16 @@ public static class ExternalAuthEndpoints
         .WithName("ExternalLoginCallback")
         .WithTags("Authentication")
         .WithSummary("Handle external provider OAuth callback");
+    }
 
-        app.MapGet("/api/auth/external/providers", () =>
-        {
-            var providers = new[] { "Google", "Microsoft", "GitHub" };
-            return Results.Ok(new { providers });
-        })
-        .AllowAnonymous()
-        .WithName("ExternalLoginProviders")
-        .WithTags("Authentication")
-        .WithSummary("List available external authentication providers");
+    private static bool IsProviderConfigured(IConfiguration configuration, string? provider)
+    {
+        if (string.IsNullOrWhiteSpace(provider))
+            return false;
+
+        var clientId = configuration[$"Authentication:{provider}:ClientId"];
+        var clientSecret = configuration[$"Authentication:{provider}:ClientSecret"];
+        return !string.IsNullOrWhiteSpace(clientId) && !string.IsNullOrWhiteSpace(clientSecret);
     }
 }
 #endif

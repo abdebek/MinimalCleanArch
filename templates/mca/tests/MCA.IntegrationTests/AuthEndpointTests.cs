@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MCA.Application.Interfaces;
 using MCA.Domain.Constants;
+using MinimalCleanArch.Email;
 using MCA.Application.Identity;
 using MCA.Infrastructure.Data;
 #if (SingleProject)
@@ -46,6 +47,26 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task External_Google_Challenge_Redirects_When_Configured()
+    {
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var response = await client.GetAsync("/api/auth/external/Google");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location.Should().NotBeNull();
+        response.Headers.Location!.Host.Should().ContainEquivalentOf("google");
+    }
+
+    [Fact]
+    public async Task External_Unknown_Provider_Returns_NotFound()
+    {
+        using var response = await _client.GetAsync("/api/auth/external/NotAProvider");
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("not configured");
+    }
+
     // --- Register ---
 
     [Fact]
@@ -191,6 +212,12 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.Should().Be("text/html");
+        var html = await response.Content.ReadAsStringAsync();
+        html.Should().Contain("Continue with Google");
+        html.Should().Contain("Continue with Microsoft");
+        html.Should().Contain("Continue with GitHub");
+        html.Should().NotContain("<!--");
+        html.Should().Contain("/api/auth/external/Google");
     }
 
     [Fact]
@@ -482,12 +509,14 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
 public class AuthTestApiFactory : WebApplicationFactory<Program>
 {
+    protected virtual IEnumerable<KeyValuePair<string, string?>> ExtraConfiguration() => [];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, configBuilder) =>
         {
-            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            var values = new Dictionary<string, string?>
             {
                 // Intentionally mismatch App:BaseUrl with runtime URLs to verify redirect URI seeding
                 // remains resilient in development when launch profile ports differ.
@@ -507,7 +536,13 @@ public class AuthTestApiFactory : WebApplicationFactory<Program>
                 ["RateLimiting:TokenBucketLimit"] = "10000",
                 ["RateLimiting:TokensPerPeriod"] = "10000",
                 ["RateLimiting:ConcurrencyPermitLimit"] = "10000"
-            });
+            };
+            foreach (var pair in ExtraConfiguration())
+            {
+                values[pair.Key] = pair.Value;
+            }
+
+            configBuilder.AddInMemoryCollection(values);
         });
         builder.ConfigureServices(services =>
         {

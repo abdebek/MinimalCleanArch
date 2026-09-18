@@ -333,14 +333,11 @@ public static class AuthEndpoints
                     <input type="hidden" name="returnUrl" value="{returnUrl}">
                     <button type="submit">Sign in</button>
                 </form>
-                <!-- External providers (optional): enable provider handlers first in IdentityServiceExtensions, then uncomment. -->
-                <!--
                 <div class="providers">
                     <a class="provider-button" href="/api/auth/external/Google?returnUrl={returnUrlQuery}">Continue with Google</a>
                     <a class="provider-button" href="/api/auth/external/Microsoft?returnUrl={returnUrlQuery}">Continue with Microsoft</a>
                     <a class="provider-button" href="/api/auth/external/GitHub?returnUrl={returnUrlQuery}">Continue with GitHub</a>
                 </div>
-                -->
             </div>
             </body>
             </html>
