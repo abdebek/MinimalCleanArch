@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -52,31 +51,10 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
         base.OnModelCreating(modelBuilder);
         NormalizeIdentityIndexFilters(modelBuilder, typeof(TUser), typeof(IdentityRole));
 
-        // Apply global query filter for soft delete to all entities that implement ISoftDelete
-        ApplySoftDeleteQueryFilters(modelBuilder);
-        
+        QueryFilterConfiguration.Apply(modelBuilder, () => CurrentTenantId);
+
         // Configure Identity entities if they implement our interfaces
         ConfigureIdentityEntitiesIfNeeded(modelBuilder);
-    }
-
-    /// <summary>
-    /// Applies soft delete query filters to all entities that implement ISoftDelete
-    /// </summary>
-    /// <param name="modelBuilder">The model builder</param>
-    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
-    {
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
-            {
-                var parameter = Expression.Parameter(entityType.ClrType, "p");
-                var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
-                var condition = Expression.Equal(property, Expression.Constant(false));
-                var lambda = Expression.Lambda(condition, parameter);
-
-                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
-            }
-        }
     }
 
     /// <summary>
@@ -136,6 +114,7 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     /// <returns>A task that represents the asynchronous save operation</returns>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplyTenantStamps();
         ApplyAuditInfo();
         return await base.SaveChangesAsync(cancellationToken);
     }
@@ -146,6 +125,7 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     /// <returns>The number of state entries written to the database</returns>
     public override int SaveChanges()
     {
+        ApplyTenantStamps();
         ApplyAuditInfo();
         return base.SaveChanges();
     }
@@ -200,6 +180,14 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     /// </summary>
     /// <returns>The current tenant ID.</returns>
     protected virtual string? GetCurrentTenantId() => _executionContext?.TenantId;
+
+    /// <summary>
+    /// Tenant id used by global query filters. Evaluated per query from
+    /// <see cref="IExecutionContext"/>, not captured at model compile time.
+    /// </summary>
+    protected string? CurrentTenantId => GetCurrentTenantId();
+
+    private void ApplyTenantStamps() => TenantStamper.Apply(ChangeTracker, GetCurrentTenantId());
 }
 
 /// <summary>
@@ -249,34 +237,13 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
         base.OnModelCreating(modelBuilder);
         NormalizeIdentityIndexFilters(modelBuilder, typeof(TUser), typeof(TRole));
 
-        // Apply global query filter for soft delete
-        ApplySoftDeleteQueryFilters(modelBuilder);
+        QueryFilterConfiguration.Apply(modelBuilder, () => CurrentTenantId);
 
         // Configure Identity entities if they implement our interfaces
         ConfigureIdentityEntitiesIfNeeded(modelBuilder);
         
         // Configure Identity tables with optimized indexes
         ConfigureIdentityTablesOptimized(modelBuilder);
-    }
-
-    /// <summary>
-    /// Applies soft delete query filters to all entities that implement ISoftDelete
-    /// </summary>
-    /// <param name="modelBuilder">The model builder</param>
-    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
-    {
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
-            {
-                var parameter = Expression.Parameter(entityType.ClrType, "p");
-                var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
-                var condition = Expression.Equal(property, Expression.Constant(false));
-                var lambda = Expression.Lambda(condition, parameter);
-
-                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
-            }
-        }
     }
 
     /// <summary>
@@ -430,6 +397,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// <returns>A task that represents the asynchronous save operation</returns>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplyTenantStamps();
         ApplyAuditInfo();
         return await base.SaveChangesAsync(cancellationToken);
     }
@@ -440,6 +408,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// <returns>The number of state entries written to the database</returns>
     public override int SaveChanges()
     {
+        ApplyTenantStamps();
         ApplyAuditInfo();
         return base.SaveChanges();
     }
@@ -492,4 +461,12 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// </summary>
     /// <returns>The current tenant ID</returns>
     protected virtual string? GetCurrentTenantId() => _executionContext?.TenantId;
+
+    /// <summary>
+    /// Tenant id used by global query filters. Evaluated per query from
+    /// <see cref="IExecutionContext"/>, not captured at model compile time.
+    /// </summary>
+    protected string? CurrentTenantId => GetCurrentTenantId();
+
+    private void ApplyTenantStamps() => TenantStamper.Apply(ChangeTracker, GetCurrentTenantId());
 }

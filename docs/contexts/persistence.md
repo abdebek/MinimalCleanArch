@@ -9,8 +9,9 @@
 
 | Type | Path | Role |
 |---|---|---|
-| `DbContextBase` | `src/MinimalCleanArch.DataAccess/DbContextBase.cs` | Soft delete filter, `ApplyAuditInfo` |
+| `DbContextBase` | `src/MinimalCleanArch.DataAccess/DbContextBase.cs` | Soft delete filter, tenant filter on `ITenantEntity`, `ApplyAuditInfo`, tenant stamp |
 | `IdentityDbContextBase<...>` | `IdentityDbContextBase.cs` | Same + Identity index filters |
+| `ITenantEntity` | `src/MinimalCleanArch/Domain/Entities/ITenantEntity.cs` | Opt-in tenant column; DataAccess fail-closed filter |
 | `Repository<TEntity,TKey>` | `Repositories/Repository.cs` | Generic EF repository |
 | `UnitOfWork` | `Repositories/UnitOfWork.cs` | Save + Begin/Commit/Rollback |
 | `SpecificationEvaluator<T>` | `Specifications/SpecificationEvaluator.cs` | Spec → `IQueryable` |
@@ -32,7 +33,8 @@ Persistence does not own aggregates. One `DbContext` maps Todo, Identity, `Audit
 ## Key behaviors
 
 - `Repository.DeleteAsync` sets `IsDeleted` on `ISoftDelete`, otherwise `DbSet.Remove`.
-- `GetByIdAsync` uses `FirstOrDefaultAsync(e => e.Id.Equals(id))`, so global filters apply (deleted rows are hidden).
+- `GetByIdAsync` uses `FirstOrDefaultAsync(e => e.Id.Equals(id))`, so global filters apply (deleted rows are hidden; `ITenantEntity` rows for other tenants are hidden).
+- Default tenancy isolation is the EF global query filter (`TenantId == IExecutionContext.TenantId`, fail-closed when TenantId is null). Postgres RLS is not applied. Use `IgnoreQueryFilters()` for admin/seed. Template flag `--multitenant` makes Todo implement `ITenantEntity` and issues a `tenant_id` claim when `--auth` is on. `--auth --multitenant` also maps Organization / membership / invitations; org id is the current tenant guid so existing Todos stay in that isolation scope.
 - `UnitOfWork.BeginTransactionAsync` always uses the provider default isolation. Non-`ReadCommitted` values are logged to Debug and ignored.
 - Sample `GetCurrentUserId` falls back to `"system"`.
 - Template `AppDbContext` sets `UseQueryTrackingBehavior(NoTracking)` on the host options. Writes still attach via `UpdateAsync` (`EntityState.Modified`).

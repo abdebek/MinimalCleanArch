@@ -22,7 +22,7 @@ Entity Framework Core implementation for MinimalCleanArch (repositories, unit of
 - Do not reference from: pure domain projects; application projects should normally depend on repository abstractions, not on this package
 
 ## What's included
-- `DbContextBase` and `IdentityDbContextBase` with auditing/soft-delete support.
+- `DbContextBase` and `IdentityDbContextBase` with auditing, soft-delete, and tenant (`ITenantEntity`) query filters. Default isolation is the EF filter (fail-closed). Postgres RLS is not applied.
 - `Repository<TEntity,TKey>` and `UnitOfWork` implementations.
 - `SpecificationEvaluator` to translate specifications (including composed `And/Or/Not`) to EF Core queries and honor `IsCountOnly`, `AsSplitQuery`, and `IgnoreQueryFilters`.
 - DI extensions to register repositories/unit of work.
@@ -60,7 +60,9 @@ public sealed class AppDbContext : DbContextBase
 }
 ```
 
-Use the constructor overload that accepts `IExecutionContext` when you want audit stamping to flow from the current HTTP request or message-handler scope without overriding `GetCurrentUserId()`.
+Use the constructor overload that accepts `IExecutionContext` when you want audit stamping and tenant isolation to flow from the current HTTP request or message-handler scope without overriding `GetCurrentUserId()` / `GetCurrentTenantId()`.
+
+Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. `IgnoreQueryFilters()` is the admin/seed bypass. Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
 
 ### Recommended specification usage
 ```csharp

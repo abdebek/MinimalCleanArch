@@ -40,6 +40,7 @@ public sealed class ExecutionContextOptions
     /// </summary>
     public IList<string> TenantIdClaimTypes { get; } =
     [
-        "tenant_id"
+        "tenant_id",
+        "org_id"
     ];
 }

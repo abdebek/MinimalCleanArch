@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Execution;
@@ -7,7 +6,7 @@ using MinimalCleanArch.Execution;
 namespace MinimalCleanArch.DataAccess;
 
 /// <summary>
-/// Base DbContext with support for auditing and soft delete
+/// Base DbContext with support for auditing, soft delete, and tenant isolation
 /// </summary>
 public abstract class DbContextBase : DbContext
 {
@@ -41,19 +40,7 @@ public abstract class DbContextBase : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply global query filter for soft delete
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
-            {
-                var parameter = Expression.Parameter(entityType.ClrType, "p");
-                var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
-                var condition = Expression.Equal(property, Expression.Constant(false));
-                var lambda = Expression.Lambda(condition, parameter);
-
-                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
-            }
-        }
+        QueryFilterConfiguration.Apply(modelBuilder, () => CurrentTenantId);
     }
 
     /// <summary>
@@ -63,6 +50,7 @@ public abstract class DbContextBase : DbContext
     /// <returns>A task that represents the asynchronous save operation</returns>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplyTenantStamps();
         ApplyAuditInfo();
         return await base.SaveChangesAsync(cancellationToken);
     }
@@ -73,6 +61,7 @@ public abstract class DbContextBase : DbContext
     /// <returns>The number of state entries written to the database</returns>
     public override int SaveChanges()
     {
+        ApplyTenantStamps();
         ApplyAuditInfo();
         return base.SaveChanges();
     }
@@ -118,4 +107,12 @@ public abstract class DbContextBase : DbContext
     /// </summary>
     /// <returns>The current tenant ID</returns>
     protected virtual string? GetCurrentTenantId() => _executionContext?.TenantId;
+
+    /// <summary>
+    /// Tenant id used by global query filters. Evaluated per query from
+    /// <see cref="IExecutionContext"/>, not captured at model compile time.
+    /// </summary>
+    protected string? CurrentTenantId => GetCurrentTenantId();
+
+    private void ApplyTenantStamps() => TenantStamper.Apply(ChangeTracker, GetCurrentTenantId());
 }

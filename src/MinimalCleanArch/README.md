@@ -22,7 +22,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 - Avoid: putting EF Core, HTTP, logging, or transport-specific concerns in projects that only reference this package
 
 ## Contents
-- Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`.
+- Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`, `ITenantEntity`.
 - Common types: `Result`/`Result<T>`, `Error` (status code + metadata support, with `Match`/`Bind` helpers).
 - Repositories: `IRepository<TEntity, TKey>`, `IUnitOfWork`.
 - Specifications: `ISpecification<T>`, `BaseSpecification<T>`, composable `And/Or/Not`, `InMemorySpecificationEvaluator`, and query flags (`AsNoTracking`, `AsSplitQuery`, `IgnoreQueryFilters`, `IsCountOnly`).
