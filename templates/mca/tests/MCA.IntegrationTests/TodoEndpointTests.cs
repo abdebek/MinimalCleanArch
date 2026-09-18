@@ -137,6 +137,37 @@ public class TodoEndpointTests : IClassFixture<TestApiFactory>
         root.TryGetProperty("title", out _).Should().BeTrue();
     }
 #endif
+
+#if (!UseAuth)
+    [Fact
+#if (UseDurableMessaging)
+        (Skip = "Skipped when durable messaging is enabled (requires external infrastructure).")
+#endif
+    ]
+    public async Task RestoreTodo_AfterSoftDelete_IsVisibleAgain()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+        var create = await client.PostAsJsonAsync(
+            "/api/todos",
+            new CreateTodoRequest("restore-me", null, 0, null));
+        create.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await create.Content.ReadFromJsonAsync<TodoResponse>();
+        created.Should().NotBeNull();
+
+        (await client.DeleteAsync($"/api/todos/{created!.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await client.GetAsync($"/api/todos/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var restore = await client.PostAsync($"/api/todos/{created.Id}/restore", content: null);
+        restore.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var fetched = await client.GetAsync($"/api/todos/{created.Id}");
+        fetched.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await fetched.Content.ReadFromJsonAsync<TodoResponse>();
+        body.Should().NotBeNull();
+        body!.Title.Should().Be("restore-me");
+    }
+#endif
 }
 
 public class TestApiFactory : WebApplicationFactory<Program>

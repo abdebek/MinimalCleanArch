@@ -6,6 +6,12 @@ using Wolverine;
 #endif
 using MinimalCleanArch.Domain.Common;
 using MinimalCleanArch.Extensions.Extensions;
+#if (UseFeatures)
+using MinimalCleanArch.Extensions.Features;
+#endif
+#if (UseAuth)
+using MCA.Domain.Constants;
+#endif
 
 namespace MCA.Api.Endpoints;
 
@@ -18,11 +24,21 @@ public static class TodoEndpoints
     {
         var group = app.MapGroup("/api/todos")
             .WithTags("Todos");
+#if (UseAuth && UseMultiTenant)
+        group.RequireAuthorization();
+#endif
 
         group.MapGet("/", GetAllTodos)
             .WithName("GetAllTodos")
             .WithSummary("Get all todos")
             .WithErrorHandling();
+#if (UseFeatures)
+        group.MapGet("/export", GetAllTodos)
+            .WithName("ExportTodos")
+            .WithSummary("Export todos (gated by Features:Flags:todo-export)")
+            .RequireFeature("todo-export")
+            .WithErrorHandling();
+#endif
 
         group.MapGet("/{id:int}", GetTodoById)
             .WithName("GetTodoById")
@@ -47,6 +63,14 @@ public static class TodoEndpoints
         group.MapDelete("/{id:int}", DeleteTodo)
             .WithName("DeleteTodo")
             .WithSummary("Delete a todo")
+            .WithErrorHandling();
+
+        group.MapPost("/{id:int}/restore", RestoreTodo)
+            .WithName("RestoreTodo")
+            .WithSummary("Restore a soft-deleted todo (Admin when --auth)")
+#if (UseAuth)
+            .RequireAuthorization(policy => policy.RequireRole(Roles.Admin))
+#endif
             .WithErrorHandling();
     }
 
@@ -153,6 +177,24 @@ public static class TodoEndpoints
         return result.MatchHttp(httpContext, () => Results.NoContent());
     }
 
+    private static async Task<IResult> RestoreTodo(
+        int id,
+        HttpContext httpContext,
+        IMessageBus bus,
+        CancellationToken cancellationToken)
+    {
+        var command = new RestoreTodoCommand(id);
+#if (UseValidation)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
+        {
+            return invalid;
+        }
+#endif
+
+        var result = await bus.InvokeAsync<Result<TodoResponse>>(command, cancellationToken);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
+    }
+
 #else
     private static async Task<IResult> GetAllTodos(
         HttpContext httpContext,
@@ -254,6 +296,24 @@ public static class TodoEndpoints
 
         var result = await handler.Handle(command, cancellationToken);
         return result.MatchHttp(httpContext, () => Results.NoContent());
+    }
+
+    private static async Task<IResult> RestoreTodo(
+        int id,
+        HttpContext httpContext,
+        TodoCommandHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var command = new RestoreTodoCommand(id);
+#if (UseValidation)
+        if (await httpContext.ValidateAsync(command, cancellationToken) is { } invalid)
+        {
+            return invalid;
+        }
+#endif
+
+        var result = await handler.Handle(command, cancellationToken);
+        return result.MatchHttp(httpContext, value => Results.Ok(value));
     }
 #endif
 }
