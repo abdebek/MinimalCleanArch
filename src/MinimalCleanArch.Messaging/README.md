@@ -16,7 +16,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 - skip it for synchronous CRUD-style applications that do not need messaging yet
 
 ## Dependency Direction
-- Depends on: `MinimalCleanArch`
+- Depends on: `MinimalCleanArch`, `MinimalCleanArch.Jobs`
 - Typically referenced by: infrastructure projects or the application host
 - Do not reference from: pure domain projects
 - Guidance: application code can define events and handlers, but the transport and Wolverine wiring should stay outside the domain layer
@@ -25,6 +25,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 - Domain event contracts and helpers.
 - Wolverine integration extensions.
 - DI extensions to wire messaging into your MinimalCleanArch app.
+- `AddWolverineJobs()` — delayed/recurring jobs through `IMessageBus` (call after `AddJobs()`).
 
 ## Usage
 ```bash

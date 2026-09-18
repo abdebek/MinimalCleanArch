@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using MinimalCleanArch.Execution;
+using MinimalCleanArch.Jobs;
 using MinimalCleanArch.Messaging.Execution;
+using MinimalCleanArch.Messaging.Jobs;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.SqlServer;
@@ -224,6 +226,16 @@ public static class MessagingExtensions
         services.AddOptions<ExecutionContextOptions>();
         services.AddSingleton(options);
         services.Replace(ServiceDescriptor.Scoped<IExecutionContext, MessagingExecutionContext>());
+    }
+
+    /// <summary>
+    /// Routes <see cref="IJobScheduler"/> delayed and recurring work through Wolverine.
+    /// Call after <c>AddJobs()</c> and messaging registration.
+    /// </summary>
+    public static IServiceCollection AddWolverineJobs(this IServiceCollection services)
+    {
+        services.Replace(ServiceDescriptor.Singleton<IJobExecutor, WolverineJobExecutor>());
+        return services;
     }
 
     private static void ApplyDurabilityOptions(

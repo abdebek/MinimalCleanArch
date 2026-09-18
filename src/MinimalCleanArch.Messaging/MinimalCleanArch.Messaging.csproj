@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />
+    <ProjectReference Include="..\MinimalCleanArch.Jobs\MinimalCleanArch.Jobs.csproj" />
   </ItemGroup>
 
 </Project>
