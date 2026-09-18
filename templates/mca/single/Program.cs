@@ -16,8 +16,11 @@ using MinimalCleanArch.Repositories;
 #if (UseValidation)
 using MCA.Application.Validation;
 #endif
-#if (UseMcaApiBootstrap)
+#if (UseMcaApiBootstrap || UseMultiTenant)
 using MinimalCleanArch.Extensions.Extensions;
+#endif
+#if (UseVersioning)
+using MinimalCleanArch.Extensions.Versioning;
 #endif
 #if (UseHealthChecks)
 using HealthChecks.UI.Client;
@@ -29,6 +32,16 @@ using MinimalCleanArch.Security.Extensions;
 #endif
 #if (UseCaching)
 using MinimalCleanArch.Extensions.Caching;
+#endif
+#if (UseJobs)
+using MCA.Application.Jobs;
+using MinimalCleanArch.Jobs;
+#endif
+#if (UseRealtime)
+using MinimalCleanArch.Extensions.Realtime;
+#endif
+#if (UseFeatures)
+using MinimalCleanArch.Features;
 #endif
 #if (UseMessaging)
 using MinimalCleanArch.Messaging.Extensions;
@@ -66,34 +79,31 @@ var builder = WebApplication.CreateBuilder(args);
 #if (UseAspire)
 builder.AddServiceDefaults();
 #endif
-var dbName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
-// Aspire injects ConnectionStrings:appdb for Postgres/SQL Server resources; otherwise DefaultConnection / fallbacks
+// Aspire injects ConnectionStrings:appdb; otherwise use generated DefaultConnection (db name already expanded).
 var connectionString =
 #if (UseAspire)
     builder.Configuration.GetConnectionString("appdb")
-    ?? BuildConnectionString(dbName);
+    ?? ResolveConnectionString();
 #else
-    BuildConnectionString(dbName);
+    ResolveConnectionString();
 #endif
 
-string BuildConnectionString(string databaseName)
+string ResolveConnectionString()
 {
     var configured = builder.Configuration.GetConnectionString("DefaultConnection");
-
-#if (UsePostgres)
-    var fallback = $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres";
-#elif (UseSqlServer)
-    var fallback = $"Server=localhost;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
-#else
-    var fallback = $"Data Source={databaseName}.db";
-#endif
-
-    if (string.IsNullOrWhiteSpace(configured))
+    if (!string.IsNullOrWhiteSpace(configured))
     {
-        return fallback;
+        return configured;
     }
 
-    return configured.Replace("{dbName}", databaseName);
+    var databaseName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
+#if (UsePostgres)
+    return $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres";
+#elif (UseSqlServer)
+    return $"Server=localhost;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+#else
+    return $"Data Source={databaseName}.db";
+#endif
 }
 
 #if (UseSerilog)
@@ -163,8 +173,16 @@ builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(sp.GetRequiredServi
 
 // Application handlers (use cases)
 builder.Services.AddScoped<TodoCommandHandler>();
+#if (UseAuth && UseMultiTenant)
+builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<OrganizationCommandHandler>();
+#endif
 #if (UseAudit)
 builder.Services.AddHttpContextAccessor();
+#endif
+
+#if (UseMultiTenant)
+builder.Services.AddMinimalCleanArchExecutionContext();
 #endif
 
 #if (UseMcaApiBootstrap)
@@ -180,6 +198,9 @@ builder.Services.AddMinimalCleanArchApi(options =>
         builder.Configuration.GetSection("RateLimiting").Bind(config);
 #endif
 });
+#endif
+#if (UseVersioning)
+builder.Services.AddMinimalCleanArchApiVersioning();
 #endif
 
 #if (UseSecurity)
@@ -212,7 +233,7 @@ else
 builder.Services.AddBlobStorage(builder.Configuration);
 #endif
 
-#if (UseSecurity)
+#if (UseSecurity || UseFrontend)
 // CORS: configured origins only; Development may fall back to AllowAnyOrigin when the list is empty
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? Array.Empty<string>();
@@ -285,6 +306,27 @@ else
 #endif
 #endif
 
+#if (UseRealtime)
+builder.Services.AddMinimalCleanArchRealtime();
+#endif
+
+#if (UseFeatures)
+builder.Services.AddFeatures(builder.Configuration);
+#endif
+
+#if (UseJobs)
+builder.Services.AddJobs(options =>
+{
+    options.Recurring(
+        "purge-soft-deleted-todos",
+        TimeSpan.FromHours(24),
+        () => new PurgeSoftDeletedTodos(TimeSpan.FromDays(30)));
+});
+builder.Services.AddScoped<PurgeSoftDeletedTodosHandler>();
+builder.Services.AddScoped<IJobHandler<PurgeSoftDeletedTodos>>(sp =>
+    sp.GetRequiredService<PurgeSoftDeletedTodosHandler>());
+#endif
+
 #if (UseMessaging)
 // Messaging - Wolverine domain events
 #if (UseSqlServer)
@@ -306,6 +348,9 @@ builder.AddMinimalCleanArchMessaging(options =>
     options.IncludeAssembly(typeof(TodoCommandHandler).Assembly);
     options.ServiceName = "MCA";
 });
+#endif
+#if (UseJobs)
+builder.Services.AddWolverineJobs();
 #endif
 #endif
 
@@ -359,6 +404,10 @@ if (!aspireOtlp)
 // OpenAPI document generation
 builder.Services.AddOpenApi();
 
+#if (UseControllers)
+builder.Services.AddControllers();
+#endif
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -411,7 +460,7 @@ app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
 
-#if (UseSecurity)
+#if (UseSecurity || UseFrontend)
 app.UseCors();
 #endif
 
@@ -432,7 +481,17 @@ app.MapDefaultEndpoints();
 #endif
 
 // Map endpoints
+#if (UseControllers)
+app.MapControllers();
+#else
 app.MapTodoEndpoints();
+#endif
+#if (UseRealtime)
+app.MapMinimalCleanArchRealtime();
+#endif
+#if (UseAuth && UseMultiTenant)
+app.MapOrganizationEndpoints();
+#endif
 #if (UseStorage)
 #if (UseAuth)
 // Storage endpoints mint signed PUT/GET URLs; require an authenticated user when auth is on
@@ -449,7 +508,7 @@ app.MapExternalAuthEndpoints();
 app.MapOAuthEndpoints(app.Environment.IsDevelopment());
 #endif
 
-// Database schema (EnsureCreated for SQLite demos; Migrate/fallback for SQL Server/PostgreSQL)
+// Database schema (Migrate when migrations exist; otherwise EnsureCreated per Database:* — all relational providers)
 var dbLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInitializer");
 await DatabaseInitializer.InitializeAsync(
     app.Services,

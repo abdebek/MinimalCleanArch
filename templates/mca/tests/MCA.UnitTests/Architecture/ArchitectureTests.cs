@@ -60,6 +60,62 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void Domain_Should_Not_Depend_On_EmailPackage()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("MinimalCleanArch.Email")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of email adapters; IEmailSender belongs in infrastructure/host");
+    }
+
+    [Fact]
+    public void Domain_Should_Not_Depend_On_JobsPackage()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("MinimalCleanArch.Jobs")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of the jobs package; IJobScheduler belongs in application/host");
+    }
+
+    [Fact]
+    public void Domain_Should_Not_Depend_On_RealtimePackage()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("MinimalCleanArch.Realtime")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of the realtime package; IRealtimePublisher belongs in application/host");
+    }
+
+    [Fact]
+    public void Domain_Should_Not_Depend_On_FeaturesPackage()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("MinimalCleanArch.Features")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of the features package; IFeatureGate belongs in the host");
+    }
+
+    [Fact]
     public void Application_Should_Not_Depend_On_Infrastructure()
     {
         var assembly = typeof(TodoResponse).Assembly;

@@ -39,6 +39,15 @@
     <!--#if (UseSecurity)-->
     <PackageReference Include="MinimalCleanArch.Security" Version="__MCA_VERSION__" />
     <!--#endif-->
+    <!--#if (UseJobs)-->
+    <PackageReference Include="MinimalCleanArch.Jobs" Version="__MCA_VERSION__" />
+    <!--#endif-->
+    <!--#if (UseRealtime)-->
+    <PackageReference Include="MinimalCleanArch.Realtime" Version="__MCA_VERSION__" />
+    <!--#endif-->
+    <!--#if (UseFeatures)-->
+    <PackageReference Include="MinimalCleanArch.Features" Version="__MCA_VERSION__" />
+    <!--#endif-->
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="__MCA_VERSION__" />
     <!-- RuntimeCompilation is required by Wolverine 6 for TypeLoadMode.Dynamic (also brought in by MCA.Messaging) -->
@@ -57,6 +66,7 @@
     <PackageReference Include="MinimalCleanArch.Storage" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseAuth)-->
+    <PackageReference Include="MinimalCleanArch.Email" Version="__MCA_VERSION__" />
     <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.6.0" />
     <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.6.0" />
     <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.6.0" />
@@ -80,6 +90,11 @@
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <!--#endif-->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
+    <!--#if (UseAuth)-->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="9.0.18" />
+    <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="9.4.1" />
+    <!--#endif-->
     <!--#if (UseCaching && !UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
     <!--#endif-->
@@ -92,6 +107,11 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <!--#endif-->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <!--#if (UseAuth)-->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.10" />
+    <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
+    <!--#endif-->
     <!--#if (UseCaching && !UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
     <!--#endif-->

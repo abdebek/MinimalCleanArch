@@ -4,7 +4,13 @@ using MCA.Application.Identity;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Providers;
 using MCA.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Identity;
+using AspNet.Security.OAuth.GitHub;
+using MinimalCleanArch.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -108,39 +114,18 @@ public static class IdentityServiceExtensions
             };
         });
 
-        services.AddAuthentication(options =>
+        var authentication = services.AddAuthentication(options =>
         {
             options.DefaultScheme = IdentityConstants.ApplicationScheme;
             options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
             options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
         })
-        // External provider cookie (used during external OAuth callback)
         .AddCookie("ExternalCookie", options =>
         {
             options.Cookie.Name = "MCA.External";
             options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
         });
-        // External providers (uncomment and add NuGet packages to enable):
-        // .AddGoogle(options =>
-        // {
-        //     options.ClientId = configuration["Authentication:Google:ClientId"]!;
-        //     options.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
-        //     options.SignInScheme = "ExternalCookie";
-        // })
-        // .AddMicrosoftAccount(options =>
-        // {
-        //     options.ClientId = configuration["Authentication:Microsoft:ClientId"]!;
-        //     options.ClientSecret = configuration["Authentication:Microsoft:ClientSecret"]!;
-        //     options.SignInScheme = "ExternalCookie";
-        // });
-        // GitHub: install AspNet.Security.OAuth.GitHub
-        // .AddGitHub(options =>
-        // {
-        //     options.ClientId = configuration["Authentication:GitHub:ClientId"]!;
-        //     options.ClientSecret = configuration["Authentication:GitHub:ClientSecret"]!;
-        //     options.Scope.Add("user:email"); // Needed when GitHub email is private
-        //     options.SignInScheme = "ExternalCookie";
-        // });
+        AddConfiguredExternalProviders(authentication, services);
 
         services.AddAuthorization(options =>
         {
@@ -227,22 +212,9 @@ public static class IdentityServiceExtensions
         // Token service
         services.AddScoped<ITokenService, OpenIddictTokenService>();
 
-        // Email services
-        services.AddHttpClient("AuthEmailApi", (sp, client) =>
-        {
-            var emailSettings = sp.GetRequiredService<IOptions<EmailSettings>>().Value;
-            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, emailSettings.TimeoutSeconds));
-        });
+        // Email: package port (SMTP / HTTP API) + auth templates
+        services.AddEmail(configuration);
         services.AddTransient<AuthEmailTemplateProvider>();
-        services.AddTransient<SmtpEmailSender>();
-        services.AddTransient<ApiEmailSender>();
-        services.AddTransient<IEmailSender>(sp =>
-        {
-            var emailSettings = sp.GetRequiredService<IOptions<EmailSettings>>().Value;
-            return IsApiProvider(emailSettings.Provider)
-                ? sp.GetRequiredService<ApiEmailSender>()
-                : sp.GetRequiredService<SmtpEmailSender>();
-        });
         services.AddTransient<IEmailService, EmailService>();
 
         // PKCE helper
@@ -354,6 +326,67 @@ public static class IdentityServiceExtensions
         }
 
         await UpsertClientAsync(manager, mobileClientDescriptor);
+
+#if (UseFrontend)
+        var spaClientId = "mca-spa-client";
+        var spaRedirects = new List<string>
+        {
+            "http://localhost:4321/callback",
+            "http://localhost:3000/callback"
+        };
+        var spaPostLogout = new List<string>
+        {
+            "http://localhost:4321/",
+            "http://localhost:3000/"
+        };
+        if (settings.Clients.TryGetValue("Spa", out var spaSettings))
+        {
+            if (!string.IsNullOrWhiteSpace(spaSettings!.ClientId))
+                spaClientId = spaSettings.ClientId;
+            if (spaSettings.RedirectUris is { Length: > 0 })
+            {
+                spaRedirects.Clear();
+                spaRedirects.AddRange(spaSettings.RedirectUris);
+            }
+            if (spaSettings.PostLogoutRedirectUris is { Length: > 0 })
+            {
+                spaPostLogout.Clear();
+                spaPostLogout.AddRange(spaSettings.PostLogoutRedirectUris);
+            }
+        }
+
+        var spaClientDescriptor = new OpenIddictApplicationDescriptor
+        {
+            ClientId = spaClientId,
+            ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+            DisplayName = "MCA SPA (apps/web PKCE)",
+            ClientType = OpenIddictConstants.ClientTypes.Public,
+            Permissions =
+            {
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.Endpoints.EndSession,
+                OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.Endpoints.Revocation,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
+                OpenIddictConstants.Permissions.Scopes.Email,
+                OpenIddictConstants.Permissions.Scopes.Profile,
+                OpenIddictConstants.Permissions.Scopes.Roles,
+                OpenIddictConstants.Permissions.Prefixes.Scope + "offline_access",
+                OpenIddictConstants.Permissions.Prefixes.Scope + "mca.api"
+            },
+            Requirements =
+            {
+                OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
+            }
+        };
+        foreach (var uri in spaRedirects)
+            spaClientDescriptor.RedirectUris.Add(new Uri(uri));
+        foreach (var uri in spaPostLogout)
+            spaClientDescriptor.PostLogoutRedirectUris.Add(new Uri(uri));
+        await UpsertClientAsync(manager, spaClientDescriptor);
+#endif
 
         await SeedBootstrapAdminAsync(scope.ServiceProvider, configuration);
     }
@@ -481,6 +514,52 @@ public static class IdentityServiceExtensions
         var secret = webClient?.Secret;
         if (!hasWebClient || string.IsNullOrWhiteSpace(secret) || secret == DefaultWebClientSecret)
             throw new InvalidOperationException("OpenIddict:Clients:Web:Secret must be set to a non-default value outside development.");
+    }
+
+    private static void AddConfiguredExternalProviders(AuthenticationBuilder authentication, IServiceCollection services)
+    {
+        const string externalCookie = "ExternalCookie";
+
+        authentication.AddGoogle();
+        services.AddOptions<GoogleOptions>(GoogleDefaults.AuthenticationScheme)
+            .Configure<IConfiguration>((options, configuration) =>
+            {
+                BindExternalProvider(options, configuration.GetSection("Authentication:Google"));
+                options.SignInScheme = externalCookie;
+            });
+
+        authentication.AddMicrosoftAccount();
+        services.AddOptions<MicrosoftAccountOptions>(MicrosoftAccountDefaults.AuthenticationScheme)
+            .Configure<IConfiguration>((options, configuration) =>
+            {
+                BindExternalProvider(options, configuration.GetSection("Authentication:Microsoft"));
+                options.SignInScheme = externalCookie;
+            });
+
+        authentication.AddGitHub();
+        services.AddOptions<GitHubAuthenticationOptions>(GitHubAuthenticationDefaults.AuthenticationScheme)
+            .Configure<IConfiguration>((options, configuration) =>
+            {
+                BindExternalProvider(options, configuration.GetSection("Authentication:GitHub"));
+                options.SignInScheme = externalCookie;
+                if (!options.Scope.Contains("user:email"))
+                    options.Scope.Add("user:email");
+            });
+    }
+
+    private static void BindExternalProvider(OAuthOptions options, IConfigurationSection section)
+    {
+        var clientId = section["ClientId"];
+        var clientSecret = section["ClientSecret"];
+        if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+        {
+            options.ClientId = "unconfigured";
+            options.ClientSecret = "unconfigured";
+            return;
+        }
+
+        options.ClientId = clientId;
+        options.ClientSecret = clientSecret;
     }
 
     private static bool IsValidEmail(string? email)

@@ -17,6 +17,7 @@
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseAuth)-->
+    <PackageReference Include="MinimalCleanArch.Email" Version="__MCA_VERSION__" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.6.0" />
     <!--#endif-->
   </ItemGroup>

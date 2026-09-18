@@ -4,36 +4,45 @@ Project templates for bootstrapping Clean Architecture APIs with MinimalCleanArc
 
 ## Quick Start
 
-Default multi-project app (SQLite):
+Supported teaching path (multi-project, `--recommended --auth`):
 
 ```bash
 dotnet new install MinimalCleanArch.Templates
+dotnet new mca -n MyApp --recommended --auth
+cd MyApp
+dotnet run --project src/MyApp.Api
+```
+
+Open Scalar at `https://localhost:<port>/scalar/v1`. The in-repo sample is a package smoke demo, not this path. Do not copy `samples/MinimalCleanArch.Sample` endpoints that write the aggregate; generated apps use `TodoCommandHandler`.
+
+Minimal API-only:
+
+```bash
 dotnet new mca -n MyApp
 cd MyApp
 dotnet run --project src/MyApp.Api
 ```
 
-Recommended single-project app:
+Single-project (optional shape, not the teaching default):
 
 ```bash
-dotnet new mca -n MyApp --single-project --recommended
+dotnet new mca -n MyApp --single-project --recommended --auth
 cd MyApp
 dotnet run
 ```
-
-Open Scalar at `https://localhost:<port>/scalar/v1`.
 
 ## What It Builds
 - a Minimal API application that starts with MCA package boundaries already in place instead of leaving architecture decisions implicit
 - either a layered multi-project solution or a pragmatic single-project application with the same conceptual separation
 - an application where domain, application, infrastructure, and host concerns already follow the intended dependency direction
 - optional capabilities such as auth, audit logging, messaging, caching, telemetry, and deployment scripts without hand-assembling the baseline
+- Todo soft-delete restore at `POST /api/todos/{id}/restore` (optional; drop the route if you do not want undelete). With `--auth` it requires the Admin role
 
 ## Choosing a Shape
-- Default multi-project template: best when you want strict project boundaries and independent domain/application/infrastructure assemblies.
-- `--single-project`: best when you want the same architectural separation but lower solution complexity and faster iteration for smaller services.
-- `--recommended`: good default for production-oriented APIs that need HTTP polish and operational basics without every optional subsystem.
-- `--all`: good for exploring the full MCA stack, generated tests, and deployment workflows end to end.
+- **Teaching default:** `--recommended --auth` (multi-project). Production HTTP polish plus Identity/OpenIddict. This is the supported bootstrap.
+- Default `dotnet new mca` (no flags): API-only multi-project, SQLite. Fine for a minimal host; not the teaching path.
+- `--single-project`: same conceptual layers, one assembly. Optional, not the teaching default.
+- `--all`: explore the full MCA stack, generated tests, and deployment workflows.
 
 ## Install
 
@@ -59,14 +68,30 @@ dotnet new mca -n OrderService
 # Production-ready API
 dotnet new mca -n OrderService --recommended --db sqlserver --docker
 
+# Postgres + compose with an explicit database name
+dotnet new mca -n Shop --db postgres --dbName shop --docker
+
 # Full-featured app
 dotnet new mca -n EnterpriseApp --all --db postgres --tests
 
 # Secure API
 dotnet new mca -n SecureApp --auth --db postgres
 
+# Auth + tenant isolation (EF query filter; each user is their own tenant until orgs exist)
+dotnet new mca -n Shop --auth --multitenant --tests
+
+# Realtime Todo hub (SignalR /hubs/realtime)
+dotnet new mca -n Shop --realtime --tests
+
+# Feature flags (config-gated Todo export)
+dotnet new mca -n Shop --features --tests
+
 # Public API with rate limiting
 dotnet new mca -n PublicApi --single-project --ratelimiting
+
+# API + reserved client folders (layout only; official web/mobile scaffolds come later)
+dotnet new mca -n Shop --frontend --mobile
+# API still: dotnet run --project src/Shop.Api
 ```
 
 For template flags, architecture details, auth notes, and deployment workflows, use the sections below after choosing a starting point.
@@ -83,10 +108,14 @@ MyApp/
 |  |- MyApp.Application/
 |  |- MyApp.Infrastructure/
 |  |- MyApp.Api/
-|- tests/
-|- Dockerfile
-|- docker-compose.yml
+|- tests/                  # with --tests
+|- apps/web/               # with --frontend (`src/lib/auth` OIDC PKCE)
+|- apps/mobile/            # with --mobile (layout slot)
+|- Dockerfile              # with --docker
+|- docker-compose.yml      # with --docker
 ```
+
+The four projects live under a filesystem `src/` directory. `{Name}.slnx` groups the same projects in a solution folder named `/src/`.
 
 Single project:
 
@@ -141,10 +170,14 @@ dotnet run
 1. Optional: inspect claims with `GET /connect/userinfo`.
 
 Notes:
-- In Development, Scalar is preconfigured with OAuth2 password flow (`/connect/token`) and a preferred `oauth2` security scheme.
+- In Development, Scalar is preconfigured with OAuth2 password flow (`/connect/token`) and a preferred `oauth2` security scheme. Selected scopes include `offline_access`, so the token response includes a **refresh token**.
 - The bearer token is persisted and automatically reused for secured requests.
+- Refresh (not in Scalar’s password button): `POST /connect/token` with `grant_type=refresh_token`, the refresh token, and the web client id/secret. See [05. Lifecycles](../docs/05-lifecycles.md) (login → refresh → logout).
+- Cookie `POST /api/auth/logout` does not revoke OpenIddict refresh tokens; use `POST /connect/logout` or `/connect/revoke`.
 
 ## Try Password Reset Email Quickly (SMTP or API)
+
+`--auth` registers `MinimalCleanArch.Email` (`AddEmail`) for SMTP or HTTP API transport. Auth-specific confirm/reset templates stay in the generated app (`IEmailService`).
 
 1. Configure `EmailSettings` in `appsettings.json` (or user-secrets):
 - `Provider` (`Smtp` or `Api`)
@@ -290,8 +323,8 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 ### Presets
 | Option | Description |
 |--------|-------------|
-| `--recommended` | Includes: serilog, healthchecks, validation, security, caching, ratelimiting |
-| `--all` | Includes: auth, messaging, audit, opentelemetry, storage, docker, tests (plus recommended set) |
+| `--recommended` | Includes: serilog, healthchecks, validation, security, caching, ratelimiting, versioning |
+| `--all` | Includes: auth, messaging (jobs), realtime, features, audit, opentelemetry, storage, docker, tests (plus recommended set) |
 
 ### Project Structure
 | Option | Default | Description |
@@ -301,6 +334,10 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--docker` | false | Include Dockerfile and docker-compose.yml (ignored when `--aspire` is set) |
 | `--aspire` | false | Include .NET Aspire AppHost + ServiceDefaults for local orchestration |
 | `--storage` | false | Include MinimalCleanArch.Storage (Azure Blob / Azurite signed URLs) |
+| `--frontend` | false | Emit `apps/web` (Astro + OIDC PKCE). Pair with `--auth`. Not in `--all` |
+| `--webFramework` | astro | `astro` or `tanstack` (Vite + React). Used with `--frontend` |
+| `--mobile` | false | Emit `apps/mobile` Expo scaffold. Not in `--all` |
+| `--controllers` | false | Host Todos with ASP.NET controllers instead of Minimal API endpoint helpers |
 
 ### How Options Affect Architecture
 | Option | Main effect on generated solution |
@@ -308,8 +345,12 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--single-project` | Collapses layers into one project while keeping `Domain`, `Application`, `Infrastructure`, and endpoint folders separate by responsibility |
 | `--tests` | Adds unit and integration test projects or test targets for the generated app |
 | `--docker` | Adds container build and local deployment assets (`Dockerfile`, `docker-compose.yml`, generated `scripts/`) |
-| `--recommended` | Enables common API-facing concerns such as logging, validation, health checks, security, caching, and rate limiting |
-| `--all` | Builds on `--recommended` and adds auth, messaging, audit, telemetry, storage, tests, and deployment assets |
+| `--frontend` | Adds `apps/web` (Astro pages + `src/lib/auth` PKCE). `--auth` seeds `mca-spa-client` |
+| `--webFramework tanstack` | Same `apps/web` slot, Vite + React instead of Astro |
+| `--mobile` | Adds Expo app (password grant + secure store) |
+| `--controllers` | `MapControllers` + `TodoController`; does not call `MapTodoEndpoints` |
+| `--recommended` | Enables common API-facing concerns such as logging, validation, health checks, security, caching, rate limiting, and API versioning |
+| `--all` | Builds on `--recommended` and adds auth, messaging, jobs, realtime, features, audit, telemetry, storage, tests, and deployment assets |
 
 ### Features
 | Option | Description |
@@ -318,10 +359,15 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--healthchecks` | Health check endpoints |
 | `--validation` | FluentValidation integration |
 | `--auth` | OpenIddict auth (Identity + OAuth2/OIDC) |
+| `--multitenant` | Row isolation via EF query filter on `ITenantEntity` (default; not Postgres RLS). Use with `--auth` so login issues a `tenant_id` claim and scaffolds org membership + invite-by-code |
 | `--security` | Encryption, security headers, CORS |
-| `--caching` | In-memory and Redis caching |
+| `--caching` | Register `ICacheService` (memory or Redis) and use it for Todo read-through |
 | `--ratelimiting` | Global + endpoint-specific rate limiting with 429 ProblemDetails |
-| `--messaging` | Wolverine domain events |
+| `--versioning` | Register `AddMinimalCleanArchApiVersioning` (Asp.Versioning; same as the sample). Included in `--recommended` / `--all` |
+| `--messaging` | Wolverine domain events (also enables `--jobs`) |
+| `--jobs` | `IJobScheduler` (recurring + delayed). Sample: daily purge of soft-deleted Todos. Included with `--messaging` / `--all` |
+| `--realtime` | `IRealtimePublisher` + SignalR hub `/hubs/realtime`. Todo writes publish on channel `todos`. Included with `--all` |
+| `--features` | `IFeatureGate` (config-backed). `GET /api/todos/export` gated by `Features:Flags:todo-export`. Included with `--all` |
 | `--audit` | Audit logging |
 | `--opentelemetry` | Distributed tracing |
 | `--storage` | Blob storage via `MinimalCleanArch.Storage` (Azure Blob / Azurite) |
@@ -330,10 +376,15 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | Feature | Generated layers most affected | What changes |
 |--------|-------------------------------|-------------|
 | `--validation` | `Application`, `Api` | Adds validators plus API-side validation registration |
-| `--auth` | `Infrastructure`, `Api` | Adds Identity/OpenIddict persistence, auth endpoints, and security setup |
+| `--auth` | `Infrastructure`, `Api` | Adds Identity/OpenIddict persistence, auth endpoints, and security setup. Soft-delete restore (`POST /api/todos/{id}/restore`) becomes Admin-only |
+| `--multitenant` | `Domain`, `Infrastructure`, `Api` | Todo implements `ITenantEntity`; users get a `tenant_id` claim; EF filter hides other tenants' rows; `--auth` adds `/api/organizations` (create, invite-by-code, join) with org roles as data |
 | `--security` | `Infrastructure`, `Api` | Adds encryption/security registrations and HTTP security defaults |
-| `--caching` | `Infrastructure`, `Api` | Adds cache configuration and host wiring |
+| `--caching` | `Application`, `Api` | Registers `ICacheService`; Todo handlers read through it (not raw `IMemoryCache`) |
+| `--versioning` | `Api` | Calls `AddMinimalCleanArchApiVersioning` (default v1, query/header/url readers) |
 | `--messaging` | `Application`, `Infrastructure`, `Api` | Adds domain-event handlers/contracts plus Wolverine setup and transport wiring |
+| `--jobs` | `Application`, `Infrastructure`, `Api` | Registers `AddJobs` + `PurgeSoftDeletedTodos`; hard-delete via `IgnoreQueryFilters`. `--messaging` adds `AddWolverineJobs` |
+| `--realtime` | `Application`, `Api` | Registers SignalR hub `/hubs/realtime`; Todo writes publish via `IRealtimePublisher` |
+| `--features` | `Api` | Registers `AddFeatures`; `GET /api/todos/export` uses `RequireFeature("todo-export")` |
 | `--audit` | `Infrastructure`, `Api` | Adds audit persistence, interception, and registration |
 | `--opentelemetry` | `Api` | Adds tracing/telemetry host configuration |
 | `--storage` | `Api` (host) | Adds `IBlobStorage` registration, `/api/storage/*` signed URL endpoints, Azurite in compose when `--docker` |
@@ -345,7 +396,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--db sqlite` | Yes | SQLite |
 | `--db sqlserver` | | SQL Server |
 | `--db postgres` | | PostgreSQL |
-| `--dbName <name>` | MCA_DB | Database name for generated connection strings/compose settings |
+| `--dbName <name>` | application name (`-n`) | Database name for generated connection strings and compose (`POSTGRES_DB`, `Database=`). Omitted/empty uses the template name. |
 
 ### Versions
 | Option | Default | Description |
@@ -399,7 +450,7 @@ Feature blocks for database, auth, messaging, audit, OpenTelemetry exporters, an
 - HTTP, persistence, messaging, and encryption concerns stay out of `Domain`.
 
 ## What Stays Where
-- `Domain`: business entities (e.g. `Todo`), invariants, repository contracts, value objects, domain events — no infrastructure frameworks and no ASP.NET Identity.
+- `Domain`: business entities (e.g. `Todo`), invariants, repository contracts, domain events — no infrastructure frameworks and no ASP.NET Identity. There is no value-object base type.
 - `Application`: commands, queries, **use-case handlers** (own the business orchestration), specifications, validators, and when `--auth` is on `ApplicationUser` under `Application/Identity`.
 - `Infrastructure`: EF Core, OpenIddict wiring, repository implementations, email senders, encryption, caching implementations, and external integrations.
 - `Api` or top-level host: endpoint mapping, middleware, auth policies, OpenAPI/Scalar, Wolverine host setup, service registration.
@@ -408,7 +459,7 @@ This is the main rule the template is trying to preserve: dependencies point inw
 
 ### Layer Responsibilities
 
-- `Domain`: entities, value objects, domain events, repository contracts, core rules. No infrastructure dependencies.
+- `Domain`: entities, domain events, repository contracts, core rules. No infrastructure dependencies. No value-object base type.
 - `Application`: commands/queries, handlers, and orchestration of use-cases using domain contracts.
 - `Infrastructure`: EF Core, Identity/OpenIddict wiring, email providers, repository implementations, external integrations.
 - `Api` (multi-project) or `Endpoints` + `Program.cs` (single-project): HTTP transport, endpoint mapping, auth policies, middleware.
@@ -485,12 +536,15 @@ Generated apps initialize the schema at startup based on `Database:*` settings:
 | `Database:EnsureCreated` | `false` | `true` |
 | `Database:ApplyMigrations` | `false` | `true` |
 
-Behavior:
-- **SQLite**: uses `EnsureCreated` (migrations flag is ignored for SQLite in the initializer).
-- **SQL Server / PostgreSQL**: prefers `Database.Migrate()`. If no EF migrations exist yet, Development falls back to `EnsureCreated` with a warning log.
-- Outside Development, missing migrations with `ApplyMigrations=true` fails fast (no silent empty schema).
+Behavior is the same for SQLite, SQL Server, and PostgreSQL (`DatabaseInitializer` has no SQLite special case):
 
-Create migrations after scaffolding (SQL Server/PostgreSQL):
+- Both flags false: no auto-initialization.
+- `Database:ApplyMigrations=true` on a relational provider: `MigrateAsync` when EF migrations exist; if none exist, Development (or `Database:EnsureCreated=true`) falls back to `EnsureCreated` with a warning.
+- Only `Database:EnsureCreated=true`: `EnsureCreated`.
+- Outside Development, `ApplyMigrations=true` with no migrations fails fast (no silent empty schema).
+- Non-relational providers (EF Core InMemory in tests) skip `ApplyMigrations`.
+
+Create migrations after scaffolding:
 
 ```bash
 # Single-project
@@ -520,49 +574,21 @@ A design-time `AppDbContextFactory` is included for EF tools.
 
 ## External Sign-In (Google, Microsoft, GitHub)
 
-Use this when your generated app includes `--auth`.
-
-1. Enable provider handlers:
-
-```csharp
-// Single-project:
-// Infrastructure/Configuration/IdentityServiceExtensions.cs
-
-// Multi-project:
-// MCA.Api/Configuration/IdentityServiceExtensions.cs
-
-// Uncomment providers:
-// .AddGoogle(...)
-// .AddMicrosoftAccount(...)
-// .AddGitHub(...)
-```
-
-1. Install GitHub provider package if needed:
+Use this when your generated app includes `--auth`. Providers register themselves when **both** `ClientId` and `ClientSecret` are non-empty. Empty `appsettings` values keep the scheme off. Do not put secrets in source; use user-secrets or environment variables.
 
 ```bash
-dotnet add package AspNet.Security.OAuth.GitHub
+dotnet user-secrets set "Authentication:Google:ClientId" "<id>"
+dotnet user-secrets set "Authentication:Google:ClientSecret" "<secret>"
 ```
 
-1. Add secrets via user-secrets/environment variables:
+Or environment: `Authentication__Google__ClientId` / `Authentication__Google__ClientSecret` (same shape for Microsoft and GitHub).
 
-```json
-{
-  "Authentication": {
-    "Google": { "ClientId": "...", "ClientSecret": "..." },
-    "Microsoft": { "ClientId": "...", "ClientSecret": "..." },
-    "GitHub": { "ClientId": "...", "ClientSecret": "..." }
-  }
-}
-```
+Then in Development: `GET /api/auth/external/Google` (or Microsoft / GitHub) challenges that provider. Login HTML includes the same links. Unconfigured providers return 404. `GET /api/auth/external/providers` lists only schemes that have both ClientId and ClientSecret.
 
-1. Configure provider callback URLs:
+Provider callback URLs (register these at the IdP):
 - Google: `https://localhost:<port>/signin-google`
 - Microsoft: `https://localhost:<port>/signin-microsoft`
 - GitHub: `https://localhost:<port>/signin-github`
-
-1. Optional: uncomment external-provider buttons in:
-- Single: `Endpoints/AuthEndpoints.cs`
-- Multi: `MCA.Api/Endpoints/AuthEndpoints.cs`
 
 ## Validate Templates Locally
 

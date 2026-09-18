@@ -31,6 +31,12 @@ public class AppDbContext : DbContextBase
 #endif
 
     public DbSet<Todo> Todos => Set<Todo>();
+#if (UseAuth && UseMultiTenant)
+    public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
+    public DbSet<OrganizationInvitation> OrganizationInvitations => Set<OrganizationInvitation>();
+    public DbSet<OrganizationRole> OrganizationRoles => Set<OrganizationRole>();
+#endif
 #if (UseAudit)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 #endif
@@ -66,6 +72,10 @@ public class AppDbContext : DbContextBase
         {
             entity.Property(e => e.FirstName).HasMaxLength(100);
             entity.Property(e => e.LastName).HasMaxLength(100);
+#if (UseMultiTenant)
+            entity.Property(e => e.TenantId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => e.TenantId);
+#endif
         });
 #endif
 
@@ -75,7 +85,44 @@ public class AppDbContext : DbContextBase
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(1000);
+#if (UseMultiTenant)
+            entity.Property(e => e.TenantId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => e.TenantId);
+#endif
         });
+
+#if (UseAuth && UseMultiTenant)
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.TenantId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => e.TenantId).IsUnique();
+        });
+        modelBuilder.Entity<OrganizationRole>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TenantId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.TenantId, e.Name }).IsUnique();
+        });
+        modelBuilder.Entity<OrganizationMembership>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Role).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TenantId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.OrganizationId, e.UserId }).IsUnique();
+        });
+        modelBuilder.Entity<OrganizationInvitation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Code).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Role).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TenantId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(256);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+#endif
 
 #if (UseAudit)
         modelBuilder.UseAuditLog();
