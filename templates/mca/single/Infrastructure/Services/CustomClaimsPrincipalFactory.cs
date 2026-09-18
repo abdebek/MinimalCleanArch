@@ -29,6 +29,11 @@ public class CustomClaimsPrincipalFactory : UserClaimsPrincipalFactory<Applicati
         if (!string.IsNullOrEmpty(user.LastName))
             identity.AddClaim(new Claim("family_name", user.LastName));
 
+#if (UseMultiTenant)
+        if (!string.IsNullOrEmpty(user.TenantId))
+            identity.AddClaim(new Claim("tenant_id", user.TenantId));
+#endif
+
         return identity;
     }
 }

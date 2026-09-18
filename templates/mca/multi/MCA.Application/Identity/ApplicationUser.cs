@@ -19,6 +19,9 @@ public class ApplicationUser : IdentityUser<Guid>, IAuditableEntity
 
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+#if (UseMultiTenant)
+    public string TenantId { get; set; } = string.Empty;
+#endif
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? LastModifiedAt { get; set; }
@@ -33,6 +36,9 @@ public class ApplicationUser : IdentityUser<Guid>, IAuditableEntity
         LastName = lastName;
         Email = email;
         UserName = userName ?? email;
+#if (UseMultiTenant)
+        TenantId = Guid.NewGuid().ToString("N");
+#endif
     }
 
 #if (UseMessaging)
