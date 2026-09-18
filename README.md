@@ -1,40 +1,27 @@
 # MinimalCleanArch
 
-A Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10, with vertical-slice-style application organization inside clean dependency boundaries.
+A Clean Architecture **kernel** with host adapters and optional client surfaces. ASP.NET Minimal APIs on .NET 9 and .NET 10 are the first host adapter.
 
-**Navigate the repo:** start at [`docs/index.md`](docs/index.md). That index maps packages, the sample host, generated apps, request paths, lifecycles, and events as the code actually works.
+**Navigate the repo:** start at [`docs/index.md`](docs/index.md). Product layers: [`docs/07-bootstrap-product.md`](docs/07-bootstrap-product.md).
 
-## Quick Start
+## Supported teaching path
 
-Default multi-project app:
+The supported way to start a real app is the generated template with `--recommended --auth` (multi-project, filesystem `src/`):
 
 ```bash
 dotnet new install MinimalCleanArch.Templates
-dotnet new mca -n MyApp
+dotnet new mca -n MyApp --recommended --auth
 cd MyApp
 dotnet run --project src/MyApp.Api
 ```
 
-Recommended single-project app:
+Then open `https://localhost:<port>/scalar/v1`. Use the auth walkthrough in [`templates/README.md`](templates/README.md).
 
-```bash
-dotnet new mca -n MyApp --single-project --recommended
-cd MyApp
-dotnet run
-```
+`samples/MinimalCleanArch.Sample` is a package smoke demo. Do not copy its endpoint-writes-the-aggregate Todo path when generating a product; generated apps use handlers.
 
-Then open `https://localhost:<port>/scalar/v1`.
+Minimal API-only (`dotnet new mca -n MyApp`) and `--single-project` remain valid shapes. They are not the teaching default.
 
-For auth + OpenIddict + Scalar password flow:
-
-```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.20-preview
-cd QuickAuth
-dotnet run
-```
-
-Use the auth walkthrough in [`templates/README.md`](templates/README.md).
-For template options, generated structure, and architecture details, see [`templates/README.md`](templates/README.md).
+For flags and generated structure, see [`templates/README.md`](templates/README.md).
 
 ## Why Use It
 - keep domain rules, repository contracts, and specifications separate from infrastructure concerns
@@ -100,7 +87,7 @@ For new applications, the recommended order is:
 2. Add EF Core repositories and unit of work with `MinimalCleanArch.DataAccess`.
 3. Add API bootstrap with `MinimalCleanArch.Extensions`.
 4. Register application validators with `MinimalCleanArch.Validation`.
-5. Add `MinimalCleanArch.Messaging`, `MinimalCleanArch.Audit`, `MinimalCleanArch.Security`, and `MinimalCleanArch.Storage` only when the app actually needs them.
+5. Add `MinimalCleanArch.Messaging`, `MinimalCleanArch.Jobs`, `MinimalCleanArch.Realtime`, `MinimalCleanArch.Features`, `MinimalCleanArch.Audit`, `MinimalCleanArch.Security`, and `MinimalCleanArch.Storage` only when the app actually needs them.
 
 Preferred defaults:
 - use specifications through `IRepository<TEntity, TKey>`
@@ -123,18 +110,26 @@ The sample app and generated templates follow this bootstrap and HTTP mapping pa
 - `MinimalCleanArch.Messaging` and `MinimalCleanArch.Audit` depend on `MinimalCleanArch` and are optional infrastructure/application-host add-ons.
 - `MinimalCleanArch.Security` is an optional infrastructure package for encryption concerns.
 - `MinimalCleanArch.Storage` is an optional infrastructure package for blob/object storage concerns.
-- Domain projects should not reference `DataAccess`, `Extensions`, `Validation`, `Messaging`, `Audit`, `Security`, or `Storage`.
+- `MinimalCleanArch.Email` is an optional infrastructure package for SMTP / HTTP email.
+- `MinimalCleanArch.Jobs` is an optional scheduling port (recurring + delayed) with an `IHostedService` fallback.
+- `MinimalCleanArch.Realtime` is an optional publish port (channel, payload, tenant/user). SignalR lives in Extensions.
+- `MinimalCleanArch.Features` is an optional feature-flag port (`IFeatureGate`). HTTP `RequireFeature` lives in Extensions.
+- Domain projects should not reference `DataAccess`, `Extensions`, `Validation`, `Messaging`, `Audit`, `Security`, `Storage`, `Email`, `Jobs`, `Realtime`, or `Features`.
 
 ## Packages
 | Package | Helps achieve | Depends on | Typical layer |
 | :-- | :-- | :-- | :-- |
 | [`MinimalCleanArch`](src/MinimalCleanArch/README.md) | domain model, contracts, specifications, result types | none | Domain |
 | [`MinimalCleanArch.DataAccess`](src/MinimalCleanArch.DataAccess/README.md) | EF Core repositories, unit of work, audited DbContext base types | `MinimalCleanArch` | Infrastructure |
-| [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | API bootstrap, validation pipeline, error mapping, OpenAPI, rate limiting | `MinimalCleanArch` | API/Host |
+| [`MinimalCleanArch.Extensions`](src/MinimalCleanArch.Extensions/README.md) | API bootstrap, validation pipeline, error mapping, OpenAPI, rate limiting, SignalR realtime adapter, feature-gate filter | `MinimalCleanArch`, `MinimalCleanArch.Realtime`, `MinimalCleanArch.Features` | API/Host |
 | [`MinimalCleanArch.Validation`](src/MinimalCleanArch.Validation/README.md) | validator registration and API validation integration | `MinimalCleanArch`, `MinimalCleanArch.Extensions` | API/Host or composition root |
 | [`MinimalCleanArch.Security`](src/MinimalCleanArch.Security/README.md) | encryption services and encrypted EF property support | no MCA package dependency | Infrastructure |
 | [`MinimalCleanArch.Storage`](src/MinimalCleanArch.Storage/README.md) | blob/object storage abstraction with Azure Blob Storage integration | no MCA package dependency | Infrastructure |
-| [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | domain events, Wolverine integration, outbox-capable messaging | `MinimalCleanArch` | Infrastructure or host |
+| [`MinimalCleanArch.Email`](src/MinimalCleanArch.Email/README.md) | email port with SMTP and HTTP API adapters | no MCA package dependency | Infrastructure |
+| [`MinimalCleanArch.Jobs`](src/MinimalCleanArch.Jobs/README.md) | recurring + delayed job port (`IJobScheduler`) | no MCA package dependency | Application / host |
+| [`MinimalCleanArch.Realtime`](src/MinimalCleanArch.Realtime/README.md) | realtime publish port (`IRealtimePublisher`) | no MCA package dependency | Application / host |
+| [`MinimalCleanArch.Features`](src/MinimalCleanArch.Features/README.md) | feature-flag port (`IFeatureGate`) | no MCA package dependency | Application / host |
+| [`MinimalCleanArch.Messaging`](src/MinimalCleanArch.Messaging/README.md) | domain events, Wolverine integration, outbox-capable messaging | `MinimalCleanArch`, `MinimalCleanArch.Jobs` | Infrastructure or host |
 | [`MinimalCleanArch.Audit`](src/MinimalCleanArch.Audit/README.md) | audit interception, audit storage, audit queries | `MinimalCleanArch` | Infrastructure |
 | [`MinimalCleanArch.Templates`](templates/README.md) | scaffold new MCA-based applications | packaged templates | Project scaffolding |
 

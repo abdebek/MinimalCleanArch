@@ -9,6 +9,7 @@ Terms below mean what this codebase implements, not textbook DDD. Each row cites
 | Entity | Row with an `Id`. Equality is Id based. | `IEntity<TKey>`, `BaseEntity<TKey>` | `src/MinimalCleanArch/Domain/Entities/` |
 | Auditable entity | Created/modified stamps. Public setters. Stamped in `SaveChanges`, not by domain methods. | `IAuditableEntity`, `BaseAuditableEntity<TKey>` | same |
 | Soft delete | `IsDeleted` flag plus a global EF filter. | `ISoftDelete`, `BaseSoftDeleteEntity<TKey>` | same |
+| Tenant entity | Row owned by a tenant id. Isolated by an EF query filter. | `ITenantEntity` | same |
 | Domain event | Marker with `EventId` and `OccurredAt`. | `IDomainEvent`, `DomainEvent`, `EntityDomainEvent<TKey>` | `src/MinimalCleanArch/Domain/Events/` |
 | Has domain events | In memory list on an entity. Cleared after publish. | `IHasDomainEvents`, `EntityWithEvents`, `DomainEventCollection` | same |
 | Domain exception | Exception wrapping `Error`. Mapped to ProblemDetails. | `DomainException` | `src/MinimalCleanArch/Domain/Exceptions/DomainException.cs` |
@@ -23,7 +24,7 @@ Terms below mean what this codebase implements, not textbook DDD. Each row cites
 
 | Term | Meaning here | Type | Path |
 |---|---|---|---|
-| DbContext base | Soft delete filter + audit stamping. | `DbContextBase` | `src/MinimalCleanArch.DataAccess/DbContextBase.cs` |
+| DbContext base | Soft delete filter + tenant filter + audit/tenant stamping. | `DbContextBase` | `src/MinimalCleanArch.DataAccess/DbContextBase.cs` |
 | Identity DbContext base | Same plus ASP.NET Identity. | `IdentityDbContextBase<...>` | `src/MinimalCleanArch.DataAccess/IdentityDbContextBase.cs` |
 | Specification evaluator | Turns a spec into `IQueryable`. | `SpecificationEvaluator<T>` | `src/MinimalCleanArch.DataAccess/Specifications/SpecificationEvaluator.cs` |
 | MatchHttp | Maps `Result` to `IResult` ProblemDetails. | `ResultHttpExtensions.MatchHttp` | `src/MinimalCleanArch.Extensions/Extensions/ResultHttpExtensions.cs` |
@@ -50,6 +51,7 @@ Terms below mean what this codebase implements, not textbook DDD. Each row cites
 | Complete | Sets `IsCompleted`. Sample always raises completed event. Template returns immediately if already complete. | `MarkAsCompleted` | same name |
 | Incomplete | Clears `IsCompleted`. Sample raises no event. | `MarkAsNotCompleted` | `MarkAsIncomplete` |
 | Delete | Sample: repository sets `IsDeleted`. Template: `Todo.Delete()` sets `IsDeleted` and `DeletedAt`. | `IRepository.DeleteAsync` | `Todo.Delete` |
+| Restore | Clears `IsDeleted` / `DeletedAt`. Template only; optional admin path. | none | `Todo.Restore` |
 | Command / query | Template records only. Sample has none. | n/a | `CreateTodoCommand`, `GetTodosQuery`, ... in `Application/Commands/TodoCommands.cs` |
 
 `TodoCreatedEvent.EntityId` is assigned in the constructor from `Id`. For `int` identity that is `0` until EF generates the key. The event is not rewritten after insert.

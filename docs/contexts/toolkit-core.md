@@ -11,7 +11,7 @@ Contracts every other MCA package and every consumer domain may use.
 
 | Area | Types | Path |
 |---|---|---|
-| Entities | `IEntity<TKey>`, `BaseEntity<TKey>`, `IAuditableEntity`, `BaseAuditableEntity<TKey>`, `ISoftDelete`, `BaseSoftDeleteEntity<TKey>` | `Domain/Entities/` |
+| Entities | `IEntity<TKey>`, `BaseEntity<TKey>`, `IAuditableEntity`, `BaseAuditableEntity<TKey>`, `ISoftDelete`, `BaseSoftDeleteEntity<TKey>`, `ITenantEntity` | `Domain/Entities/` |
 | Events | `IDomainEvent`, `DomainEvent`, `EntityDomainEvent<TKey>`, `IHasDomainEvents`, `EntityWithEvents`, `DomainEventCollection` | `Domain/Events/` |
 | Errors | `DomainException` | `Domain/Exceptions/` |
 | Result | `Result`, `Result<TValue>`, `Error`, `ErrorType` | `Common/Result.cs` |

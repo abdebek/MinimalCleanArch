@@ -1,18 +1,18 @@
 # 01. System overview
 
-Start here if you are new. This repo ships NuGet packages, a `dotnet new mca` template, a sample API, and an Aspire orchestrator. There is no separate production product with its own hosts beyond those.
+Start here if you are new. This repo ships a Clean Architecture **kernel** (NuGet packages), the first **host adapter** (ASP.NET Minimal APIs via `MinimalCleanArch.Extensions` and `dotnet new mca`), a sample smoke host, and an Aspire orchestrator. Client surfaces (web, mobile) are planned; `--frontend` / `--mobile` only reserve `apps/web` and `apps/mobile` next to the API. They are not the product definition. Layers: [07. Bootstrap product](07-bootstrap-product.md).
 
 ## What the product does
 
-MinimalCleanArch (MCA) is a Clean Architecture toolkit for Minimal APIs on .NET 9 and .NET 10. It gives you:
+MinimalCleanArch (MCA) is a Clean Architecture kernel with host adapters and optional client surfaces. ASP.NET Core Minimal APIs on .NET 9 and .NET 10 are adapter one, not the product name. The kernel gives you:
 
-- Domain primitives: entities, `Result`/`Error`, specifications, `IRepository`, `IUnitOfWork`, domain events
-- EF Core repositories and audited/soft delete `DbContext` bases
-- Minimal API bootstrap, ProblemDetails, validation, rate limiting
-- Optional Wolverine messaging, audit logs, column encryption, blob storage
+- Domain primitives: entities, `Result`/`Error`, specifications, `IRepository`, `IUnitOfWork`, domain events, `IExecutionContext`
+- Persistence adapter: EF Core repositories and audited/soft delete `DbContext` bases (`MinimalCleanArch.DataAccess`)
+- Host adapter: Minimal API bootstrap, ProblemDetails, validation, rate limiting (`MinimalCleanArch.Extensions`)
+- Optional infrastructure adapters: Wolverine messaging, audit logs, column encryption, blob storage
 - A template that scaffolds a Todo + optional Identity/OpenIddict app using those packages
 
-The sample at `samples/MinimalCleanArch.Sample` is the demonstration of the same stack inside this repository. It is a Todo API plus ASP.NET Identity users, not a multi tenant business system.
+The sample at `samples/MinimalCleanArch.Sample` is a package smoke demo (Todo API plus ASP.NET Identity users). It is not a multi-tenant business system and not the supported bootstrap. The teaching path is `dotnet new mca -n MyApp --recommended --auth` then `dotnet run --project src/MyApp.Api`. Do not copy the sample’s endpoint-writes-the-aggregate Todo path. Clients talk to a generated host through OpenAPI and OIDC PKCE. They do not take a dependency on `MinimalCleanArch.Extensions`.
 
 ## Deployed hosts
 
@@ -23,6 +23,8 @@ Nothing in this repo is a cloud service you deploy as MCA itself. These are the 
 | Sample API | `samples/MinimalCleanArch.Sample` | Direct `dotnet run` demo | SQLite `todos.db` / `minimalcleanarch.db` fallback, in-memory cache, in-memory Wolverine |
 | Aspire AppHost | `samples/MinimalCleanArch.Aspire/MinimalCleanArch.AppHost` | Local orchestration for the sample | Postgres connection name `mca`, Redis connection name `redis` |
 | Generated API (multi) | `src/{Name}.Api` after `dotnet new mca` | Consumer HTTP host | SQLite, SQL Server, or Postgres via `--db` |
+| Generated `apps/web` | `apps/web` after `dotnet new mca --frontend` | Layout + `src/lib/auth` OIDC PKCE client. Pages not generated yet | none (API unchanged) |
+| Generated `apps/mobile` | `apps/mobile` after `dotnet new mca --mobile` | Layout slot for the official mobile client (not a runnable scaffold yet) | none (API unchanged) |
 | Generated API (single) | project root after `--single-project` | Same host, one project | Same |
 | Generated AppHost | `{Name}.AppHost` when `--aspire` | Orchestrates generated API | Connection name `appdb`, optional `redis` |
 
@@ -37,13 +39,15 @@ Aspire sample wiring is `samples/MinimalCleanArch.Aspire/MinimalCleanArch.AppHos
 
 Generated compose/kind scripts exist only when `--docker` or `--all` is used and `--aspire` is not. They are template output, not a live path in this repo.
 
+The generated multi-project solution places `{Name}.Api`, `{Name}.Domain`, `{Name}.Application`, and `{Name}.Infrastructure` under a filesystem `src/` directory. `{Name}.slnx` groups those same projects in a solution folder named `/src/`.
+
 ## Solution layout
 
 `MinimalCleanArch.slnx` groups four folders.
 
 | Folder | Projects | Purpose |
 |---|---|---|
-| `src/` | Eight MCA packages | Published libraries |
+| `src/` | Nine MCA packages | Published libraries |
 | `samples/` | Sample API, AppHost, ServiceDefaults | Runnable reference |
 | `tests/` | Unit, integration, template, benchmarks | Package and template tests |
 | `docs/` | `MinimalCleanArch.Docs` | Leftover DocFX stub, not this markdown set |
@@ -60,6 +64,10 @@ src/
   MinimalCleanArch.Audit/           change history
   MinimalCleanArch.Security/        column encryption
   MinimalCleanArch.Storage/         Azure Blob / R2
+  MinimalCleanArch.Email/           SMTP / HTTP API email
+  MinimalCleanArch.Jobs/            recurring + delayed scheduling
+  MinimalCleanArch.Realtime/        channel + payload publish port
+  MinimalCleanArch.Features/        feature flags / entitlements
 samples/
   MinimalCleanArch.Sample/          one project demo API
   MinimalCleanArch.Aspire/          AppHost + ServiceDefaults
@@ -76,6 +84,8 @@ Treat packages as capability modules. Treat Todo and Identity as the only consum
 
 ![Context map](diagrams/context-map.svg)
 
+The kernel / host / client split — generated API, planned web and mobile, today’s packages, planned nodes dashed — is [diagrams/surfaces.svg](diagrams/surfaces.svg) on [07. Bootstrap product](07-bootstrap-product.md#three-layers).
+
 | Name | Kind of boundary | Database | Honest DDD status |
 |---|---|---|---|
 | Toolkit core | NuGet package `MinimalCleanArch` | none | Shared kernel of primitives. Not a business context. |
@@ -85,6 +95,10 @@ Treat packages as capability modules. Treat Todo and Identity as the only consum
 | Audit | NuGet `MinimalCleanArch.Audit` | `AuditLog` in the same DbContext | Infrastructure table, not its own store. |
 | Security | NuGet `MinimalCleanArch.Security` | encrypted columns in the same DB | Infrastructure. |
 | Storage | NuGet `MinimalCleanArch.Storage` | Azure Blob or R2 | Separate object store. No domain model. |
+| Email | NuGet `MinimalCleanArch.Email` | none | SMTP / HTTP API adapters. `--auth` uses the port. |
+| Jobs | NuGet `MinimalCleanArch.Jobs` | none | `IJobScheduler` recurring + delayed. `--jobs` / `--messaging` sample: purge soft-deleted Todos. |
+| Realtime | NuGet `MinimalCleanArch.Realtime` | none | `IRealtimePublisher`. SignalR adapter in Extensions. `--realtime` Todo hub. |
+| Features | NuGet `MinimalCleanArch.Features` | none | `IFeatureGate`. Config + optional store. `--features` gates Todo export. |
 | Todo | Sample + generated Domain | `Todos` table | Closest thing to an aggregate. Single entity, no children. |
 | Identity | Sample `User` / template `ApplicationUser` | Identity + OpenIddict tables | Framework owned. Anemic. Same DbContext as Todo. |
 
@@ -111,14 +125,18 @@ From project references and package READMEs:
 |---|---|---|
 | `MinimalCleanArch` | none | Domain |
 | `MinimalCleanArch.DataAccess` | core | Infrastructure |
-| `MinimalCleanArch.Extensions` | core | API/Host |
+| `MinimalCleanArch.Extensions` | core + Realtime + Features | API/Host |
 | `MinimalCleanArch.Validation` | core + Extensions | API/Host |
-| `MinimalCleanArch.Messaging` | core | Infrastructure or host |
+| `MinimalCleanArch.Messaging` | core + Jobs | Infrastructure or host |
 | `MinimalCleanArch.Audit` | core | Infrastructure |
 | `MinimalCleanArch.Security` | none | Infrastructure |
 | `MinimalCleanArch.Storage` | none | Infrastructure |
+| `MinimalCleanArch.Email` | none | Infrastructure |
+| `MinimalCleanArch.Jobs` | none | Application / host |
+| `MinimalCleanArch.Realtime` | none | Application / host |
+| `MinimalCleanArch.Features` | none | Application / host |
 
-Generated architecture tests in `templates/mca/tests/MCA.UnitTests/Architecture/ArchitectureTests.cs` enforce: Domain does not reference Infrastructure, Endpoints, ASP.NET Identity, Storage, or Wolverine. Application does not reference Infrastructure or Wolverine.
+Generated architecture tests in `templates/mca/tests/MCA.UnitTests/Architecture/ArchitectureTests.cs` enforce: Domain does not reference Infrastructure, Endpoints, ASP.NET Identity, Storage, Email, Jobs, Realtime, or Features. Application does not reference Infrastructure or Wolverine. Infrastructure does not reference Api or Endpoints. Domain tests do not assert against Wolverine.
 
 ## Next
 

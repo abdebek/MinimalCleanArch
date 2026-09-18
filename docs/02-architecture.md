@@ -52,7 +52,7 @@ The sample Application folder has event handlers only. Todo use cases live in th
 | `AddAuditLogging` + `AddAuditLogService<ApplicationDbContext>` | `AuditSaveChangesInterceptor`, `IAuditLogService` |
 | `AddMinimalCleanArch<ApplicationDbContext>` | `DbContext`, `IUnitOfWork` → `UnitOfWork`, `IRepository<,>` → `Repository<,>` |
 | `AddIdentityApiEndpoints<User>` | Identity stores on `ApplicationDbContext` |
-| `AddMinimalCleanArchCaching` or Redis | `ICacheService` |
+| `AddMinimalCleanArchCaching` or Redis | `ICacheService` (sample + generated `--caching` Todo reads use this, not raw `IMemoryCache`) |
 | `AddMinimalCleanArchMessaging` | Wolverine Solo, `IDomainEventPublisher`, interceptor **in DI only** |
 | `AddDatabaseSeeding` | `DatabaseSeederHostedService` |
 
@@ -91,6 +91,8 @@ Save path:
 Sample `Program.cs` never calls `UseDomainEventPublishing`. Events raised on sample `Todo` are not dispatched. Template `--messaging` does call it.
 
 Soft delete: `ISoftDelete` gets a global `IsDeleted == false` query filter in `DbContextBase.OnModelCreating`. `Repository.DeleteAsync` sets `IsDeleted = true` instead of removing the row.
+
+Tenancy: `ITenantEntity` gets a fail-closed `TenantId == IExecutionContext.TenantId` filter (combined with soft delete when both apply). Inserts stamp `TenantId` from the execution context. Default is the EF filter, not Postgres RLS. Template `--multitenant` opts Todo in; `--auth` maps claim `tenant_id`.
 
 Encryption: sample `ApplicationDbContext.OnModelCreating` calls `modelBuilder.UseEncryption`. `[Encrypted]` on `Todo.Description` and `User.PersonalNotes`. Template `AppDbContext` does **not** call `UseEncryption` even when `--security` is on.
 

@@ -33,7 +33,7 @@ This context does not define business commands. It maps HTTP to whatever the app
 | Host | Endpoints |
 |---|---|
 | Sample | `MapTodoEndpoints`, `MapUserEndpoints`, `MapIdentityApi<User>`, health, Scalar |
-| Template | `MapTodoEndpoints`, optional `MapAuthEndpoints`, `MapOpenIddictEndpoints`, `MapOAuthEndpoints`, `MapStorageEndpoints`, `MapExternalAuthEndpoints` |
+| Template | `MapTodoEndpoints` (includes optional `POST /api/todos/{id}/restore`), optional `MapAuthEndpoints`, `MapOpenIddictEndpoints`, `MapOAuthEndpoints`, `MapStorageEndpoints`, `MapExternalAuthEndpoints`, `--realtime` `MapMinimalCleanArchRealtime`, `--features` `RequireFeature` on `/api/todos/export`. `--recommended` / `--versioning` register `AddMinimalCleanArchApiVersioning` |
 
 ## UI
 
