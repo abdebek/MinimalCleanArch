@@ -471,6 +471,27 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
     }
 
     [Fact]
+    public async Task Create_All_Tests_KeepsAuthFactory_WhenAuthEndpointTestsExcluded()
+    {
+        var projectName = "TestAppAllAuthFactory";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir, "--all"));
+
+        var testsDir = Path.Combine(projectDir, "tests", $"{projectName}.IntegrationTests");
+        File.Exists(Path.Combine(testsDir, "AuthEndpointTests.cs")).Should().BeFalse();
+        File.Exists(Path.Combine(testsDir, "Auth", "AuthTestApiFactory.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(testsDir, "Auth", "ExternalProviderTests.cs")).Should().BeTrue();
+        File.ReadAllText(Path.Combine(testsDir, "Auth", "AuthTestApiFactory.cs"))
+            .Should().Contain("class AuthTestApiFactory")
+            .And.NotContain("#if");
+
+        await BuildGeneratedProjectAsync(projectDir);
+    }
+
+    [Fact]
     public async Task Create_Auth_Multitenant_IsolatesTodosByTenant()
     {
         var projectName = "TestAppTenancy";

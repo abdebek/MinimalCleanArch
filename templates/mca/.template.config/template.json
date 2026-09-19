@@ -405,7 +405,7 @@
         { "condition": "(!UseDurableMessaging)", "exclude": ["tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
         // Auth suite is heavy and shares one factory/client; endpoint rate policies (TokenBucket) cause 429 under --all/--ratelimiting.
-        // Auth is covered by multi-auth / single-auth scenarios; rate limiting has its own tests.
+        // AuthEndpointTests.cs is omitted; Auth/AuthTestApiFactory.cs stays so ExternalProviderTests still compile.
         { "condition": "(UseRateLimiting)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
         { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
         { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },

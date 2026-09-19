@@ -32,6 +32,7 @@ The format is based on Keep a Changelog.
 - `SecurityHeadersOptions.ForApi()` CSP includes `form-action 'self'` (and `base-uri 'none'`) so the API cookie-login HTML form can submit.
 - OIDC `handleCallback()` is idempotent so React Strict Mode does not redeem the authorization code twice (`invalid_grant`).
 - Generated Development hosts skip HTTPS redirection so SPA PKCE on `http://localhost` is not bounced to HTTPS.
+- `--all` / `--ratelimiting` still emit `AuthTestApiFactory` so `ExternalProviderTests` compile after `AuthEndpointTests.cs` is excluded.
 
 ## [0.1.20-preview] - 2026-08-02
 
