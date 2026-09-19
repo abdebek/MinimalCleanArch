@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.21-preview] - 2026-09-19
+
 ### Added
 - Tenancy isolation: kernel `ITenantEntity`; `DbContextBase` / `IdentityDbContextBase` apply a fail-closed EF query filter and stamp `TenantId` on insert. Default is the EF filter, not Postgres RLS.
 - Template flag **`--multitenant`**: Todo is tenant-owned; `--auth` issues a `tenant_id` claim. Tests prove tenant A cannot read tenant B Todos.

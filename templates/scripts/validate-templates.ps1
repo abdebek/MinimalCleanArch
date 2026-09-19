@@ -1,7 +1,7 @@
 param(
     [string]$LocalFeedPath = "$PSScriptRoot/../../artifacts/packages",
     [string]$TemplatePackagePath = "$PSScriptRoot/../../artifacts/packages",
-    [string]$McaVersion = "0.1.20-preview",
+    [string]$McaVersion = "0.1.21-preview",
     [string]$Framework = "net10.0",
     [switch]$RunDockerE2E = $false,
     [switch]$SkipAspire = $false,

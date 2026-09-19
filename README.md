@@ -55,7 +55,7 @@ For flags and generated structure, see [`templates/README.md`](templates/README.
 - Project scaffolding: `MinimalCleanArch.Templates`
 
 ## Versions
-- Latest packages/templates: `0.1.20-preview`
+- Latest packages/templates: `0.1.21-preview`
 
 ## Local Validation
 ```bash
