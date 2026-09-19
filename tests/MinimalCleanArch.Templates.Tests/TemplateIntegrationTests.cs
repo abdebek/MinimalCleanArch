@@ -617,12 +617,16 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         var identity = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "Configuration", "IdentityServiceExtensions.cs"));
         identity.Should().Contain("mca-spa-client");
         identity.Should().Contain("http://localhost:4321/callback");
+        identity.Should().Contain("http://127.0.0.1:4321/callback");
+        identity.Should().Contain("AddEphemeralSigningKey");
+        identity.Should().NotContain("AddDevelopmentSigningCertificate");
         identity.Should().Contain("ClientTypes.Public");
         identity.Should().NotContain("#if");
 
         var appsettings = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "appsettings.json"));
         appsettings.Should().Contain("mca-spa-client");
         appsettings.Should().Contain("http://localhost:4321");
+        appsettings.Should().Contain("http://127.0.0.1:4321");
         appsettings.Should().NotContain("#if");
 
         var program = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "Program.cs"));
@@ -669,9 +673,18 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         File.Exists(Path.Combine(projectDir, "apps", "web", "src", "lib", "auth", "client.ts")).Should().BeTrue();
         File.Exists(Path.Combine(projectDir, "apps", "web", "astro.config.mjs")).Should().BeFalse();
         File.ReadAllText(Path.Combine(projectDir, "apps", "web", "package.json"))
-            .Should().Contain("@tanstack/react-start");
+            .Should().Contain("@tanstack/react-start")
+            .And.Contain("test:e2e");
+        File.Exists(Path.Combine(projectDir, "apps", "web", "e2e", "smoke.spec.ts")).Should().BeTrue();
+        File.Exists(Path.Combine(projectDir, "apps", "web", "playwright.config.ts")).Should().BeTrue();
+        File.ReadAllText(Path.Combine(projectDir, "apps", "web", "e2e", "smoke.spec.ts"))
+            .Should().Contain("todo-title")
+            .And.Contain("oidc-login");
+        File.ReadAllText(Path.Combine(projectDir, "apps", "web", "src", "routes", "login.tsx"))
+            .Should().Contain("oidc-login");
         File.ReadAllText(Path.Combine(projectDir, "apps", "web", "src", "lib", "auth", "client.ts"))
-            .Should().Contain("oidc-client-ts");
+            .Should().Contain("oidc-client-ts")
+            .And.Contain("callbackPromise");
 
         await BuildGeneratedProjectAsync(projectDir);
     }

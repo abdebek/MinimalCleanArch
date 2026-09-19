@@ -22,10 +22,16 @@ The format is based on Keep a Changelog.
 - Official **Astro** web scaffold (`--frontend`): login, signup, confirm-email, forgot/reset, Todos, logout, privacy/terms. English/Arabic RTL toggle.
 - Second web adapter: **TanStack Start** (`--frontend --webFramework tanstack`) on port 3000, same OIDC client.
 - Official **Expo** mobile scaffold (`--mobile`): password grant, `expo-secure-store`, Todo list.
-- Playwright smoke: `apps/web/e2e/smoke.spec.ts` (`npm run test:e2e` with API + `npm run dev`).
+- Playwright smoke: Astro and TanStack Start `apps/web/e2e/smoke.spec.ts` (`API_URL` + `WEB_URL` + `npm run test:e2e`).
 - `--controllers`: ASP.NET `TodoController` instead of Minimal API Todo endpoints (same handlers).
 - `--fastendpoints`: FastEndpoints Todo host adapter (same handlers; wins over `--controllers`).
 - Named EF query filters on EF 10 (`QueryFilters.SoftDelete` / `QueryFilters.Tenant`). `IgnoreSoftDelete()` keeps tenant isolation on **net9 and net10** (EF 9 re-applies the tenant predicate after `IgnoreQueryFilters()`). `IgnoreQueryFilters()` remains the full bypass (admin/seed and process-wide purge).
+
+### Fixed
+- Development OpenIddict uses ephemeral signing/encryption keys instead of `AddDevelopment*Certificate()`. On macOS the development cert lives in Keychain and signing `/connect/authorize` hangs or throws `CSSMERR_CSP_USER_CANCELED`.
+- `SecurityHeadersOptions.ForApi()` CSP includes `form-action 'self'` (and `base-uri 'none'`) so the API cookie-login HTML form can submit.
+- OIDC `handleCallback()` is idempotent so React Strict Mode does not redeem the authorization code twice (`invalid_grant`).
+- Generated Development hosts skip HTTPS redirection so SPA PKCE on `http://localhost` is not bounced to HTTPS.
 
 ## [0.1.20-preview] - 2026-08-02
 

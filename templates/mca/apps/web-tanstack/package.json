@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite dev --port 3000 --host",
     "build": "vite build",
-    "preview": "vite preview --port 3000"
+    "preview": "vite preview --port 3000",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.131.50",
@@ -16,6 +17,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",

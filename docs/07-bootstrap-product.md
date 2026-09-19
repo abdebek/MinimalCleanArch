@@ -158,7 +158,7 @@ Status is `implemented`, `planned`, or `out of scope`. Baseline is TrustedPostma
 | C4 | TS OIDC client | implemented | `--frontend` `apps/web/src/lib/auth` (`oidc-client-ts` PKCE + refresh + Bearer fetch). `--auth` seeds public `mca-spa-client` at localhost:4321 / :3000 | both |
 | C5 | i18n / RTL | implemented | Astro header toggle `en` / `ar` (`dir=rtl`) in `apps/web/src/lib/i18n.ts` | aliif |
 | C6 | BFF vs direct-API guidance | implemented | this page, Client patterns | both |
-| C7 | Web E2E | implemented | `apps/web/e2e/smoke.spec.ts` (Playwright). Run against API + `npm run dev` | TrustedPostman |
+| C7 | Web E2E | implemented | Playwright smoke for Astro (`:4321`) and TanStack Start (`:3000`): `apps/web/e2e/smoke.spec.ts`. `API_URL` + `WEB_URL` + `npm run test:e2e` | TrustedPostman |
 | O1 | Docker / compose / Aspire / kind | implemented | template `--docker`, `--aspire`, `--all` | both |
 | O2 | Template unit/integration/smoke | implemented | `tests/MinimalCleanArch.Templates.Tests`; `scripts/validate-templates.ps1` | both |
 | O3 | CI documented | implemented | this section; `.github/workflows/{nuget,publish-nuget,validate-templates}.yml` | both |

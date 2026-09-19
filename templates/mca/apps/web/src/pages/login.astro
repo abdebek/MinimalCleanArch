@@ -5,7 +5,7 @@ import Layout from "../layouts/Layout.astro";
   <div class="card stack">
     <h1 data-i18n="signIn">Sign in</h1>
     <p class="muted">Uses authorization-code + PKCE. The API hosts <code>/auth/login</code> for the cookie step, then returns here with tokens.</p>
-    <button id="oidc" type="button" data-i18n="continueOidc">Continue with OpenID Connect</button>
+    <button id="oidc" type="button" data-testid="oidc-login" data-i18n="continueOidc">Continue with OpenID Connect</button>
     <p><a href="/signup" data-i18n="signUp">Create account</a> · <a href="/forgot-password" data-i18n="forgot">Forgot password</a></p>
   </div>
   <script>

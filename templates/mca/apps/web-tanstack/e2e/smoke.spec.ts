@@ -8,7 +8,7 @@ test("login + create todo", async ({ page, request }) => {
   const register = await request.post(`${api}/api/auth/register`, {
     data: { email, password, firstName: "E2e", lastName: "User" },
   });
-  expect(register.ok()).toBeTruthy();
+  expect(register.ok(), await register.text()).toBeTruthy();
 
   await page.goto("/login", { waitUntil: "networkidle" });
   await expect(page.getByTestId("oidc-login")).toBeVisible();
@@ -53,4 +53,3 @@ test("login + create todo", async ({ page, request }) => {
   await page.getByTestId("todo-add").click();
   await expect(page.getByTestId("todo-item").filter({ hasText: "e2e item" })).toBeVisible();
 });
-

@@ -327,11 +327,11 @@ public static class AuthEndpoints
                 {errorHtml}
                 <form method="post" action="/auth/login">
                     <label for="email">Email</label>
-                    <input id="email" name="email" type="email" autocomplete="username" required>
+                    <input id="email" name="email" type="email" autocomplete="username" required data-testid="login-email">
                     <label for="password">Password</label>
-                    <input id="password" name="password" type="password" autocomplete="current-password" required>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required data-testid="login-password">
                     <input type="hidden" name="returnUrl" value="{returnUrl}">
-                    <button type="submit">Sign in</button>
+                    <button type="submit" data-testid="login-submit">Sign in</button>
                 </form>
                 <div class="providers">
                     <a class="provider-button" href="/api/auth/external/Google?returnUrl={returnUrlQuery}">Continue with Google</a>

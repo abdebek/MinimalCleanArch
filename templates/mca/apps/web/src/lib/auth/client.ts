@@ -21,6 +21,7 @@ const defaultScope = "openid profile email roles offline_access mca.api";
 
 export class McaAuthClient {
   private readonly manager: UserManager;
+  private callbackPromise: Promise<User> | null = null;
 
   constructor(options: McaAuthOptions) {
     const authority = options.authority.replace(/\/+$/, "");
@@ -47,9 +48,13 @@ export class McaAuthClient {
     return this.manager.signinRedirect();
   }
 
-  /** Exchange `?code=` on the redirect URI. Call this from `/callback`. */
+  /** Exchange `?code=` on the redirect URI. Call this from `/callback`. Idempotent: React Strict Mode remounts must not redeem the code twice. */
   handleCallback(): Promise<User> {
-    return this.manager.signinRedirectCallback();
+    this.callbackPromise ??= this.manager.signinRedirectCallback().catch((err) => {
+      this.callbackPromise = null;
+      throw err;
+    });
+    return this.callbackPromise;
   }
 
   logout(): Promise<void> {
