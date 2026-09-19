@@ -93,7 +93,12 @@ function Assert-AspireScaffold {
     )
 
     $appHostDir = Join-Path $OutDir "$ProjName.AppHost"
-    $serviceDefaultsDir = Join-Path $OutDir "$ProjName.ServiceDefaults"
+    # Multi-project emits ServiceDefaults under src/; single-project emits it next to the web csproj.
+    $serviceDefaultsDir = if ($SingleProject) {
+        Join-Path $OutDir "$ProjName.ServiceDefaults"
+    } else {
+        Join-Path $OutDir "src" "$ProjName.ServiceDefaults"
+    }
     $appHostCsproj = Join-Path $appHostDir "$ProjName.AppHost.csproj"
     $serviceDefaultsCsproj = Join-Path $serviceDefaultsDir "$ProjName.ServiceDefaults.csproj"
 

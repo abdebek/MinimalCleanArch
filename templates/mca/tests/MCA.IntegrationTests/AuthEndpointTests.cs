@@ -31,17 +31,6 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     }
 
     [Fact]
-    public async Task External_Google_Challenge_Redirects_When_Configured()
-    {
-        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var response = await client.GetAsync("/api/auth/external/Google");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location.Should().NotBeNull();
-        response.Headers.Location!.Host.Should().ContainEquivalentOf("google");
-    }
-
-    [Fact]
     public async Task External_Unknown_Provider_Returns_NotFound()
     {
         using var response = await _client.GetAsync("/api/auth/external/NotAProvider");

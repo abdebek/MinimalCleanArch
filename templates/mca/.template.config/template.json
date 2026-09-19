@@ -407,7 +407,9 @@
         // Auth suite is heavy and shares one factory/client; endpoint rate policies (TokenBucket) cause 429 under --all/--ratelimiting.
         // AuthEndpointTests.cs is omitted; Auth/AuthTestApiFactory.cs stays so ExternalProviderTests still compile.
         { "condition": "(UseRateLimiting)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
-        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
+        // In-memory WebApplicationFactory hosts cannot start Wolverine SQL/Postgres durability.
+        // Durable coverage is TodoEndpointDurableTests (skipped unless RUN_DOCKER_E2E).
+        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs", "tests/**/FeatureGateTests.cs", "tests/**/RealtimeHubTests.cs", "tests/**/Auth/*.cs"] },
         { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
         { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.slnx", "Dockerfile", "docker-compose.yml", ".dockerignore"] },

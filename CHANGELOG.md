@@ -33,6 +33,10 @@ The format is based on Keep a Changelog.
 - OIDC `handleCallback()` is idempotent so React Strict Mode does not redeem the authorization code twice (`invalid_grant`).
 - Generated Development hosts skip HTTPS redirection so SPA PKCE on `http://localhost` is not bounced to HTTPS.
 - `--all` / `--ratelimiting` still emit `AuthTestApiFactory` so `ExternalProviderTests` compile after `AuthEndpointTests.cs` is excluded.
+- `WolverineJobExecutor` resolves scoped `IMessageBus` per job (via `IServiceScopeFactory`) so `--all` hosts start under Development scope validation.
+- `validate-templates` looks for multi-project Aspire ServiceDefaults under `src/`.
+- Auth tests no longer expect Google OIDC when secrets are empty (covered by `ExternalProviderTests`).
+- `--all` SQL Server/Postgres omit in-memory WebApplicationFactory tests that cannot start Wolverine durable persistence.
 
 ## [0.1.20-preview] - 2026-08-02
 
