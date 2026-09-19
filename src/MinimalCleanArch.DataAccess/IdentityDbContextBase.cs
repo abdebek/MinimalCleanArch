@@ -13,7 +13,7 @@ namespace MinimalCleanArch.DataAccess;
 /// Use this for simple scenarios where you don't need role-based authorization
 /// </summary>
 /// <typeparam name="TUser">The type of the user entity</typeparam>
-public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser> 
+public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>, IQueryFilterTenantContext
     where TUser : IdentityUser
 {
     private const string EmailIndexName = "EmailIndex";
@@ -187,6 +187,8 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     /// </summary>
     protected string? CurrentTenantId => GetCurrentTenantId();
 
+    string? IQueryFilterTenantContext.QueryFilterTenantId => GetCurrentTenantId();
+
     private void ApplyTenantStamps() => TenantStamper.Apply(ChangeTracker, GetCurrentTenantId());
 }
 
@@ -197,7 +199,7 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
 /// <typeparam name="TUser">The type of the user entity</typeparam>
 /// <typeparam name="TRole">The type of the role entity</typeparam>
 /// <typeparam name="TKey">The type of the primary key</typeparam>
-public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbContext<TUser, TRole, TKey>
+public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbContext<TUser, TRole, TKey>, IQueryFilterTenantContext
     where TUser : IdentityUser<TKey>
     where TRole : IdentityRole<TKey>
     where TKey : IEquatable<TKey>
@@ -467,6 +469,8 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// <see cref="IExecutionContext"/>, not captured at model compile time.
     /// </summary>
     protected string? CurrentTenantId => GetCurrentTenantId();
+
+    string? IQueryFilterTenantContext.QueryFilterTenantId => GetCurrentTenantId();
 
     private void ApplyTenantStamps() => TenantStamper.Apply(ChangeTracker, GetCurrentTenantId());
 }

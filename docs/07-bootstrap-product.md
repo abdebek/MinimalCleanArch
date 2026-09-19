@@ -51,7 +51,7 @@ Kernel code is framework-neutral. Public contracts must stay free of ASP.NET typ
 | `IJobScheduler` | `MinimalCleanArch.Jobs` (hosted-service fallback; Wolverine adapter in Messaging) |
 | `IRealtimePublisher` | `MinimalCleanArch.Realtime` (SignalR adapter in Extensions) |
 | `IFeatureGate` | `MinimalCleanArch.Features` (config + optional store; HTTP `RequireFeature` in Extensions) |
-| `ITenantEntity` | `MinimalCleanArch` — row ownership; EF filter is the DataAccess adapter |
+| `ITenantEntity` | `MinimalCleanArch` — row ownership; EF named filters on net10, combined + re-apply on net9 |
 | Future ports (auth/token) | not shipped as kernel ports yet |
 
 `IDomainEventPublisher` exists; the Wolverine implementation is an **adapter**, not kernel.

@@ -25,7 +25,7 @@ The format is based on Keep a Changelog.
 - Playwright smoke: `apps/web/e2e/smoke.spec.ts` (`npm run test:e2e` with API + `npm run dev`).
 - `--controllers`: ASP.NET `TodoController` instead of Minimal API Todo endpoints (same handlers).
 - `--fastendpoints`: FastEndpoints Todo host adapter (same handlers; wins over `--controllers`).
-- Named EF query filters on EF 10+ (`QueryFilters.SoftDelete` / `QueryFilters.Tenant`). `IgnoreSoftDelete()` keeps tenant isolation. `IgnoreQueryFilters()` remains the full bypass (admin/seed and process-wide purge).
+- Named EF query filters on EF 10 (`QueryFilters.SoftDelete` / `QueryFilters.Tenant`). `IgnoreSoftDelete()` keeps tenant isolation on **net9 and net10** (EF 9 re-applies the tenant predicate after `IgnoreQueryFilters()`). `IgnoreQueryFilters()` remains the full bypass (admin/seed and process-wide purge).
 
 ## [0.1.20-preview] - 2026-08-02
 
