@@ -338,6 +338,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--webFramework` | astro | `astro` or `tanstack` (Vite + React). Used with `--frontend` |
 | `--mobile` | false | Emit `apps/mobile` Expo scaffold. Not in `--all` |
 | `--controllers` | false | Host Todos with ASP.NET controllers instead of Minimal API endpoint helpers |
+| `--fastendpoints` | false | Host Todos with FastEndpoints (same handlers). Wins over `--controllers` |
 
 ### How Options Affect Architecture
 | Option | Main effect on generated solution |
@@ -346,7 +347,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | `--tests` | Adds unit and integration test projects or test targets for the generated app |
 | `--docker` | Adds container build and local deployment assets (`Dockerfile`, `docker-compose.yml`, generated `scripts/`) |
 | `--frontend` | Adds `apps/web` (Astro pages + `src/lib/auth` PKCE). `--auth` seeds `mca-spa-client` |
-| `--webFramework tanstack` | Same `apps/web` slot, Vite + React instead of Astro |
+| `--webFramework tanstack` | Same `apps/web` slot, TanStack Start instead of Astro |
 | `--mobile` | Adds Expo app (password grant + secure store) |
 | `--controllers` | `MapControllers` + `TodoController`; does not call `MapTodoEndpoints` |
 | `--recommended` | Enables common API-facing concerns such as logging, validation, health checks, security, caching, rate limiting, and API versioning |

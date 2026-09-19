@@ -18,6 +18,14 @@ The format is based on Keep a Changelog.
 - Template soft-delete restore: `POST /api/todos/{id}/restore` (`RestoreTodoCommand` / `Todo.Restore()`). Optional; `--auth` requires the Admin role.
 - Template `--frontend` / `--mobile` emit `apps/web` and `apps/mobile` next to the API (layout slots). API-only generation is unchanged; the API still runs with `dotnet run --project src/{Name}.Api`.
 - `--frontend` includes `apps/web/src/lib/auth` (`oidc-client-ts`: authorization-code + PKCE, refresh, Bearer `fetch`). `--auth` seeds public OpenIddict client `mca-spa-client` and CORS for `http://localhost:4321` / `http://localhost:3000`.
+- `MinimalCleanArch.Email`: `IEmailSender` port with SMTP and HTTP adapters; template `--auth` calls `AddEmail` instead of copied senders.
+- Official **Astro** web scaffold (`--frontend`): login, signup, confirm-email, forgot/reset, Todos, logout, privacy/terms. English/Arabic RTL toggle.
+- Second web adapter: **TanStack Start** (`--frontend --webFramework tanstack`) on port 3000, same OIDC client.
+- Official **Expo** mobile scaffold (`--mobile`): password grant, `expo-secure-store`, Todo list.
+- Playwright smoke: `apps/web/e2e/smoke.spec.ts` (`npm run test:e2e` with API + `npm run dev`).
+- `--controllers`: ASP.NET `TodoController` instead of Minimal API Todo endpoints (same handlers).
+- `--fastendpoints`: FastEndpoints Todo host adapter (same handlers; wins over `--controllers`).
+- Named EF query filters on EF 10+ (`QueryFilters.SoftDelete` / `QueryFilters.Tenant`). `IgnoreSoftDelete()` keeps tenant isolation. `IgnoreQueryFilters()` remains the full bypass (admin/seed and process-wide purge).
 
 ## [0.1.20-preview] - 2026-08-02
 

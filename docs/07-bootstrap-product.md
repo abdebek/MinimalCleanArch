@@ -32,7 +32,7 @@ The tables below are the product backlog as of this writing. **Stubs are planned
 
 ![Kernel, host adapters, and client surfaces](diagrams/surfaces.svg)
 
-Solid green is implemented. Dashed gold is still planned (BFF host, FastEndpoints, extra kernel ports). Official Astro/Vite web, Expo mobile, TypeScript OIDC PKCE, and `--controllers` are implemented. Today’s packages remain (core in the kernel box; DataAccess, Extensions, Validation, Messaging, Audit, Security, Storage, Email, Jobs, Realtime adapters in the package row).
+Solid green is implemented. Dashed gold is still planned (BFF host, extra kernel ports). Official Astro and TanStack Start web, Expo mobile, TypeScript OIDC PKCE, `--controllers`, and `--fastendpoints` are implemented. Today’s packages remain (core in the kernel box; DataAccess, Extensions, Validation, Messaging, Audit, Security, Storage, Email, Jobs, Realtime adapters in the package row).
 
 Anything a second host or a TypeScript / Expo client cannot consume does not belong in the kernel.
 
@@ -66,7 +66,7 @@ A host adapter maps HTTP (or another process model) onto kernel ports: execution
 |---|---|---|
 | ASP.NET Core Minimal APIs | `MinimalCleanArch.Extensions` + generated `{Name}.Api` (`src/{Name}.Api` in multi-project apps) | implemented; adapter one |
 | ASP.NET controllers | template `--controllers` (`TodoController` + same handlers; does not call `MapTodoEndpoints`) | implemented |
-| FastEndpoints | not in this repo | planned |
+| FastEndpoints | template `--fastendpoints` (`TodoFastEndpoints` + same handlers) | implemented |
 | Non-.NET backend | not a second kernel | consume OpenAPI + OIDC (Scalar `/scalar/v1` in Development) |
 
 Must stay in a host adapter (or the generated host project), not in kernel:
@@ -101,7 +101,7 @@ They must not take a dependency on `MinimalCleanArch.Extensions` or any ASP.NET 
 |---|---|
 | Generated HTTP API (`dotnet new mca`) | implemented |
 | Official web (Astro) | implemented (`--frontend`; pages + OIDC PKCE) |
-| Second web (Vite + React) | implemented (`--frontend --webFramework tanstack`) |
+| Second web (TanStack Start) | implemented (`--frontend --webFramework tanstack`) |
 | Official mobile (Expo) | implemented (`--mobile`; bearer + secure store) |
 | TypeScript OIDC PKCE client | implemented (`apps/web/src/lib/auth`; public `mca-spa-client` with `--auth`) |
 
@@ -153,7 +153,7 @@ Status is `implemented`, `planned`, or `out of scope`. Baseline is TrustedPostma
 | H3 | Feature flags / entitlements | implemented | package `MinimalCleanArch.Features` (`IFeatureGate`); `--features` / `--all` gates `GET /api/todos/export` via `Features:Flags:todo-export` | TrustedPostman |
 | H4 | Soft-delete restore | implemented | template `POST /api/todos/{id}/restore` (`Todo.Restore()`). Optional; `--auth` requires Admin. Sample has no restore | — |
 | C1 | Official web scaffold | implemented | `--frontend` Astro (`apps/web`): login, signup, confirm-email, forgot/reset, todos, logout | both |
-| C2 | Second web framework | implemented | `--frontend --webFramework tanstack` Vite + React, same `src/lib/auth` contract | both |
+| C2 | Second web framework | implemented | `--frontend --webFramework tanstack` TanStack Start, same `src/lib/auth` contract | both |
 | C3 | Official mobile scaffold | implemented | `--mobile` Expo: password grant + `expo-secure-store` + Todo list | TrustedPostman |
 | C4 | TS OIDC client | implemented | `--frontend` `apps/web/src/lib/auth` (`oidc-client-ts` PKCE + refresh + Bearer fetch). `--auth` seeds public `mca-spa-client` at localhost:4321 / :3000 | both |
 | C5 | i18n / RTL | implemented | Astro header toggle `en` / `ar` (`dir=rtl`) in `apps/web/src/lib/i18n.ts` | aliif |
@@ -163,13 +163,13 @@ Status is `implemented`, `planned`, or `out of scope`. Baseline is TrustedPostma
 | O2 | Template unit/integration/smoke | implemented | `tests/MinimalCleanArch.Templates.Tests`; `scripts/validate-templates.ps1` | both |
 | O3 | CI documented | implemented | this section; `.github/workflows/{nuget,publish-nuget,validate-templates}.yml` | both |
 | X1 | Kernel vs host vs client docs | implemented | this page; [surfaces diagram](diagrams/surfaces.svg); [01. System overview](01-system-overview.md) | this goal |
-| X2 | Second ASP.NET host adapter | implemented | `--controllers` maps `TodoController`; Minimal API Todo endpoints are not mapped | this goal |
+| X2 | Second ASP.NET host adapter | implemented | `--controllers` maps `TodoController`; `--fastendpoints` maps FastEndpoints; Minimal API Todo endpoints are not mapped | this goal |
 
 ## Client patterns: BFF vs direct API vs mobile
 
 | Surface | Auth | API calls | When to use |
 |---|---|---|---|
-| Astro / Vite SPA (`--frontend`) | Browser PKCE (`mca-spa-client`). Tokens in `sessionStorage`. | `Authorization: Bearer` via `McaAuthClient.fetch` | First-party web. CORS origins `http://localhost:4321` and `:3000`. |
+| Astro / TanStack Start (`--frontend`) | Browser PKCE (`mca-spa-client`). Tokens in `sessionStorage`. | `Authorization: Bearer` via `McaAuthClient.fetch` | First-party web. CORS origins `http://localhost:4321` and `:3000`. |
 | BFF (not generated) | Auth cookies on a backend-for-frontend; browser never holds tokens | Server-side HTTP to the API | If you cannot store tokens in the browser (TrustedPostman web). Put the BFF origin on OpenIddict, not the SPA client. |
 | Expo (`--mobile`) | Resource-owner password against `/connect/token` (`mca-web-client`) in this scaffold; production apps should prefer PKCE + secure store | Bearer | Native. Do not use the public SPA client with a secret. |
 
