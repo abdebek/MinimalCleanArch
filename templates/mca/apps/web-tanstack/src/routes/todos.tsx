@@ -1,11 +1,15 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FormEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/auth-instance";
 import { apiUrl } from "../lib/config";
 
+export const Route = createFileRoute("/todos")({
+  component: TodosPage,
+});
+
 type Todo = { id: number; title: string; isCompleted: boolean };
 
-export function TodosPage() {
+function TodosPage() {
   const navigate = useNavigate();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState("");
@@ -14,7 +18,7 @@ export function TodosPage() {
     void (async () => {
       const user = await auth.getUser();
       if (!user) {
-        navigate("/login", { replace: true });
+        await navigate({ to: "/login" });
         return;
       }
       const res = await auth.fetch(`${apiUrl}/api/todos`);
