@@ -199,7 +199,7 @@ public class SecurityHeadersOptions
         EnableXFrameOptions = true,
         XFrameOptionsValue = "DENY",
         EnableContentSecurityPolicy = true,
-        ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'",
+        ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",
         EnablePermissionsPolicy = true,
         PermissionsPolicy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
     };
