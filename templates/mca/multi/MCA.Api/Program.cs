@@ -7,6 +7,9 @@ using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
 using MCA.Application.Handlers;
 using MCA.Api.Endpoints;
+#if (UseFastEndpoints)
+using FastEndpoints;
+#endif
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
@@ -405,7 +408,9 @@ if (!aspireOtlp)
 // OpenAPI document generation
 builder.Services.AddOpenApi();
 
-#if (UseControllers)
+#if (UseFastEndpoints)
+builder.Services.AddFastEndpoints();
+#elif (UseControllers)
 builder.Services.AddControllers();
 #endif
 
@@ -482,7 +487,9 @@ app.MapDefaultEndpoints();
 #endif
 
 // Map endpoints
-#if (UseControllers)
+#if (UseFastEndpoints)
+app.UseFastEndpoints();
+#elif (UseControllers)
 app.MapControllers();
 #else
 app.MapTodoEndpoints();

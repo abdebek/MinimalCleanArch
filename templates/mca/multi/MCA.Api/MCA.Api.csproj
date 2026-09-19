@@ -12,6 +12,9 @@
     <PackageReference Include="MinimalCleanArch.DataAccess" Version="__MCA_VERSION__" />
     <!-- Always referenced for MatchHttp / ValidateAsync / endpoint filters -->
     <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
+    <!--#if (UseFastEndpoints)-->
+    <PackageReference Include="FastEndpoints" Version="7.0.1" />
+    <!--#endif-->
     <!--#if (UseSerilog)-->
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />

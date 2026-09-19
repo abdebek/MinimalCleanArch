@@ -83,6 +83,12 @@
       "defaultValue": "false",
       "description": "Host Todos with ASP.NET controllers instead of Minimal API endpoint helpers (same handlers)."
     },
+    "fastendpoints": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Host Todos with FastEndpoints instead of Minimal API endpoint helpers (same handlers). Wins over --controllers if both are set."
+    },
     "serilog": {
       "type": "parameter",
       "datatype": "bool",
@@ -306,7 +312,11 @@
     },
     "UseControllers": {
       "type": "computed",
-      "value": "(controllers)"
+      "value": "(controllers && !fastendpoints)"
+    },
+    "UseFastEndpoints": {
+      "type": "computed",
+      "value": "(fastendpoints)"
     },
     "UseDocker": {
       "type": "computed",
@@ -399,6 +409,7 @@
         { "condition": "(UseRateLimiting)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
         { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
         { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
+        { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.slnx", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "exclude": ["single/**", "multi/**", "aspire/**", "apps/**"] }
       ]
@@ -457,6 +468,7 @@
       "condition": "(MultiProject)",
       "modifiers": [
         { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
+        { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
         { "condition": "(!UseJobs)", "exclude": ["**/Jobs/**"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
@@ -472,6 +484,7 @@
       "condition": "(SingleProject)",
       "modifiers": [
         { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
+        { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(!UseDocker)", "exclude": ["Dockerfile", "docker-compose.yml", ".dockerignore"] },
         { "condition": "(!UseAspire)", "exclude": ["MCA.slnx"] },
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },

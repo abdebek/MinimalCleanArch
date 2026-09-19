@@ -88,6 +88,20 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void Domain_Should_Not_Depend_On_FastEndpoints()
+    {
+        var result = Types.InAssembly(typeof(Todo).Assembly)
+            .That()
+            .ResideInNamespace("MCA.Domain")
+            .Should()
+            .NotHaveDependencyOn("FastEndpoints")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            "Domain must stay free of FastEndpoints; it is a host adapter");
+    }
+
+    [Fact]
     public void Domain_Should_Not_Depend_On_RealtimePackage()
     {
         var result = Types.InAssembly(typeof(Todo).Assembly)
