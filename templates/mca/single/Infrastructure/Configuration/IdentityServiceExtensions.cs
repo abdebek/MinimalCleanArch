@@ -172,8 +172,11 @@ public static class IdentityServiceExtensions
 
                 if (isDevelopment)
                 {
-                    options.AddDevelopmentEncryptionCertificate()
-                           .AddDevelopmentSigningCertificate();
+                    // Ephemeral keys stay in-process. AddDevelopment*Certificate() stores
+                    // keys in the user certificate store; on macOS that is Keychain and
+                    // signing /connect/authorize hangs or throws CSSMERR_CSP_USER_CANCELED.
+                    options.AddEphemeralEncryptionKey()
+                           .AddEphemeralSigningKey();
                     options.DisableAccessTokenEncryption();
                 }
                 else
@@ -332,12 +335,16 @@ public static class IdentityServiceExtensions
         var spaRedirects = new List<string>
         {
             "http://localhost:4321/callback",
-            "http://localhost:3000/callback"
+            "http://localhost:3000/callback",
+            "http://127.0.0.1:4321/callback",
+            "http://127.0.0.1:3000/callback"
         };
         var spaPostLogout = new List<string>
         {
             "http://localhost:4321/",
-            "http://localhost:3000/"
+            "http://localhost:3000/",
+            "http://127.0.0.1:4321/",
+            "http://127.0.0.1:3000/"
         };
         if (settings.Clients.TryGetValue("Spa", out var spaSettings))
         {

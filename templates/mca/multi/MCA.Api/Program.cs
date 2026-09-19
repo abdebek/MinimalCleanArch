@@ -464,7 +464,10 @@ app.UseMinimalCleanArchApiDefaults(pipeline =>
 app.UseSerilogRequestLogging();
 #endif
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 #if (UseSecurity || UseFrontend)
 app.UseCors();
