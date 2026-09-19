@@ -46,7 +46,11 @@ public class TodoRepository : Repository<Todo>, ITodoRepository
 
     public async Task<Todo?> GetByIdIncludingDeletedAsync(int id, CancellationToken cancellationToken = default)
     {
+#if (UseNet10)
+        var query = DbSet.IgnoreQueryFilters(["SoftDelete"]).Where(t => t.Id == id);
+#else
         var query = DbSet.IgnoreQueryFilters().Where(t => t.Id == id);
+#endif
 #if (UseMultiTenant)
         var tenantId = _execution.TenantId ?? string.Empty;
         query = query.Where(t => t.TenantId == tenantId);
@@ -57,6 +61,7 @@ public class TodoRepository : Repository<Todo>, ITodoRepository
 #if (UseJobs)
     public async Task<int> HardDeleteSoftDeletedOlderThanAsync(DateTime cutoffUtc, CancellationToken cancellationToken = default)
     {
+        // Process-wide maintenance: include every tenant's expired rows.
         var doomed = await DbSet
             .IgnoreQueryFilters()
             .Where(t => t.IsDeleted && t.DeletedAt != null && t.DeletedAt < cutoffUtc)

@@ -62,7 +62,7 @@ public sealed class AppDbContext : DbContextBase
 
 Use the constructor overload that accepts `IExecutionContext` when you want audit stamping and tenant isolation to flow from the current HTTP request or message-handler scope without overriding `GetCurrentUserId()` / `GetCurrentTenantId()`.
 
-Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. `IgnoreQueryFilters()` is the admin/seed bypass. Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
+Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. On EF 10+, soft-delete and tenant are **named** filters (`QueryFilters.SoftDelete`, `QueryFilters.Tenant`). `IgnoreSoftDelete()` includes deleted rows without dropping tenant isolation. `IgnoreQueryFilters()` still disables every filter (admin/seed and process-wide jobs). Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
 
 ### Recommended specification usage
 ```csharp

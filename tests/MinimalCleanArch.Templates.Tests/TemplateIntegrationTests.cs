@@ -664,8 +664,12 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
             "new", "mca", "-n", projectName, "-o", projectDir, "--frontend", "--webFramework", "tanstack"));
 
         File.Exists(Path.Combine(projectDir, "apps", "web", "vite.config.ts")).Should().BeTrue();
+        File.Exists(Path.Combine(projectDir, "apps", "web", "src", "router.tsx")).Should().BeTrue();
+        File.Exists(Path.Combine(projectDir, "apps", "web", "src", "routes", "__root.tsx")).Should().BeTrue();
         File.Exists(Path.Combine(projectDir, "apps", "web", "src", "lib", "auth", "client.ts")).Should().BeTrue();
         File.Exists(Path.Combine(projectDir, "apps", "web", "astro.config.mjs")).Should().BeFalse();
+        File.ReadAllText(Path.Combine(projectDir, "apps", "web", "package.json"))
+            .Should().Contain("@tanstack/react-start");
         File.ReadAllText(Path.Combine(projectDir, "apps", "web", "src", "lib", "auth", "client.ts"))
             .Should().Contain("oidc-client-ts");
 
@@ -691,6 +695,29 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "Controllers", "TodoController.cs"))
             .Should().Contain("TodoCommandHandler")
             .And.NotContain("MapGet");
+
+        await BuildGeneratedProjectAsync(projectDir);
+    }
+
+    [Fact]
+    public async Task Create_FastEndpoints_MapsTodos_NotMinimalTodoEndpoints()
+    {
+        var projectName = "TestAppFastEp";
+        var projectDir = Path.Combine(_baseOutputDir, projectName);
+
+        CreateNugetConfig(projectDir);
+        await RunDotnetCommandAsync(BuildTemplateArgs(
+            "new", "mca", "-n", projectName, "-o", projectDir, "--fastendpoints"));
+
+        AssertMultiProjectSrcLayout(projectDir, projectName);
+        var program = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "Program.cs"));
+        program.Should().Contain("AddFastEndpoints");
+        program.Should().Contain("UseFastEndpoints");
+        program.Should().NotContain("MapTodoEndpoints");
+        program.Should().NotContain("MapControllers");
+        File.Exists(MultiSrc(projectDir, projectName, "Api", "FastEndpoints", "TodoFastEndpoints.cs")).Should().BeTrue();
+        File.ReadAllText(MultiSrc(projectDir, projectName, "Api", $"{projectName}.Api.csproj"))
+            .Should().Contain("FastEndpoints");
 
         await BuildGeneratedProjectAsync(projectDir);
     }
@@ -871,7 +898,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         File.ReadAllText(MultiSrc(projectDir, projectName, "Application", "Handlers", "TodoCommandHandler.cs"))
             .Should().Contain("RestoreTodoCommand");
         File.ReadAllText(MultiSrc(projectDir, projectName, "Infrastructure", "Repositories", "TodoRepository.cs"))
-            .Should().Contain("IgnoreQueryFilters");
+            .Should().Contain("SoftDelete");
 
         await BuildGeneratedProjectAsync(projectDir);
         await RunDotnetCommandAsync(

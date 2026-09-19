@@ -81,6 +81,33 @@ public class TenantQueryFilterTests
     }
 
     [Fact]
+    public async Task IgnoreSoftDelete_DoesNotExposeOtherTenants()
+    {
+        var dbName = Guid.NewGuid().ToString("N");
+        var tenantA = new MutableExecutionContext { TenantId = "tenant-a" };
+        var tenantB = new MutableExecutionContext { TenantId = "tenant-b" };
+
+        await using (var context = CreateContext(dbName, tenantA))
+        {
+            context.Notes.Add(new TenantNote { Title = "a-live" });
+            context.Notes.Add(new TenantNote { Title = "a-dead", IsDeleted = true });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = CreateContext(dbName, tenantB))
+        {
+            context.Notes.Add(new TenantNote { Title = "b-dead", IsDeleted = true });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = CreateContext(dbName, tenantA))
+        {
+            var titles = await context.Notes.IgnoreSoftDelete().Select(n => n.Title).ToListAsync();
+            titles.Should().BeEquivalentTo("a-live", "a-dead");
+        }
+    }
+
+    [Fact]
     public async Task Insert_WithoutTenant_Throws()
     {
         var dbName = Guid.NewGuid().ToString("N");
