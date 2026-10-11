@@ -132,10 +132,10 @@ Write-Host "`$env:NUGET_API_KEY='your-api-key'" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "Build and Test:" -ForegroundColor Green
-Write-Host "  ./scripts/pack.ps1 -PackageVersion 0.1.20-preview" -ForegroundColor Cyan
-Write-Host "  ./scripts/pack.sh --package-version 0.1.20-preview" -ForegroundColor Cyan
-Write-Host "  ./scripts/validate-templates.ps1 -McaVersion 0.1.20-preview" -ForegroundColor Cyan
-Write-Host "  ./scripts/validate-templates.sh -McaVersion 0.1.20-preview" -ForegroundColor Cyan
+Write-Host "  ./scripts/pack.ps1 -PackageVersion 0.1.21" -ForegroundColor Cyan
+Write-Host "  ./scripts/pack.sh --package-version 0.1.21" -ForegroundColor Cyan
+Write-Host "  ./scripts/validate-templates.ps1 -McaVersion 0.1.21" -ForegroundColor Cyan
+Write-Host "  ./scripts/validate-templates.sh -McaVersion 0.1.21" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "Publish:" -ForegroundColor Green

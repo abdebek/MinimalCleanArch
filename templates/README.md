@@ -136,7 +136,7 @@ This is the quickest way to validate OpenIddict + user auth + global Bearer reus
 1. Scaffold and run:
 
 ```bash
-dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.20-preview
+dotnet new mca -n QuickAuth --single-project --auth --tests --mcaVersion 0.1.21
 cd QuickAuth
 dotnet run
 ```
@@ -402,7 +402,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 ### Versions
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--mcaVersion <version>` | 0.1.20-preview | MinimalCleanArch package version |
+| `--mcaVersion <version>` | 0.1.21 | MinimalCleanArch package version |
 | `--framework <tfm>` | net10.0 | Target framework (`net9.0` or `net10.0`) |
 
 ## Architecture Overview
@@ -595,12 +595,12 @@ Provider callback URLs (register these at the IdP):
 
 ```bash
 # From repo root — pack then validate
-./scripts/pack.sh --package-version 0.1.20-preview
-./scripts/validate-templates.sh -McaVersion 0.1.20-preview -Framework net10.0
+./scripts/pack.sh --package-version 0.1.21
+./scripts/validate-templates.sh -McaVersion 0.1.21 -Framework net10.0
 
 # PowerShell equivalents
-# ./scripts/pack.ps1 -PackageVersion 0.1.20-preview
-# ./scripts/validate-templates.ps1 -McaVersion 0.1.20-preview -Framework net10.0
+# ./scripts/pack.ps1 -PackageVersion 0.1.21
+# ./scripts/validate-templates.ps1 -McaVersion 0.1.21 -Framework net10.0
 ```
 
 `scripts/validate-templates.*` wraps `templates/scripts/validate-templates.ps1` (implementation lives under `templates/scripts/`).

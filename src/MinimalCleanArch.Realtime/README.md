@@ -3,7 +3,7 @@
 Realtime publish port: channel, payload, optional tenant/user audience. No SignalR types on the port.
 
 ## Version
-- Current: 0.1.20-preview (net9.0, net10.0).
+- Current: 0.1.21 (net9.0, net10.0).
 
 ## Why Use It
 - push domain events to connected clients without taking a SignalR dependency in application code
@@ -22,7 +22,7 @@ Realtime publish port: channel, payload, optional tenant/user audience. No Signa
 ## Usage
 
 ```bash
-dotnet add package MinimalCleanArch.Realtime --version 0.1.20-preview
+dotnet add package MinimalCleanArch.Realtime --version 0.1.21
 ```
 
 ```csharp
