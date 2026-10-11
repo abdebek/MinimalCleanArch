@@ -55,12 +55,12 @@ For flags and generated structure, see [`templates/README.md`](templates/README.
 - Project scaffolding: `MinimalCleanArch.Templates`
 
 ## Versions
-- Latest packages/templates: `0.1.21-preview`
+- Latest packages/templates: `0.1.21`
 
 ## Local Validation
 ```bash
-./scripts/pack.sh --package-version 0.1.20-preview
-./scripts/validate-templates.sh -McaVersion 0.1.20-preview   # or: ./scripts/validate-templates.ps1
+./scripts/pack.sh --package-version 0.1.21
+./scripts/validate-templates.sh -McaVersion 0.1.21   # or: ./scripts/validate-templates.ps1
 ./scripts/clean-temp.sh                                      # reclaim temp/MCA_Tests + temp/validate
 ```
 - Wrappers live under `scripts/`; implementation is `templates/scripts/validate-templates.ps1`.

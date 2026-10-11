@@ -6,6 +6,9 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-10-11
+- stable release following 0.1.21-preview, with no additional changes
+
 ## [0.1.21-preview] - 2026-09-19
 
 ### Added

@@ -3,8 +3,8 @@
 # Requires PowerShell 7+ (`pwsh`) because the validator is implemented in PowerShell.
 #
 # Typical usage (from repo root):
-#   ./scripts/pack.sh --package-version 0.1.20-preview
-#   ./scripts/validate-templates.sh -McaVersion 0.1.20-preview
+#   ./scripts/pack.sh --package-version 0.1.21
+#   ./scripts/validate-templates.sh -McaVersion 0.1.21
 #
 # Aspire multi/single AppHost builds are included by default; pass -SkipAspire to omit.
 

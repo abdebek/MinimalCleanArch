@@ -3,7 +3,7 @@
 Scheduling port (recurring + delayed) with an `IHostedService` fallback. No ASP.NET types on the port.
 
 ## Version
-- Current: 0.1.20-preview (net9.0, net10.0).
+- Current: 0.1.21 (net9.0, net10.0).
 
 ## Why Use It
 - register delayed and recurring work behind `IJobScheduler`
@@ -22,7 +22,7 @@ Scheduling port (recurring + delayed) with an `IHostedService` fallback. No ASP.
 ## Usage
 
 ```bash
-dotnet add package MinimalCleanArch.Jobs --version 0.1.20-preview
+dotnet add package MinimalCleanArch.Jobs --version 0.1.21
 ```
 
 ```csharp

@@ -3,8 +3,8 @@
 # Forwards all arguments to templates/scripts/validate-templates.ps1
 #
 # Typical usage (from repo root):
-#   ./scripts/pack.ps1 -PackageVersion 0.1.20-preview
-#   ./scripts/validate-templates.ps1 -McaVersion 0.1.20-preview
+#   ./scripts/pack.ps1 -PackageVersion 0.1.21
+#   ./scripts/validate-templates.ps1 -McaVersion 0.1.21
 #
 # Aspire multi/single AppHost builds are included by default; pass -SkipAspire to omit.
 
