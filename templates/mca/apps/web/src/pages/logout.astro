@@ -1,0 +1,10 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout title="Sign out">
+  <div class="card"><p>Signing out…</p></div>
+  <script>
+    import { auth } from "../lib/auth-instance";
+    void auth.logout();
+  </script>
+</Layout>

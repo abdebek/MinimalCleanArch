@@ -40,6 +40,14 @@ public class DeleteTodoCommandValidator : AbstractValidator<DeleteTodoCommand>
     }
 }
 
+public class RestoreTodoCommandValidator : AbstractValidator<RestoreTodoCommand>
+{
+    public RestoreTodoCommandValidator()
+    {
+        RuleFor(x => x.Id).GreaterThan(0);
+    }
+}
+
 public class GetTodoByIdQueryValidator : AbstractValidator<GetTodoByIdQuery>
 {
     public GetTodoByIdQueryValidator()

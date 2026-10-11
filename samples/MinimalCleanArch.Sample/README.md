@@ -11,6 +11,25 @@ Reference app showing how the library pieces work together in a real API.
 - Health checks (`/health`, `/health/ready`, `/health/live`, `/health/detailed`)
 - Scalar/OpenAPI exploration in Development
 
+## Host Bootstrap
+
+The sample uses the preferred MCA host APIs:
+
+- `AddMinimalCleanArchApi(...)` for problem details, correlation, validators, and rate limiting
+- `UseMinimalCleanArchApiDefaults(...)` for the standard middleware pipeline
+
+Generated apps from `dotnet new mca` with polish features (`--recommended`, etc.) follow the same pattern.
+
+### Aspire (optional)
+
+To run with Postgres + Redis + the Aspire dashboard:
+
+```bash
+dotnet run --project ../MinimalCleanArch.Aspire/MinimalCleanArch.AppHost
+```
+
+See [`../MinimalCleanArch.Aspire/README.md`](../MinimalCleanArch.Aspire/README.md). Direct `dotnet run` of this sample still uses SQLite and in-memory cache.
+
 ## Quick Run
 
 ```bash

@@ -1,0 +1,19 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "description": "Official Astro web surface. OIDC PKCE in src/lib/auth.",
+  "scripts": {
+    "dev": "astro dev --port 4321 --host",
+    "build": "astro build",
+    "preview": "astro preview --port 4321",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "astro": "^5.13.2",
+    "oidc-client-ts": "^3.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

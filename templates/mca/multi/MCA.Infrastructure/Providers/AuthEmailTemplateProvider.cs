@@ -1,7 +1,7 @@
 #if (UseAuth)
-using MCA.Application.Interfaces;
 using MCA.Infrastructure.Configuration;
 using Microsoft.Extensions.Options;
+using MinimalCleanArch.Email;
 
 namespace MCA.Infrastructure.Providers;
 

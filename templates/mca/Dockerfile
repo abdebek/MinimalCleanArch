@@ -13,21 +13,21 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 #endif
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /build
 #if (MultiProject)
-COPY ["MCA.Api/MCA.Api.csproj", "MCA.Api/"]
-COPY ["MCA.Application/MCA.Application.csproj", "MCA.Application/"]
-COPY ["MCA.Domain/MCA.Domain.csproj", "MCA.Domain/"]
-COPY ["MCA.Infrastructure/MCA.Infrastructure.csproj", "MCA.Infrastructure/"]
-RUN dotnet restore "MCA.Api/MCA.Api.csproj"
+COPY ["src/MCA.Api/MCA.Api.csproj", "src/MCA.Api/"]
+COPY ["src/MCA.Application/MCA.Application.csproj", "src/MCA.Application/"]
+COPY ["src/MCA.Domain/MCA.Domain.csproj", "src/MCA.Domain/"]
+COPY ["src/MCA.Infrastructure/MCA.Infrastructure.csproj", "src/MCA.Infrastructure/"]
+RUN dotnet restore "src/MCA.Api/MCA.Api.csproj"
 COPY . .
-WORKDIR "/src/MCA.Api"
+WORKDIR "/build/src/MCA.Api"
 RUN dotnet build "MCA.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 #else
 COPY ["MCA.csproj", "."]
 RUN dotnet restore "MCA.csproj"
 COPY . .
-WORKDIR "/src"
+WORKDIR "/build"
 RUN dotnet build "MCA.csproj" -c $BUILD_CONFIGURATION -o /app/build
 #endif
 

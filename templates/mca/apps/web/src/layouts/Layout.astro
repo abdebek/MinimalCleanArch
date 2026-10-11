@@ -1,0 +1,75 @@
+---
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/">MCA</a>
+      <nav>
+        <a href="/todos" data-i18n="todos">Todos</a>
+        <a href="/login" data-i18n="signIn">Sign in</a>
+        <a href="/signup" data-i18n="signUp">Create account</a>
+        <button type="button" id="locale-toggle" aria-label="Language">EN / عربي</button>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer>
+      <a href="/privacy" data-i18n="privacy">Privacy</a>
+      ·
+      <a href="/terms" data-i18n="terms">Terms</a>
+    </footer>
+    <script>
+      import { applyLocale, readLocale, t, type Locale } from "../lib/i18n";
+
+      const locale: Locale = readLocale();
+      applyLocale(locale);
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (key) el.textContent = t(locale, key as Parameters<typeof t>[1]);
+      });
+      document.getElementById("locale-toggle")?.addEventListener("click", () => {
+        applyLocale(locale === "en" ? "ar" : "en");
+        window.location.reload();
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --bg: #0f1419;
+    --fg: #e7ecf3;
+    --muted: #9aa8b8;
+    --accent: #6ee7b7;
+    --card: #1a222c;
+    --border: #2a3542;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  html[dir="rtl"] body { text-align: right; }
+  body { margin: 0; background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; flex-direction: column; }
+  a { color: var(--accent); }
+  .bar, footer { display: flex; gap: 1rem; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  footer { border-bottom: 0; border-top: 1px solid var(--border); margin-top: auto; color: var(--muted); }
+  nav { margin-inline-start: auto; display: flex; gap: 1rem; align-items: center; }
+  .brand { font-weight: 700; color: var(--fg); text-decoration: none; }
+  main { width: min(40rem, calc(100% - 2rem)); margin: 2rem auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  input, button { font: inherit; padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); }
+  button, .btn { background: var(--accent); color: #062016; border: 0; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; }
+  label { display: grid; gap: 0.35rem; margin-bottom: 0.75rem; color: var(--muted); }
+  .stack { display: grid; gap: 0.75rem; }
+  .muted { color: var(--muted); }
+  #locale-toggle { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+</style>

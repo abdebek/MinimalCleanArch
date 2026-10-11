@@ -1,0 +1,111 @@
+direction: down
+
+title: "MCA surfaces: kernel, hosts, clients" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+classes: {
+  impl: {
+    style.fill: "#e8f0e8"
+    style.stroke: "#3d3d3d"
+  }
+  plan: {
+    style.fill: "#f5f0e0"
+    style.stroke: "#3d3d3d"
+    style.stroke-dash: 5
+  }
+}
+
+legend: Legend {
+  direction: right
+  style.fill: "#fafafa"
+  style.stroke: "#3d3d3d"
+
+  impl: Implemented {
+    class: impl
+  }
+  plan: Planned {
+    class: plan
+  }
+}
+
+clients: Client surfaces {
+  direction: right
+  style.fill: "#f8eef8"
+  style.stroke: "#3d3d3d"
+
+  web: Official web {
+    class: plan
+  }
+  mobile: Official mobile {
+    class: plan
+  }
+  ts: TS OIDC PKCE client {
+    class: plan
+  }
+  bff: BFF {
+    class: plan
+  }
+}
+
+contract: OpenAPI + OIDC PKCE {
+  class: impl
+}
+
+hosts: Host adapters {
+  direction: right
+  style.fill: "#e8eef8"
+  style.stroke: "#3d3d3d"
+
+  api: Generated API {
+    note: "Minimal APIs + Extensions\nsrc/{Name}.Api"
+    class: impl
+  }
+  second: FastEndpoints / controllers {
+    class: plan
+  }
+}
+
+kernel: Kernel {
+  direction: right
+  style.fill: "#f4f1ea"
+  style.stroke: "#3d3d3d"
+
+  core: MinimalCleanArch {
+    note: "Result, IEntity, specs,\nIRepository, IUnitOfWork,\nIExecutionContext, IDomainEvent"
+    class: impl
+  }
+  blob: IBlobStorage {
+    note: "Storage port"
+    class: impl
+  }
+  future: Future ports {
+    note: "auth/token"
+    class: plan
+  }
+}
+
+pkgs: Today's adapter packages {
+  direction: right
+  style.fill: "#f4f1ea"
+  style.stroke: "#3d3d3d"
+
+  da: DataAccess { class: impl }
+  ext: Extensions { class: impl }
+  val: Validation { class: impl }
+  msg: Messaging { class: impl }
+  audit: Audit { class: impl }
+  sec: Security { class: impl }
+  stor: Storage Azure / R2 { class: impl }
+  email: Email { class: impl }
+  jobs: Jobs { class: impl }
+  realtime: Realtime { class: impl }
+}
+
+clients -> contract: consume
+contract -> hosts.api
+hosts -> kernel: map onto
+pkgs -> kernel: depend on

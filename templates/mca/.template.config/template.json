@@ -14,6 +14,7 @@
   "sourceName": "MCA",
   "defaultName": "MyApp",
   "primaryOutputs": [
+    { "path": "MCA.AppHost/MCA.AppHost.csproj", "condition": "(UseAspire)" },
     { "path": "MCA.slnx", "condition": "(MultiProject)" },
     { "path": "MCA.csproj", "condition": "(SingleProject)" }
   ],
@@ -22,7 +23,7 @@
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
-      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching, rate limiting)"
+      "description": "Include recommended production features (serilog, healthchecks, validation, security, caching, rate limiting, API versioning)"
     },
     "all": {
       "type": "parameter",
@@ -46,7 +47,47 @@
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
-      "description": "Include Docker support (Dockerfile and docker-compose.yml)"
+      "description": "Include Docker support (Dockerfile and docker-compose.yml). Ignored when --aspire is set."
+    },
+    "aspire": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include .NET Aspire AppHost and ServiceDefaults (local orchestration for DB/cache)"
+    },
+    "frontend": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Emit apps/web next to the API (Astro by default, or --webFramework tanstack). Includes OIDC PKCE client. Pair with --auth. Not included in --all."
+    },
+    "webFramework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "astro", "description": "Astro (login, signup, todos, i18n/RTL)" },
+        { "choice": "tanstack", "description": "Vite + React SPA, same OIDC PKCE contract" }
+      ],
+      "defaultValue": "astro",
+      "description": "Web framework when --frontend is set"
+    },
+    "mobile": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Emit apps/mobile Expo scaffold (login + Todo list against --auth). Not included in --all."
+    },
+    "controllers": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Host Todos with ASP.NET controllers instead of Minimal API endpoint helpers (same handlers)."
+    },
+    "fastendpoints": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Host Todos with FastEndpoints instead of Minimal API endpoint helpers (same handlers). Wins over --controllers if both are set."
     },
     "serilog": {
       "type": "parameter",
@@ -84,11 +125,35 @@
       "defaultValue": "false",
       "description": "Include API rate limiting (global + endpoint policies)"
     },
+    "versioning": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Register Asp.Versioning via AddMinimalCleanArchApiVersioning (same as the sample). Included in --recommended / --all"
+    },
     "messaging": {
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Include Wolverine messaging for domain events"
+    },
+    "jobs": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include IJobScheduler (recurring + delayed). Included with --messaging / --all. Sample: purge soft-deleted Todos."
+    },
+    "realtime": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include IRealtimePublisher + SignalR hub at /hubs/realtime. Todo writes publish on channel todos. Included with --all."
+    },
+    "features": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include IFeatureGate (config-backed flags). GET /api/todos/export is gated by Features:Flags:todo-export. Included with --all."
     },
     "audit": {
       "type": "parameter",
@@ -102,11 +167,23 @@
       "defaultValue": "false",
       "description": "Include OpenIddict authentication (Identity + OAuth2/OpenID Connect)"
     },
+    "multitenant": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Enable row-level tenancy isolation (EF query filter on ITenantEntity; default is single-tenant). Use with --auth so login issues a tenant_id claim."
+    },
     "opentelemetry": {
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Include OpenTelemetry for distributed tracing"
+    },
+    "storage": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Include MinimalCleanArch.Storage (Azure Blob / Azurite) for signed upload/download URLs"
     },
     "db": {
       "type": "parameter",
@@ -123,12 +200,22 @@
       "type": "parameter",
       "datatype": "string",
       "defaultValue": "",
-      "description": "Database name (defaults to application name if not provided)"
+      "description": "Database name (defaults to the application name from -n when omitted)"
+    },
+    "EffectiveDbName": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "dbName",
+        "fallbackVariableName": "name",
+        "defaultValue": "MCA"
+      },
+      "replaces": "__DB_NAME__"
     },
     "mcaVersion": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "0.1.19-preview",
+      "defaultValue": "0.1.21-preview",
       "description": "MinimalCleanArch package version to reference",
       "replaces": "__MCA_VERSION__"
     },
@@ -163,6 +250,10 @@
       "type": "computed",
       "value": "(auth || all)"
     },
+    "UseMultiTenant": {
+      "type": "computed",
+      "value": "(multitenant)"
+    },
     "UseCaching": {
       "type": "computed",
       "value": "(caching || recommended || all)"
@@ -171,9 +262,25 @@
       "type": "computed",
       "value": "(ratelimiting || recommended || all)"
     },
+    "UseVersioning": {
+      "type": "computed",
+      "value": "(versioning || recommended || all)"
+    },
     "UseMessaging": {
       "type": "computed",
       "value": "(messaging || all)"
+    },
+    "UseJobs": {
+      "type": "computed",
+      "value": "(jobs || messaging || all)"
+    },
+    "UseRealtime": {
+      "type": "computed",
+      "value": "(realtime || all)"
+    },
+    "UseFeatures": {
+      "type": "computed",
+      "value": "(features || all)"
     },
     "UseAudit": {
       "type": "computed",
@@ -183,9 +290,37 @@
       "type": "computed",
       "value": "(opentelemetry || all)"
     },
+    "UseStorage": {
+      "type": "computed",
+      "value": "(storage || all)"
+    },
+    "UseAspire": {
+      "type": "computed",
+      "value": "(aspire)"
+    },
+    "UseFrontend": {
+      "type": "computed",
+      "value": "(frontend)"
+    },
+    "UseTanstackWeb": {
+      "type": "computed",
+      "value": "(frontend && webFramework == \"tanstack\")"
+    },
+    "UseMobile": {
+      "type": "computed",
+      "value": "(mobile)"
+    },
+    "UseControllers": {
+      "type": "computed",
+      "value": "(controllers && !fastendpoints)"
+    },
+    "UseFastEndpoints": {
+      "type": "computed",
+      "value": "(fastendpoints)"
+    },
     "UseDocker": {
       "type": "computed",
-      "value": "(docker || all)"
+      "value": "((docker || all) && !aspire)"
     },
     "UseTests": {
       "type": "computed",
@@ -203,32 +338,21 @@
       "type": "computed",
       "value": "(db == \"sqlite\")"
     },
+    "UseNet9": {
+      "type": "computed",
+      "value": "(framework == \"net9.0\")"
+    },
+    "UseNet10": {
+      "type": "computed",
+      "value": "(framework == \"net10.0\")"
+    },
     "UseDurableMessaging": {
       "type": "computed",
       "value": "(UseMessaging && (UseSqlServer || UsePostgres))"
     },
-    "ConnectionString": {
-      "type": "generated",
-      "generator": "switch",
-      "parameters": {
-        "source": "db",
-        "datatype": "string",
-        "cases": [
-          {
-            "condition": "(db == 'postgres')",
-            "value": "Host=localhost;Database={dbName};Username=postgres;Password=postgres"
-          },
-          {
-            "condition": "(db == 'sqlserver')",
-            "value": "Server=localhost,1433;Database={dbName};User Id=sa;Password=StrongP!12asd;TrustServerCertificate=True;MultipleActiveResultSets=true"
-          },
-          {
-            "condition": "(db == 'sqlite')",
-            "value": "Data Source={dbName}.db"
-          }
-        ]
-      },
-      "replaces": "__DB_CONNECTION_STRING__"
+    "UseMcaApiBootstrap": {
+      "type": "computed",
+      "value": "(UseValidation || UseSecurity || UseRateLimiting || UseHealthChecks || UseCaching || UseSerilog || UseOpenTelemetry)"
     },
     "MultiProject": {
       "type": "computed",
@@ -262,24 +386,97 @@
       "source": "./",
       "target": "./",
       "modifiers": [
-        { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore", "scripts/**"] },
+        { "condition": "(!UseDocker)", "exclude": ["**/Dockerfile", "**/docker-compose.yml", "**/.dockerignore"] },
+        // Docker-only deploy scripts
+        { "condition": "(!UseDocker)", "exclude": ["scripts/compose-up.*", "scripts/compose-down.*", "scripts/deploy.*", "scripts/kind-smoke.*", "scripts/publish.*"] },
+        // Aspire AppHost helper (not used without --aspire)
+        { "condition": "(!UseAspire)", "exclude": ["scripts/run-apphost.*"] },
+        // No local scripts when neither docker nor aspire
+        { "condition": "(!UseDocker && !UseAspire)", "exclude": ["scripts/**"] },
         { "condition": "(!UseTests)", "exclude": ["tests/**"] },
+        { "condition": "(!UseStorage)", "exclude": ["**/StorageEndpoints.cs"] },
+        { "condition": "(!UseCaching)", "exclude": ["tests/**/TodoCacheTests.cs"] },
+        { "condition": "(!UseJobs)", "exclude": ["tests/**/Jobs/**"] },
+        { "condition": "(!UseRealtime)", "exclude": ["tests/**/RealtimeHubTests.cs"] },
+        { "condition": "(!UseFeatures)", "exclude": ["tests/**/FeatureGateTests.cs"] },
         { "condition": "(!UseAuth)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/Auth/*.cs"] },
+        { "condition": "(!UseMultiTenant || !UseAuth || UseRateLimiting || UseDurableMessaging)", "exclude": ["tests/**/TenantIsolationTests.cs", "tests/**/OrganizationMembershipTests.cs"] },
+        { "condition": "(UseAuth && UseMultiTenant)", "exclude": ["tests/**/TodoEndpointTests.cs", "tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseDurableMessaging)", "exclude": ["tests/**/TodoEndpointDurableTests.cs"] },
         { "condition": "(!UseRateLimiting)", "exclude": ["tests/**/RateLimitingEndpointTests.cs"] },
-        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs"] },
+        // Auth suite is heavy and shares one factory/client; endpoint rate policies (TokenBucket) cause 429 under --all/--ratelimiting.
+        // AuthEndpointTests.cs is omitted; Auth/AuthTestApiFactory.cs stays so ExternalProviderTests still compile.
+        { "condition": "(UseRateLimiting)", "exclude": ["tests/**/AuthEndpointTests.cs"] },
+        // In-memory WebApplicationFactory hosts cannot start Wolverine SQL/Postgres durability.
+        // Durable coverage is TodoEndpointDurableTests (skipped unless RUN_DOCKER_E2E).
+        { "condition": "(UseDurableMessaging)", "exclude": ["tests/**/AuthEndpointTests.cs", "tests/**/RateLimitingEndpointTests.cs", "tests/**/TodoEndpointTests.cs", "tests/**/FeatureGateTests.cs", "tests/**/RealtimeHubTests.cs", "tests/**/Auth/*.cs"] },
+        { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
+        { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(SingleProject)", "exclude": ["MCA.slnx", "Dockerfile", "docker-compose.yml", ".dockerignore"] },
-        { "exclude": ["single/**", "multi/**"] }
+        { "exclude": ["single/**", "multi/**", "aspire/**", "apps/**"] }
+      ]
+    },
+    {
+      "source": "aspire/MCA.AppHost",
+      "target": "MCA.AppHost",
+      "condition": "(UseAspire)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/obj/**"] }
+      ]
+    },
+    {
+      "source": "aspire/MCA.ServiceDefaults",
+      "target": "src/MCA.ServiceDefaults",
+      "condition": "(UseAspire && MultiProject)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/obj/**"] }
+      ]
+    },
+    {
+      "source": "aspire/MCA.ServiceDefaults",
+      "target": "MCA.ServiceDefaults",
+      "condition": "(UseAspire && SingleProject)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/obj/**"] }
+      ]
+    },
+    {
+      "source": "apps/web",
+      "target": "apps/web",
+      "condition": "(UseFrontend && !UseTanstackWeb)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/node_modules/**"] }
+      ]
+    },
+    {
+      "source": "apps/web-tanstack",
+      "target": "apps/web",
+      "condition": "(UseTanstackWeb)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/node_modules/**"] }
+      ]
+    },
+    {
+      "source": "apps/mobile",
+      "target": "apps/mobile",
+      "condition": "(UseMobile)",
+      "modifiers": [
+        { "exclude": ["**/bin/**", "**/node_modules/**"] }
       ]
     },
     {
       "source": "multi",
-      "target": "./",
+      "target": "./src",
       "condition": "(MultiProject)",
       "modifiers": [
+        { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
+        { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
+        { "condition": "(!UseJobs)", "exclude": ["**/Jobs/**"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
+        { "condition": "(!UseStorage)", "exclude": ["**/Endpoints/StorageEndpoints.cs"] },
         { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Services/*Auth*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Interfaces/I*Auth*.cs", "**/Commands/Auth*.cs", "**/Handlers/*Auth*Handler.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
+        { "condition": "(!UseAuth || !UseMultiTenant)", "exclude": ["**/Entities/Organization.cs", "**/Entities/OrganizationMembership.cs", "**/Entities/OrganizationInvitation.cs", "**/Entities/OrganizationRole.cs", "**/Interfaces/IOrganizationRepository.cs", "**/Repositories/OrganizationRepository.cs", "**/Commands/OrganizationCommands.cs", "**/DTOs/OrganizationDtos.cs", "**/Handlers/OrganizationCommandHandler.cs", "**/Endpoints/OrganizationEndpoints.cs"] },
         { "exclude": ["**/bin/**", "**/obj/**", "**/Configuration/AuthSettings.cs"] }
       ]
     },
@@ -288,14 +485,37 @@
       "target": "./",
       "condition": "(SingleProject)",
       "modifiers": [
+        { "condition": "(!UseControllers)", "exclude": ["**/Controllers/**"] },
+        { "condition": "(!UseFastEndpoints)", "exclude": ["**/FastEndpoints/**"] },
         { "condition": "(!UseDocker)", "exclude": ["Dockerfile", "docker-compose.yml", ".dockerignore"] },
+        { "condition": "(!UseAspire)", "exclude": ["MCA.slnx"] },
         { "condition": "(!UseMessaging)", "exclude": ["**/Events/**", "**/Handlers/*EventHandler.cs"] },
+        { "condition": "(!UseJobs)", "exclude": ["**/Jobs/**"] },
         { "condition": "(!UseValidation)", "exclude": ["**/Validation/**"] },
+        { "condition": "(!UseStorage)", "exclude": ["**/Endpoints/StorageEndpoints.cs"] },
         { "condition": "(!UseAuth)", "exclude": ["**/Identity/**", "**/Endpoints/*AuthEndpoints.cs", "**/Endpoints/OpenIddictEndpoints.cs", "**/Endpoints/OAuthEndpoints.cs", "**/Configuration/IdentityServiceExtensions.cs", "**/Configuration/OpenIddict*.cs", "**/Configuration/ConfigureOpenIddictServerOptions.cs", "**/Configuration/CertificateLoader.cs", "**/Configuration/EmailSettings.cs", "**/Services/CustomClaimsPrincipalFactory.cs", "**/Services/PkceService.cs", "**/Services/OpenIddictTokenService.cs", "**/Services/*Email*.cs", "**/Services/*Auth*.cs", "**/Providers/AuthEmailTemplateProvider.cs", "**/Providers/EmailLayouts.cs", "**/Interfaces/ITokenService.cs", "**/Interfaces/IEmailService.cs", "**/Interfaces/I*Auth*.cs", "**/Commands/Auth*.cs", "**/Handlers/*Auth*Handler.cs", "**/Handlers/*PasswordHandler.cs", "**/Handlers/*EmailHandler.cs", "**/Handlers/Register*Handler.cs", "**/Events/UserRegisteredEvent.cs", "**/Constants/Roles.cs", "**/Entities/ApplicationUser.cs"] },
+        { "condition": "(!UseAuth || !UseMultiTenant)", "exclude": ["**/Entities/Organization.cs", "**/Entities/OrganizationMembership.cs", "**/Entities/OrganizationInvitation.cs", "**/Entities/OrganizationRole.cs", "**/Interfaces/IOrganizationRepository.cs", "**/Repositories/OrganizationRepository.cs", "**/Commands/OrganizationCommands.cs", "**/DTOs/OrganizationDtos.cs", "**/Handlers/OrganizationCommandHandler.cs", "**/Endpoints/OrganizationEndpoints.cs"] },
         { "exclude": ["**/bin/**", "**/obj/**", "**/Configuration/AuthSettings.cs"] }
       ]
     }
   ],
+  "specialCustomOperations": {
+    "**.json": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "if": [ "#if", "#ifdef", "#ifndef" ],
+            "else": [ "#else" ],
+            "elseif": [ "#elseif", "#elif" ],
+            "endif": [ "#endif", "#endif" ],
+            "trim": "true",
+            "wholeLine": "true"
+          }
+        }
+      ]
+    }
+  },
   "postActions": [
     {
       "id": "restore",
@@ -312,6 +532,36 @@
       "manualInstructions": [{ "text": "Run 'dotnet restore'" }],
       "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
       "continueOnError": true
+    },
+    {
+      "condition": "(UseFrontend || UseMobile)",
+      "description": "Client app folders",
+      "manualInstructions": [
+        {
+          "text": "Client surfaces: cd apps/web && npm install && npm run dev (Astro :4321 or Vite :3000). Expo: cd apps/mobile && npx expo start. API: dotnet run --project src/<Name>.Api"
+        }
+      ],
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C"
+    },
+    {
+      "condition": "(UseAspire)",
+      "description": "Run via Aspire AppHost",
+      "manualInstructions": [
+        {
+          "text": "Start with: dotnet run --project <YourApp>.AppHost (folder created next to your API). Requires Docker for Postgres/SQL Server/Redis containers. DB connection name is appdb; Redis is redis when caching is enabled."
+        }
+      ],
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C"
+    },
+    {
+      "condition": "(UseMultiTenant && !UseAuth)",
+      "description": "Tenancy without auth",
+      "manualInstructions": [
+        {
+          "text": "--multitenant without --auth applies EF tenant filters but has no claim mapping. Combine with --auth so login issues a tenant_id claim."
+        }
+      ],
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C"
     },
     {
       "condition": "(UseSqlite && UseMessaging)",

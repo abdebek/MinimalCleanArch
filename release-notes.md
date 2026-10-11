@@ -22,6 +22,10 @@ Detailed commit and pull request notes are auto-generated below by GitHub.
 - `MinimalCleanArch.Validation`: FluentValidation integration and registration helpers
 - `MinimalCleanArch.Security`: encryption services and encrypted EF property support
 - `MinimalCleanArch.Storage`: blob/object storage abstractions and Azure Blob integration
+- `MinimalCleanArch.Email`: email port with SMTP and HTTP API adapters
+- `MinimalCleanArch.Jobs`: recurring + delayed job port (`IJobScheduler`) with hosted-service fallback
+- `MinimalCleanArch.Realtime`: realtime publish port (`IRealtimePublisher`); SignalR adapter in Extensions
+- `MinimalCleanArch.Features`: feature-flag port (`IFeatureGate`) with config backing
 - `MinimalCleanArch.Messaging`: domain events and Wolverine integration
 - `MinimalCleanArch.Audit`: audit interception and query support
 - `MinimalCleanArch.Templates`: project scaffolding templates (`dotnet new mca`)

@@ -26,6 +26,18 @@ public class ExecutionContextTests
     }
 
     [Fact]
+    public void HttpExecutionContext_MapsDefaultTenantIdClaim()
+    {
+        var provider = BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IHttpContextAccessor>();
+        accessor.HttpContext = CreateHttpContext(new Claim("tenant_id", "tenant-a"));
+
+        var executionContext = provider.GetRequiredService<IExecutionContext>();
+
+        executionContext.TenantId.Should().Be("tenant-a");
+    }
+
+    [Fact]
     public void HttpExecutionContext_UsesConfiguredTenantClaimType()
     {
         var provider = BuildServiceProvider(options =>

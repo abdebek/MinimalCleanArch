@@ -1,5 +1,5 @@
 using MCA.Application.Interfaces;
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using MCA.Domain.Events;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;

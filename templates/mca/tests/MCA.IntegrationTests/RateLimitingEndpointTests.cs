@@ -1,15 +1,20 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using FluentAssertions;
 using MCA.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace MCA.IntegrationTests;
@@ -71,10 +76,40 @@ public class RateLimitTestApiFactory : WebApplicationFactory<Program>
 #endif
             });
 
-            using var sp = services.BuildServiceProvider();
-            using var scope = sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
+            // Wolverine registers IAsyncDisposable-only services — must not Dispose() the temp provider.
+            var sp = services.BuildServiceProvider();
+            try
+            {
+                using var scope = sp.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.EnsureCreated();
+            }
+            finally
+            {
+                if (sp is IAsyncDisposable asyncDisposable)
+                    asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                else
+                    sp.Dispose();
+            }
+        });
+
+        // Force a global permit of 1 after Program.cs registration (config bind can race with host sources).
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<IPostConfigureOptions<RateLimiterOptions>>(_ =>
+                new PostConfigureOptions<RateLimiterOptions>(Options.DefaultName, options =>
+                {
+                    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+                        RateLimitPartition.GetFixedWindowLimiter(
+                            "rate-limit-test",
+                            static _ => new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit = 1,
+                                Window = TimeSpan.FromMinutes(1),
+                                QueueLimit = 0,
+                                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                            }));
+                }));
         });
     }
 }

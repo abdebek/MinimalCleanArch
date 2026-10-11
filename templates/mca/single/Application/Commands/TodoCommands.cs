@@ -24,4 +24,6 @@ public record CompleteTodoCommand(int Id);
 
 public record DeleteTodoCommand(int Id);
 
+public record RestoreTodoCommand(int Id);
+
 public record TodoListResult(IReadOnlyList<TodoResponse> Items, int TotalCount, int PageIndex, int PageSize);

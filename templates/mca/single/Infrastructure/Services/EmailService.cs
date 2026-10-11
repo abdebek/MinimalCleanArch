@@ -2,6 +2,7 @@
 using MCA.Application.Interfaces;
 using MCA.Infrastructure.Providers;
 using Microsoft.Extensions.Logging;
+using MinimalCleanArch.Email;
 
 namespace MCA.Infrastructure.Services;
 

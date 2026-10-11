@@ -1,6 +1,6 @@
 using MCA.Application.Commands;
 using MCA.Application.Interfaces;
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using Microsoft.AspNetCore.Identity;
 using MinimalCleanArch.Domain.Common;
 
@@ -21,7 +21,7 @@ public class ExternalAuthSignInHandler(
 
         if (string.IsNullOrWhiteSpace(command.Email))
         {
-            return Result.Failure<ExternalAuthSignInResult>(new Error(
+            return Result.Failure<ExternalAuthSignInResult>(Error.Validation(
                 "MISSING_EMAIL",
                 $"Email claim not provided by external provider '{command.Provider}'."));
         }
@@ -39,7 +39,7 @@ public class ExternalAuthSignInHandler(
             {
                 var errors = string.Join("; ", createResult.Errors.Select(e => e.Description));
                 return Result.Failure<ExternalAuthSignInResult>(
-                    new Error("EXTERNAL_SIGN_IN_FAILED", errors));
+                    Error.Validation("EXTERNAL_SIGN_IN_FAILED", errors));
             }
         }
 

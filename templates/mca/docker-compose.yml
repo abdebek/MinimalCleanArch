@@ -19,7 +19,11 @@ services:
 #if (UseCaching)
       - Caching__Redis__ConnectionString=redis:6379
 #endif
-#if (UseSqlServer || UsePostgres || UseCaching)
+#if (UseStorage)
+      - BlobStorage__ConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      - BlobStorage__ContainerName=app-data
+#endif
+#if (UseSqlServer || UsePostgres || UseCaching || UseStorage)
     depends_on:
 #if (UseSqlServer)
       - sqlserver
@@ -29,6 +33,9 @@ services:
 #endif
 #if (UseCaching)
       - redis
+#endif
+#if (UseStorage)
+      - azurite
 #endif
 #endif
 
@@ -66,7 +73,19 @@ services:
       - redis-data:/data
 #endif
 
-#if (UseSqlServer || UsePostgres || UseCaching)
+#if (UseStorage)
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+    volumes:
+      - azurite-data:/data
+#endif
+
+#if (UseSqlServer || UsePostgres || UseCaching || UseStorage)
 volumes:
 #if (UseSqlServer)
   sqlserver-data:
@@ -76,5 +95,8 @@ volumes:
 #endif
 #if (UseCaching)
   redis-data:
+#endif
+#if (UseStorage)
+  azurite-data:
 #endif
 #endif

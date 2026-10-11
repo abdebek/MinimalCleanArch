@@ -3,7 +3,7 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
-- Current stable: 0.1.19-preview (net9.0, net10.0).
+- Current stable: 0.1.20-preview (net9.0, net10.0).
 
 ## Why Use It
 - define entities, repository contracts, specifications, and result types without taking a dependency on EF Core, HTTP, or messaging frameworks
@@ -22,7 +22,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 - Avoid: putting EF Core, HTTP, logging, or transport-specific concerns in projects that only reference this package
 
 ## Contents
-- Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`.
+- Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`, `ITenantEntity`.
 - Common types: `Result`/`Result<T>`, `Error` (status code + metadata support, with `Match`/`Bind` helpers).
 - Repositories: `IRepository<TEntity, TKey>`, `IUnitOfWork`.
 - Specifications: `ISpecification<T>`, `BaseSpecification<T>`, composable `And/Or/Not`, `InMemorySpecificationEvaluator`, and query flags (`AsNoTracking`, `AsSplitQuery`, `IgnoreQueryFilters`, `IsCountOnly`).
@@ -34,7 +34,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch --version 0.1.19-preview
+dotnet add package MinimalCleanArch --version 0.1.20-preview
 ```
 
 Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` for typed operation results.

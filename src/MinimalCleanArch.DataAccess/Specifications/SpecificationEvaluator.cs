@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Specifications;
 
@@ -20,11 +21,13 @@ public static class SpecificationEvaluator<T> where T : class
     {
         var query = inputQuery;
 
-        // Apply query-filter bypasses (generic and soft-delete specific).
-        if (specification.IgnoreQueryFilters ||
-            (typeof(ISoftDelete).IsAssignableFrom(typeof(T)) && specification.IgnoreSoftDelete))
+        if (specification.IgnoreQueryFilters)
         {
             query = query.IgnoreQueryFilters();
+        }
+        else if (typeof(ISoftDelete).IsAssignableFrom(typeof(T)) && specification.IgnoreSoftDelete)
+        {
+            query = QueryFilters.IgnoreSoftDelete(query);
         }
 
         // For count-only queries we only need criteria (and no-tracking if requested)

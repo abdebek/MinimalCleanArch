@@ -3,7 +3,7 @@
 Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Version
-- Current stable: 0.1.19-preview (net9.0, net10.0).
+- Current stable: 0.1.20-preview (net9.0, net10.0).
 
 ## Why Use It
 - publish and handle domain events through Wolverine without building the integration layer from scratch
@@ -16,7 +16,7 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 - skip it for synchronous CRUD-style applications that do not need messaging yet
 
 ## Dependency Direction
-- Depends on: `MinimalCleanArch`
+- Depends on: `MinimalCleanArch`, `MinimalCleanArch.Jobs`
 - Typically referenced by: infrastructure projects or the application host
 - Do not reference from: pure domain projects
 - Guidance: application code can define events and handlers, but the transport and Wolverine wiring should stay outside the domain layer
@@ -25,10 +25,11 @@ Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 - Domain event contracts and helpers.
 - Wolverine integration extensions.
 - DI extensions to wire messaging into your MinimalCleanArch app.
+- `AddWolverineJobs()` — delayed/recurring jobs through `IMessageBus` (call after `AddJobs()`).
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Messaging --version 0.1.19-preview
+dotnet add package MinimalCleanArch.Messaging --version 0.1.20-preview
 ```
 
 Recommended bootstrap:
@@ -80,6 +81,7 @@ Preferred guidance:
 - keep transport-specific edge cases in the provided raw Wolverine callback when needed
 - avoid duplicating domain event publishing logic in application DbContexts
 - rely on `IExecutionContext` for correlation and tenant data inside message handlers
+- Wolverine 6 defaults `ServiceLocationPolicy` to `NotAllowed`; MCA sets `AllowedButWarn` so constructor-injected MS.DI handlers work. Override via `MessagingOptions.ServiceLocationPolicy` for stricter codegen-only DI
 
 Claim resolution for the built-in execution-context implementations can be customized with `ExecutionContextOptions`:
 

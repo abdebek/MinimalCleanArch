@@ -1,5 +1,5 @@
 #if (UseAuth)
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
@@ -28,6 +28,11 @@ public class CustomClaimsPrincipalFactory : UserClaimsPrincipalFactory<Applicati
 
         if (!string.IsNullOrEmpty(user.LastName))
             identity.AddClaim(new Claim("family_name", user.LastName));
+
+#if (UseMultiTenant)
+        if (!string.IsNullOrEmpty(user.TenantId))
+            identity.AddClaim(new Claim("tenant_id", user.TenantId));
+#endif
 
         return identity;
     }

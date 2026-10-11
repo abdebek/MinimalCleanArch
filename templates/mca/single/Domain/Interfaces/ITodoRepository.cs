@@ -6,4 +6,8 @@ namespace MCA.Domain.Interfaces;
 public interface ITodoRepository : IRepository<Todo, int>
 {
     Task<IReadOnlyList<Todo>> GetByPriorityAsync(int priority, CancellationToken cancellationToken = default);
+    Task<Todo?> GetByIdIncludingDeletedAsync(int id, CancellationToken cancellationToken = default);
+#if (UseJobs)
+    Task<int> HardDeleteSoftDeletedOlderThanAsync(DateTime cutoffUtc, CancellationToken cancellationToken = default);
+#endif
 }

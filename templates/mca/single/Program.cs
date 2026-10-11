@@ -2,22 +2,28 @@
 using Serilog;
 #endif
 using Scalar.AspNetCore;
-using MCA.Application.Services;
 using MCA.Domain.Interfaces;
 using MCA.Infrastructure.Data;
 using MCA.Infrastructure.Repositories;
-using MCA.Infrastructure.Services;
-using MCA.Application.Commands;
-#if (UseMessaging || UseAuth)
 using MCA.Application.Handlers;
-#endif
 using MCA.Endpoints;
+#if (UseFastEndpoints)
+using FastEndpoints;
+#endif
+#if (UseAuth)
+using MCA.Infrastructure.Services;
+#endif
 using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess.Repositories;
 using MinimalCleanArch.Repositories;
 #if (UseValidation)
 using MCA.Application.Validation;
-using MinimalCleanArch.Validation.Extensions;
+#endif
+#if (UseMcaApiBootstrap || UseMultiTenant)
+using MinimalCleanArch.Extensions.Extensions;
+#endif
+#if (UseVersioning)
+using MinimalCleanArch.Extensions.Versioning;
 #endif
 #if (UseHealthChecks)
 using HealthChecks.UI.Client;
@@ -30,14 +36,24 @@ using MinimalCleanArch.Security.Extensions;
 #if (UseCaching)
 using MinimalCleanArch.Extensions.Caching;
 #endif
-#if (UseRateLimiting)
-using MinimalCleanArch.Extensions.RateLimiting;
+#if (UseJobs)
+using MCA.Application.Jobs;
+using MinimalCleanArch.Jobs;
+#endif
+#if (UseRealtime)
+using MinimalCleanArch.Extensions.Realtime;
+#endif
+#if (UseFeatures)
+using MinimalCleanArch.Features;
 #endif
 #if (UseMessaging)
 using MinimalCleanArch.Messaging.Extensions;
 #endif
 #if (UseAudit)
 using MinimalCleanArch.Audit.Extensions;
+#endif
+#if (UseStorage)
+using MinimalCleanArch.Storage;
 #endif
 #if (UseOpenTelemetry)
 using OpenTelemetry.Resources;
@@ -63,27 +79,34 @@ using Wolverine.Postgresql;
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
-var dbName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
-var connectionString = BuildConnectionString(dbName);
-
-string BuildConnectionString(string databaseName)
-{
-    var configured = builder.Configuration.GetConnectionString("DefaultConnection");
-
-#if (UsePostgres)
-    var fallback = $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres";
-#elif (UseSqlServer)
-    var fallback = $"Server=localhost;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+#if (UseAspire)
+builder.AddServiceDefaults();
+#endif
+// Aspire injects ConnectionStrings:appdb; otherwise use generated DefaultConnection (db name already expanded).
+var connectionString =
+#if (UseAspire)
+    builder.Configuration.GetConnectionString("appdb")
+    ?? ResolveConnectionString();
 #else
-    var fallback = $"Data Source={databaseName}.db";
+    ResolveConnectionString();
 #endif
 
-    if (string.IsNullOrWhiteSpace(configured))
+string ResolveConnectionString()
+{
+    var configured = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(configured))
     {
-        return fallback;
+        return configured;
     }
 
-    return configured.Replace("{dbName}", databaseName);
+    var databaseName = builder.Configuration["DbName"] ?? builder.Environment.ApplicationName ?? "MCA";
+#if (UsePostgres)
+    return $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres";
+#elif (UseSqlServer)
+    return $"Server=localhost;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+#else
+    return $"Data Source={databaseName}.db";
+#endif
 }
 
 #if (UseSerilog)
@@ -151,27 +174,94 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 builder.Services.AddScoped<ITodoRepository>(sp => new TodoRepository(sp.GetRequiredService<AppDbContext>()));
 builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(sp.GetRequiredService<AppDbContext>()));
 
-// Services
-builder.Services.AddScoped<ITodoService, TodoService>();
+// Application handlers (use cases)
+builder.Services.AddScoped<TodoCommandHandler>();
+#if (UseAuth && UseMultiTenant)
+builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<OrganizationCommandHandler>();
+#endif
 #if (UseAudit)
 builder.Services.AddHttpContextAccessor();
 #endif
+
+#if (UseMultiTenant)
+builder.Services.AddMinimalCleanArchExecutionContext();
+#endif
+
+#if (UseMcaApiBootstrap)
+// Preferred MCA API bootstrap: problem details, correlation, validators, rate limiting
+builder.Services.AddMinimalCleanArchApi(options =>
+{
 #if (UseValidation)
-builder.Services.AddValidationFromAssemblyContaining<CreateTodoCommandValidator>();
+    options.AddValidatorsFromAssemblyContaining<CreateTodoCommandValidator>();
+#endif
+#if (UseRateLimiting)
+    options.EnableRateLimiting = true;
+    options.ConfigureRateLimiting = config =>
+        builder.Configuration.GetSection("RateLimiting").Bind(config);
+#endif
+});
+#endif
+#if (UseVersioning)
+builder.Services.AddMinimalCleanArchApiVersioning();
 #endif
 
 #if (UseSecurity)
-// Security - encryption, security headers
-builder.Services.AddDataProtectionEncryptionForDevelopment(builder.Environment.ApplicationName ?? "MCA");
+// Security - encryption (dev Data Protection vs configured key outside Development)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDataProtectionEncryptionForDevelopment(builder.Environment.ApplicationName ?? "MCA");
+}
+else
+{
+    var encryptionKey = builder.Configuration["Encryption:Key"];
+    if (string.IsNullOrWhiteSpace(encryptionKey))
+    {
+        throw new InvalidOperationException(
+            "Encryption:Key must be configured outside Development (user-secrets, environment variable, or vault). " +
+            "Do not commit production keys to appsettings.json.");
+    }
+
+    builder.Services.AddEncryption(new EncryptionOptions
+    {
+        Key = encryptionKey,
+        ValidateKeyStrength = true,
+        EnableOperationLogging = false
+    });
+}
 #endif
 
-#if (UseSecurity)
+#if (UseStorage)
+// Blob storage: BlobStorage:Provider = Azure (default, Azurite) or R2 (Cloudflare).
+builder.Services.AddBlobStorage(builder.Configuration);
+#endif
+
+#if (UseSecurity || UseFrontend)
+// CORS: configured origins only; Development may fall back to AllowAnyOrigin when the list is empty
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+    {
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else
+        {
+            // Fail closed: no origins allowed until Cors:AllowedOrigins is configured
+            policy.SetIsOriginAllowed(_ => false);
+        }
+    });
 });
 #endif
 
@@ -192,16 +282,52 @@ builder.Services.AddHttpClient();
 
 #if (UseCaching)
 // Caching
-builder.Services.AddMemoryCache();
-builder.Services.AddMinimalCleanArchCaching();
+#if (UseAspire)
+var redisConnection = builder.Configuration.GetConnectionString("redis");
+if (!string.IsNullOrWhiteSpace(redisConnection))
+{
+    builder.AddRedisDistributedCache("redis");
+    builder.Services.AddMinimalCleanArchDistributedCaching();
+}
+else
+{
+    builder.Services.AddMemoryCache();
+    builder.Services.AddMinimalCleanArchCaching();
+}
+#else
+var redisConfigured = builder.Configuration["Caching:Redis:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(redisConfigured))
+{
+    builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConfigured);
+    builder.Services.AddMinimalCleanArchDistributedCaching();
+}
+else
+{
+    builder.Services.AddMemoryCache();
+    builder.Services.AddMinimalCleanArchCaching();
+}
+#endif
 #endif
 
-#if (UseRateLimiting)
-// Rate limiting (global + endpoint policies)
-builder.Services.AddMinimalCleanArchRateLimiting(config =>
+#if (UseRealtime)
+builder.Services.AddMinimalCleanArchRealtime();
+#endif
+
+#if (UseFeatures)
+builder.Services.AddFeatures(builder.Configuration);
+#endif
+
+#if (UseJobs)
+builder.Services.AddJobs(options =>
 {
-    builder.Configuration.GetSection("RateLimiting").Bind(config);
+    options.Recurring(
+        "purge-soft-deleted-todos",
+        TimeSpan.FromHours(24),
+        () => new PurgeSoftDeletedTodos(TimeSpan.FromDays(30)));
 });
+builder.Services.AddScoped<PurgeSoftDeletedTodosHandler>();
+builder.Services.AddScoped<IJobHandler<PurgeSoftDeletedTodos>>(sp =>
+    sp.GetRequiredService<PurgeSoftDeletedTodosHandler>());
 #endif
 
 #if (UseMessaging)
@@ -226,6 +352,9 @@ builder.AddMinimalCleanArchMessaging(options =>
     options.ServiceName = "MCA";
 });
 #endif
+#if (UseJobs)
+builder.Services.AddWolverineJobs();
+#endif
 #endif
 
 #if (UseAudit)
@@ -249,30 +378,40 @@ builder.Services.AddHealthChecks()
 #endif
 
 #if (UseOpenTelemetry)
-// OpenTelemetry
-var otlpEndpoint = builder.Configuration.GetValue<string>("OpenTelemetry:Endpoint");
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("MCA"))
-    .WithTracing(tracing =>
-    {
-        tracing
+// OpenTelemetry (skip console wiring when Aspire OTLP is active)
+var aspireOtlp = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+if (!aspireOtlp)
+{
+    var otlpEndpoint = builder.Configuration.GetValue<string>("OpenTelemetry:Endpoint");
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(resource => resource.AddService("MCA"))
+        .WithTracing(tracing =>
+        {
+            tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddConsoleExporter();
+
+            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+            {
+                tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+            }
+        })
+        .WithMetrics(metrics => metrics
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddConsoleExporter();
-
-        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
-        {
-            tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
-        }
-    })
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddConsoleExporter());
+            .AddConsoleExporter());
+}
 #endif
 
 // OpenAPI document generation
 builder.Services.AddOpenApi();
+
+#if (UseFastEndpoints)
+builder.Services.AddFastEndpoints();
+#elif (UseControllers)
+builder.Services.AddControllers();
+#endif
 
 var app = builder.Build();
 
@@ -280,9 +419,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+#if (UseAuth)
     app.MapScalarApiReference(options =>
     {
-#if (UseAuth)
         var webClientSecret = app.Configuration["OpenIddict:Clients:Web:Secret"];
         var webClientId = app.Configuration["OpenIddict:Clients:Web:ClientId"] ?? "mca-web-client";
         options.AddPasswordFlow("oauth2", flow =>
@@ -300,19 +439,36 @@ if (app.Environment.IsDevelopment())
             };
         });
         options.AddPreferredSecuritySchemes(new[] { "oauth2" });
-        options.WithPersistentAuthentication();
-#endif
+        options.EnablePersistentAuthentication();
     });
+#else
+    app.MapScalarApiReference();
+#endif
 }
+
+#if (UseMcaApiBootstrap)
+// Preferred MCA pipeline: correlation ID → security headers → error handling → optional rate limiting
+app.UseMinimalCleanArchApiDefaults(pipeline =>
+{
+#if (UseRateLimiting)
+    pipeline.UseRateLimiting = true;
+#endif
+#if (UseSecurity)
+    pipeline.UseApiSecurityHeaders = true;
+#endif
+});
+#endif
 
 #if (UseSerilog)
 app.UseSerilogRequestLogging();
 #endif
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
-app.UseHttpsRedirection();
-
-#if (UseSecurity)
+#if (UseSecurity || UseFrontend)
 app.UseCors();
 #endif
 
@@ -322,19 +478,39 @@ app.UseAuthorization();
 app.UseSession();
 #endif
 
-#if (UseRateLimiting)
-app.UseMinimalCleanArchRateLimiting();
-#endif
-
 #if (UseHealthChecks)
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
 #endif
+#if (UseAspire)
+app.MapDefaultEndpoints();
+#endif
 
 // Map endpoints
+#if (UseFastEndpoints)
+app.UseFastEndpoints();
+#elif (UseControllers)
+app.MapControllers();
+#else
 app.MapTodoEndpoints();
+#endif
+#if (UseRealtime)
+app.MapMinimalCleanArchRealtime();
+#endif
+#if (UseAuth && UseMultiTenant)
+app.MapOrganizationEndpoints();
+#endif
+#if (UseStorage)
+#if (UseAuth)
+// Storage endpoints mint signed PUT/GET URLs; require an authenticated user when auth is on
+// so anonymous clients cannot mint URLs for arbitrary keys.
+app.MapStorageEndpoints(requireAuthorization: true);
+#else
+app.MapStorageEndpoints();
+#endif
+#endif
 #if (UseAuth)
 app.MapAuthEndpoints(app.Environment.IsDevelopment());
 app.MapOpenIddictEndpoints(app.Environment.IsDevelopment());
@@ -342,17 +518,17 @@ app.MapExternalAuthEndpoints();
 app.MapOAuthEndpoints(app.Environment.IsDevelopment());
 #endif
 
-// Ensure database is created (development only)
-var ensureCreated = app.Configuration.GetValue("Database:EnsureCreated", true);
-if (app.Environment.IsDevelopment() && ensureCreated)
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+// Database schema (Migrate when migrations exist; otherwise EnsureCreated per Database:* — all relational providers)
+var dbLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInitializer");
+await DatabaseInitializer.InitializeAsync(
+    app.Services,
+    app.Configuration,
+    app.Environment,
+    dbLogger);
 #if (UseAuth)
-    await app.Services.SeedOpenIddictApplicationsAsync(builder.Configuration);
+// OpenIddict clients + optional bootstrap admin (controlled by Seed:* settings)
+await app.Services.SeedOpenIddictApplicationsAsync(builder.Configuration);
 #endif
-}
 
 app.Run();
 

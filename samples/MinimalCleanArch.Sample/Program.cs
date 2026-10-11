@@ -9,19 +9,17 @@ using MinimalCleanArch.Extensions.Extensions;
 using MinimalCleanArch.Extensions.HealthChecks;
 using MinimalCleanArch.Extensions.Hosting;
 using MinimalCleanArch.Extensions.Logging;
-using MinimalCleanArch.Extensions.Middlewares;
-using MinimalCleanArch.Extensions.RateLimiting;
 using MinimalCleanArch.Extensions.Telemetry;
 using MinimalCleanArch.Extensions.Versioning;
 using MinimalCleanArch.Messaging.Extensions;
 using MinimalCleanArch.Sample.API.Endpoints;
+using MinimalCleanArch.Sample.API.Validators;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
 using MinimalCleanArch.Sample.Infrastructure.Seeders;
 using MinimalCleanArch.Sample.Infrastructure.Services;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Extensions;
-using MinimalCleanArch.Validation.Extensions;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -37,12 +35,17 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
+    // Aspire service defaults (OTLP → dashboard when OTEL_EXPORTER_OTLP_ENDPOINT is set)
+    builder.AddServiceDefaults();
+
     // Add Serilog with structured logging
     builder.AddSerilogLogging();
 
-    // Add OpenTelemetry observability (tracing and metrics)
+    // Prefer Aspire OTLP; only enable MCA telemetry when not under Aspire OTLP
+    var aspireOtlp = !string.IsNullOrWhiteSpace(
+        builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
     var enableTelemetry = builder.Configuration.GetValue<bool>("Features:Telemetry", true);
-    if (enableTelemetry)
+    if (enableTelemetry && !aspireOtlp)
     {
         builder.AddMinimalCleanArchTelemetry(options =>
         {
@@ -51,21 +54,31 @@ try
             options.EnableOtlpExporter = !builder.Environment.IsDevelopment();
         });
 
-        Log.Information("OpenTelemetry observability enabled");
+        Log.Information("OpenTelemetry observability enabled (MCA exporters)");
+    }
+    else if (aspireOtlp)
+    {
+        Log.Information("OpenTelemetry via Aspire OTLP (ServiceDefaults); MCA console exporters skipped");
     }
 
     // Add services to the container
     builder.Services.AddOpenApi();
 
+    // Preferred MCA API bootstrap (problem details, correlation, validators, rate limiting)
+    builder.Services.AddMinimalCleanArchApi(options =>
+    {
+        // Scan the sample assembly (API validators live next to endpoints/models)
+        options.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
+        options.EnableRateLimiting = true;
+        options.ConfigureRateLimiting = config =>
+        {
+            config.GlobalPermitLimit = 1000;
+            config.FixedPermitLimit = 100;
+        };
+    });
+
     // Add API versioning
     builder.Services.AddMinimalCleanArchApiVersioning();
-
-    // Add rate limiting
-    builder.Services.AddMinimalCleanArchRateLimiting(config =>
-    {
-        config.GlobalPermitLimit = 1000;
-        config.FixedPermitLimit = 100;
-    });
 
     // Add health checks
     builder.Services.AddMinimalCleanArchHealthChecks()
@@ -114,13 +127,24 @@ try
         Log.Information("Audit logging enabled with change history tracking");
     }
 
-    // Add MinimalCleanArch services with Entity Framework
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    // Connection strings: Aspire injects "mca" (Postgres) and "redis"; local default is SQLite
+    var connectionString = builder.Configuration.GetConnectionString("mca")
+        ?? builder.Configuration.GetConnectionString("DefaultConnection")
         ?? "Data Source=minimalcleanarch.db";
+    var usePostgres = LooksLikePostgres(connectionString);
 
     builder.Services.AddMinimalCleanArch<ApplicationDbContext>((sp, options) =>
     {
-        options.UseSqlite(connectionString);
+        if (usePostgres)
+        {
+            options.UseNpgsql(connectionString);
+            Log.Information("Using PostgreSQL (connection name mca or Postgres-shaped DefaultConnection)");
+        }
+        else
+        {
+            options.UseSqlite(connectionString);
+            Log.Information("Using SQLite");
+        }
 
         // Add audit interceptor if enabled
         if (enableAuditLogging)
@@ -171,15 +195,26 @@ try
         builder.Services.AddScoped<IEmailSender, EmailSender>();
     }
 
-    // Add validation services
-    builder.Services.AddValidationFromAssemblyContaining<Todo>();
-
-    // Add caching services (in-memory by default)
-    builder.Services.AddMinimalCleanArchCaching(options =>
+    // Caching: Redis when Aspire injects ConnectionStrings:redis; otherwise in-memory
+    var redisConnection = builder.Configuration.GetConnectionString("redis");
+    if (!string.IsNullOrWhiteSpace(redisConnection))
     {
-        options.KeyPrefix = "mca"; // Optional prefix for all cache keys
-        options.DefaultExpiration = TimeSpan.FromMinutes(15);
-    });
+        builder.AddRedisDistributedCache("redis");
+        builder.Services.AddMinimalCleanArchDistributedCaching(options =>
+        {
+            options.KeyPrefix = "mca";
+            options.DefaultExpiration = TimeSpan.FromMinutes(15);
+        });
+        Log.Information("Distributed caching enabled (Redis via Aspire connection name 'redis')");
+    }
+    else
+    {
+        builder.Services.AddMinimalCleanArchCaching(options =>
+        {
+            options.KeyPrefix = "mca";
+            options.DefaultExpiration = TimeSpan.FromMinutes(15);
+        });
+    }
 
     // OPT-IN: Add messaging with Wolverine for domain events
     // This enables the mediator pattern and event-driven architecture
@@ -196,9 +231,6 @@ try
         Log.Information("Wolverine messaging enabled for domain events");
     }
 
-    // Add MinimalCleanArch extensions (includes correlation ID accessor)
-    builder.Services.AddMinimalCleanArchExtensions();
-
     // Add database seeding
     builder.Services.AddDatabaseSeeding()
         .AddSeeder<DatabaseMigrationSeeder>()
@@ -207,23 +239,15 @@ try
 
     var app = builder.Build();
 
-    // Configure the HTTP request pipeline
-    // Order matters: correlation ID → security headers → error handling → request logging
-
-    // Add correlation ID first
-    app.UseCorrelationId();
-
-    // Add security headers
-    app.UseSecurityHeaders(SecurityHeadersOptions.ForApi());
-
-    // Add global error handling
-    app.UseGlobalErrorHandling();
+    // Preferred MCA pipeline: correlation ID → security headers → error handling → rate limiting
+    app.UseMinimalCleanArchApiDefaults(pipeline =>
+    {
+        pipeline.UseRateLimiting = true;
+        pipeline.UseApiSecurityHeaders = true;
+    });
 
     // Add Serilog request logging
     app.UseSerilogRequestLogging();
-
-    // Add rate limiting
-    app.UseMinimalCleanArchRateLimiting();
 
     if (app.Environment.IsDevelopment())
     {
@@ -237,8 +261,12 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // Map health check endpoints
+    // Map health check endpoints (MCA /health* + Aspire /alive + /health/ready when OTLP is set)
     app.MapMinimalCleanArchHealthChecks();
+    if (aspireOtlp)
+    {
+        app.MapDefaultEndpoints();
+    }
 
     // Map Identity API endpoints - provides /register, /login, etc.
     app.MapIdentityApi<User>();
@@ -261,6 +289,11 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+static bool LooksLikePostgres(string connectionString) =>
+    connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase)
+    || connectionString.Contains("Username=", StringComparison.OrdinalIgnoreCase)
+    || connectionString.Contains("User ID=", StringComparison.OrdinalIgnoreCase);
 
 // Make Program class accessible for tests
 public partial class Program { }

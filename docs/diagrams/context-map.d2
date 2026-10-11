@@ -1,0 +1,87 @@
+direction: right
+
+title: "MCA context map (packages, sample, generated app)" {
+  near: top-center
+  shape: text
+  style.font-size: 22
+  style.bold: true
+}
+
+toolkit: Toolkit packages {
+  style.fill: "#f4f1ea"
+  style.stroke: "#3d3d3d"
+
+  core: MinimalCleanArch {
+    tooltip: "Domain primitives, Result, IRepository, ISpecification"
+  }
+  persistence: DataAccess {
+    tooltip: "EF repositories, UnitOfWork, DbContextBase"
+  }
+  http: Extensions + Validation {
+    tooltip: "Minimal API bootstrap, ProblemDetails, FluentValidation"
+  }
+  messaging: Messaging {
+    tooltip: "Wolverine, IDomainEventPublisher, outbox helpers"
+  }
+  audit: Audit {
+    tooltip: "AuditSaveChangesInterceptor, AuditLog"
+  }
+  security: Security {
+    tooltip: "IEncryptionService, EncryptedAttribute"
+  }
+  storage: Storage {
+    tooltip: "IBlobStorage, Azure and R2"
+  }
+
+  persistence -> core: depends on
+  http -> core: depends on
+  messaging -> core: depends on
+  audit -> core: depends on
+  validation_note: Validation also depends on Extensions {
+    shape: text
+    style.font-size: 12
+    style.italic: true
+  }
+}
+
+consumer: Generated app or sample {
+  style.fill: "#e8f0e8"
+  style.stroke: "#3d3d3d"
+
+  todo: Todo context {
+    tooltip: "Todo aggregate, commands, handlers, /api/todos"
+  }
+  identity: Identity context {
+    tooltip: "User or ApplicationUser, ASP.NET Identity, OpenIddict in templates"
+  }
+  host: API host {
+    tooltip: "Program.cs composition root"
+  }
+  db: Shared relational database {
+    tooltip: "One DbContext: Todos, Identity, AuditLogs, OpenIddict"
+    style.fill: "#fde8e8"
+  }
+
+  host -> todo: maps endpoints
+  host -> identity: maps endpoints
+  todo -> db: same AppDbContext or ApplicationDbContext
+  identity -> db: same AppDbContext or ApplicationDbContext
+}
+
+orch: Orchestration {
+  style.fill: "#e8eef8"
+  style.stroke: "#3d3d3d"
+
+  aspire: Aspire AppHost {
+    tooltip: "Postgres or SQL Server, optional Redis, API"
+  }
+  compose: docker-compose {
+    tooltip: "Generated when --docker, omitted when --aspire"
+  }
+}
+
+consumer.host -> toolkit.http: AddMinimalCleanArchApi
+consumer.host -> toolkit.persistence: AddMinimalCleanArch or AddDbContext
+consumer.todo -> toolkit.core: entities and contracts
+consumer.identity -> toolkit.core: IAuditableEntity, optional IHasDomainEvents
+orch.aspire -> consumer.host: injects appdb or mca

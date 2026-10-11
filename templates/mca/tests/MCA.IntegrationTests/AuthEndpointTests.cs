@@ -1,29 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using MCA.Application.Interfaces;
 using MCA.Domain.Constants;
-using MCA.Domain.Entities;
-using MCA.Infrastructure.Data;
-#if (SingleProject)
-using MCA.Infrastructure.Configuration;
-#else
-using MCA.Api.Configuration;
-#endif
-using Microsoft.AspNetCore.Hosting;
+using MCA.Application.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-#if (UseMessaging)
-using MinimalCleanArch.Messaging.Extensions;
-#endif
 using Xunit;
 
 namespace MCA.IntegrationTests;
@@ -46,6 +29,15 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task External_Unknown_Provider_Returns_NotFound()
+    {
+        using var response = await _client.GetAsync("/api/auth/external/NotAProvider");
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("not configured");
+    }
+
     // --- Register ---
 
     [Fact]
@@ -156,9 +148,12 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     [Fact]
     public async Task ConfirmEmail_InvalidToken_ReturnsBadRequest()
     {
-        // Use a valid Guid format — UserManager<Guid> will parse it before looking up the user
-        var request = new { userId = Guid.NewGuid().ToString(), token = "bad-token" };
+        // Register first so the failure is invalid token (Validation/400), not missing user (NotFound/404)
+        var email = UniqueEmail();
+        var reg = await _client.PostAsJsonAsync("/api/auth/register", new { email, password = "Test@1234" });
+        var regBody = await reg.Content.ReadFromJsonAsync<RegisterResult>();
 
+        var request = new { userId = regBody!.userId, token = "bad-token" };
         var response = await _client.PostAsJsonAsync("/api/auth/confirm-email", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -188,6 +183,12 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.Should().Be("text/html");
+        var html = await response.Content.ReadAsStringAsync();
+        html.Should().Contain("Continue with Google");
+        html.Should().Contain("Continue with Microsoft");
+        html.Should().Contain("Continue with GitHub");
+        html.Should().NotContain("<!--");
+        html.Should().Contain("/api/auth/external/Google");
     }
 
     [Fact]
@@ -456,145 +457,25 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
 
     private static string ToRelativePathAndQuery(string uriOrPath)
     {
-        if (Uri.TryCreate(uriOrPath, UriKind.Absolute, out var absolute))
+        if (string.IsNullOrWhiteSpace(uriOrPath))
+            return uriOrPath;
+
+        // App-relative paths must be returned as-is. On Unix, UriKind.Absolute parses
+        // "/connect/authorize?..." as file:///... and PathAndQuery encodes '?' to %3F,
+        // which breaks the subsequent request to the authorize endpoint.
+        if (uriOrPath.StartsWith('/') && !uriOrPath.StartsWith("//", StringComparison.Ordinal))
+            return uriOrPath;
+
+        if (Uri.TryCreate(uriOrPath, UriKind.Absolute, out var absolute)
+            && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
+        {
             return absolute.PathAndQuery;
+        }
 
         return uriOrPath;
     }
 
     private record RegisterResult(string userId, string message);
 }
-
-public class AuthTestApiFactory : WebApplicationFactory<Program>
-{
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, configBuilder) =>
-        {
-            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                // Intentionally mismatch App:BaseUrl with runtime URLs to verify redirect URI seeding
-                // remains resilient in development when launch profile ports differ.
-                ["App:BaseUrl"] = "https://localhost:7443",
-                ["ASPNETCORE_URLS"] = "http://localhost",
-                ["Database:EnsureCreated"] = "false",
-                ["Seed:EnableBootstrapAdmin"] = "true",
-                ["Seed:AdminEmail"] = "admin@example.com",
-                ["Seed:AdminPassword"] = "SeededAdmin!123",
-                ["Seed:AdminFirstName"] = "System",
-                ["Seed:AdminLastName"] = "Administrator",
-                ["Seed:AdminRole"] = Roles.Admin
-            });
-        });
-        builder.ConfigureServices(services =>
-        {
-            services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
-            services.RemoveAll(typeof(IDbContextOptionsConfiguration<AppDbContext>));
-            services.RemoveAll<AppDbContext>();
-
-            // Use a fresh in-memory DB per factory instance so test classes don't share state
-            var dbName = $"AuthTestDb-{Guid.NewGuid()}";
-            services.AddDbContext<AppDbContext>((sp, options) =>
-            {
-                options.UseInMemoryDatabase(dbName);
-                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-                options.UseOpenIddict<Guid>();
-#if (UseMessaging)
-                options.UseDomainEventPublishing(sp);
-#endif
-            });
-
-            using var bootstrapProvider = services.BuildServiceProvider();
-            using var bootstrapScope = bootstrapProvider.CreateScope();
-            var db = bootstrapScope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
-            var configuration = bootstrapScope.ServiceProvider.GetRequiredService<IConfiguration>();
-            bootstrapScope.ServiceProvider
-                .SeedOpenIddictApplicationsAsync(configuration)
-                .GetAwaiter()
-                .GetResult();
-
-            // Replace SMTP sender with an in-memory capture sender for auth flow assertions
-            services.RemoveAll<IEmailSender>();
-            services.AddSingleton<RecordingEmailSender>();
-            services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<RecordingEmailSender>());
-
-            // Route internally-created HttpClient calls (e.g. OAuth demo callback token exchange)
-            // back into the in-memory TestServer instead of localhost network sockets.
-            services.RemoveAll<IHttpClientFactory>();
-            services.AddSingleton<IHttpClientFactory>(_ =>
-                new InProcessHttpClientFactory(() =>
-                    CreateClient(new WebApplicationFactoryClientOptions
-                    {
-                        AllowAutoRedirect = false,
-                        HandleCookies = true
-                    })));
-        });
-    }
-}
-
-internal sealed class RecordingEmailSender : IEmailSender
-{
-    private readonly ConcurrentQueue<EmailMessage> _messages = new();
-
-    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
-    {
-        _messages.Enqueue(new EmailMessage
-        {
-            To = message.To,
-            Subject = message.Subject,
-            HtmlBody = message.HtmlBody,
-            TextBody = message.TextBody
-        });
-
-        return Task.CompletedTask;
-    }
-
-    public void Clear()
-    {
-        while (_messages.TryDequeue(out _))
-        {
-        }
-    }
-
-    public EmailMessage GetLatestForRecipient(string email, string? subjectContains = null)
-    {
-        var timeout = TimeSpan.FromSeconds(5);
-        var startedAt = Stopwatch.StartNew();
-        EmailMessage? match = null;
-
-        while (startedAt.Elapsed < timeout)
-        {
-            match = _messages.Reverse().FirstOrDefault(message =>
-                string.Equals(message.To, email, StringComparison.OrdinalIgnoreCase)
-                && (string.IsNullOrWhiteSpace(subjectContains)
-                    || message.Subject.Contains(subjectContains, StringComparison.OrdinalIgnoreCase)));
-
-            if (match is not null)
-            {
-                break;
-            }
-
-            Thread.Sleep(50);
-        }
-
-        match.Should().NotBeNull($"Expected an email for {email}.");
-        return match!;
-    }
-}
-
-internal sealed class InProcessHttpClientFactory : IHttpClientFactory
-{
-    private readonly Func<HttpClient> _clientFactory;
-
-    public InProcessHttpClientFactory(Func<HttpClient> clientFactory)
-    {
-        _clientFactory = clientFactory;
-    }
-
-    public HttpClient CreateClient(string name) => _clientFactory();
-}
-
 
 

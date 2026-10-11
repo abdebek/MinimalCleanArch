@@ -10,107 +10,158 @@
   <ItemGroup>
     <PackageReference Include="MinimalCleanArch" Version="__MCA_VERSION__" />
     <PackageReference Include="MinimalCleanArch.DataAccess" Version="__MCA_VERSION__" />
+    <!-- Always referenced for MatchHttp / ValidateAsync / endpoint filters -->
+    <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
+    <!--#if (UseFastEndpoints)-->
+    <PackageReference Include="FastEndpoints" Version="7.0.1" />
+    <!--#endif-->
     <!--#if (UseSecurity)-->
     <PackageReference Include="MinimalCleanArch.Security" Version="__MCA_VERSION__" />
     <!--#endif-->
+    <!--#if (UseJobs)-->
+    <PackageReference Include="MinimalCleanArch.Jobs" Version="__MCA_VERSION__" />
+    <!--#endif-->
+    <!--#if (UseRealtime)-->
+    <PackageReference Include="MinimalCleanArch.Realtime" Version="__MCA_VERSION__" />
+    <!--#endif-->
+    <!--#if (UseFeatures)-->
+    <PackageReference Include="MinimalCleanArch.Features" Version="__MCA_VERSION__" />
+    <!--#endif-->
     <!--#if (UseMessaging)-->
     <PackageReference Include="MinimalCleanArch.Messaging" Version="__MCA_VERSION__" />
+    <!-- RuntimeCompilation is required by Wolverine 6 for TypeLoadMode.Dynamic (also brought in by MCA.Messaging) -->
+    <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.24.0" />
     <!--#if (UseDurableMessaging && UseSqlServer)-->
-    <PackageReference Include="WolverineFx.SqlServer" Version="5.15.0" />
+    <PackageReference Include="WolverineFx.SqlServer" Version="6.24.0" />
     <!--#endif-->
     <!--#if (UseDurableMessaging && UsePostgres)-->
-    <PackageReference Include="WolverineFx.Postgresql" Version="5.15.0" />
+    <PackageReference Include="WolverineFx.Postgresql" Version="6.24.0" />
     <!--#endif-->
     <!--#endif-->
     <!--#if (UseAudit)-->
     <PackageReference Include="MinimalCleanArch.Audit" Version="__MCA_VERSION__" />
     <!--#endif-->
+    <!--#if (UseStorage)-->
+    <PackageReference Include="MinimalCleanArch.Storage" Version="__MCA_VERSION__" />
+    <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.2.0" />
+    <PackageReference Include="MinimalCleanArch.Email" Version="__MCA_VERSION__" />
+    <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.6.0" />
+    <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.6.0" />
+    <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.6.0" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.6.0" />
     <!--#endif-->
     <!--#if (UseValidation)-->
     <PackageReference Include="MinimalCleanArch.Validation" Version="__MCA_VERSION__" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageReference Include="WolverineFx.FluentValidation" Version="5.15.0" />
+    <!--#if (UseMessaging)-->
+    <PackageReference Include="WolverineFx.FluentValidation" Version="6.24.0" />
     <!--#endif-->
-    <!--#if (UseCaching || UseRateLimiting)-->
-    <PackageReference Include="MinimalCleanArch.Extensions" Version="__MCA_VERSION__" />
     <!--#endif-->
     <!--#if (UseSerilog)-->
-    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <!--#endif-->
     <!--#if (UseHealthChecks)-->
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
     <!--#if (UseSqlite)-->
-    <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="8.0.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="9.0.0" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="AspNetCore.HealthChecks.Npgsql" Version="8.0.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.Npgsql" Version="9.0.0" />
     <!--#endif-->
     <!--#endif-->
-    <!--#if (UseOpenTelemetry)-->
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Api" Version="1.15.0" />
+    <!--#if (UseOpenTelemetry && !UseAspire)-->
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.17.0" />
     <!--#endif-->
-    <PackageReference Include="Scalar.AspNetCore" Version="2.4.7" />
+    <!--#if (UseAspire && UseCaching)-->
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.4.6" />
+    <!--#endif-->
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+  <!--#if (UseNet9)-->
+  <ItemGroup>
+    <!--#if (UseSerilog)-->
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <!--#endif-->
     <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.18" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.18" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
     <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.18" />
+    <!--#if (!UseAspire)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
+    <!--#endif-->
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="9.0.18" />
+    <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="9.4.1" />
     <!--#endif-->
   </ItemGroup>
+  <!--#endif-->
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+  <!--#if (UseNet10)-->
+  <ItemGroup>
+    <!--#if (UseSerilog)-->
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <!--#endif-->
     <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.10" />
+    <!--#if (!UseAspire)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
+    <!--#endif-->
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.10" />
+    <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
     <!--#endif-->
   </ItemGroup>
+  <!--#endif-->
 
   <ItemGroup>
     <Compile Remove="tests/**" />
+    <!--#if (UseAspire)-->
+    <!-- Nested AppHost/ServiceDefaults must not compile into the web project (single-project layout). -->
+    <Compile Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <Content Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <None Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <EmbeddedResource Remove="MCA.AppHost/**;MCA.ServiceDefaults/**" />
+    <ProjectReference Include="MCA.ServiceDefaults\MCA.ServiceDefaults.csproj" />
+    <!--#endif-->
   </ItemGroup>
 
 </Project>

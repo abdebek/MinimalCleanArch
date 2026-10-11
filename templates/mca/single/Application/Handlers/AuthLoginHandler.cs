@@ -29,5 +29,15 @@ public class AuthLoginHandler(
     }
 
     private static bool IsSafeRelativeUrl(string? value)
-        => !string.IsNullOrWhiteSpace(value) && Uri.IsWellFormedUriString(value, UriKind.Relative);
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        // App-relative path only (query/fragment allowed for OpenIddict authorize return URLs).
+        // Reject protocol-relative ("//evil") and anything that is not a well-formed relative URI.
+        // Note: do not use UriKind.Absolute rejection — on Unix "/path" parses as file:///path.
+        return value.StartsWith('/')
+            && !value.StartsWith("//", StringComparison.Ordinal)
+            && Uri.IsWellFormedUriString(value, UriKind.Relative);
+    }
 }

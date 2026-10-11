@@ -57,3 +57,11 @@ public class DeleteTodoCommandValidator : AbstractValidator<DeleteTodoCommand>
         RuleFor(x => x.Id).GreaterThan(0);
     }
 }
+
+public class RestoreTodoCommandValidator : AbstractValidator<RestoreTodoCommand>
+{
+    public RestoreTodoCommandValidator()
+    {
+        RuleFor(x => x.Id).GreaterThan(0);
+    }
+}

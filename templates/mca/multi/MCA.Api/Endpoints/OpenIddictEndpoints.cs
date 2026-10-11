@@ -1,6 +1,6 @@
 #if (UseAuth)
 using MCA.Application.Interfaces;
-using MCA.Domain.Entities;
+using MCA.Application.Identity;
 using MCA.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -227,6 +227,11 @@ public static class OpenIddictEndpoints
                 if (roles.Length > 0) claims[Claims.Role] = roles;
             }
 
+#if (UseMultiTenant)
+            if (!string.IsNullOrEmpty(user.TenantId))
+                claims["tenant_id"] = user.TenantId;
+#endif
+
             return Results.Ok(claims);
         })
         .AllowAnonymous()
@@ -324,6 +329,9 @@ public static class OpenIddictEndpoints
             case Claims.Role:
             case "given_name":
             case "family_name":
+#if (UseMultiTenant)
+            case "tenant_id":
+#endif
                 yield return Destinations.AccessToken;
                 if (principal?.HasScope(Scopes.OpenId) ?? false)
                     yield return Destinations.IdentityToken;

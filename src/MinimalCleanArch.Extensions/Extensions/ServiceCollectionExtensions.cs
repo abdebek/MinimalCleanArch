@@ -38,15 +38,24 @@ public static class ServiceCollectionExtensions
         // Register validators from the Extensions assembly
         services.AddValidatorsFromAssemblyContaining<ServiceCollectionExtensionsMarker>();
 
-        // Register correlation ID accessor
-        services.AddHttpContextAccessor();
-        services.AddOptions<ExecutionContextOptions>();
+        services.AddMinimalCleanArchExecutionContext();
         services.AddScoped<ICorrelationIdAccessor, CorrelationIdAccessor>();
-        services.TryAddScoped<IExecutionContext, HttpExecutionContext>();
 
         // Register startup health check as singleton so it can be marked complete
         services.AddSingleton<StartupHealthCheck>();
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="IExecutionContext"/> as HTTP-claim scoped (UserId, TenantId, CorrelationId).
+    /// </summary>
+    public static IServiceCollection AddMinimalCleanArchExecutionContext(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddHttpContextAccessor();
+        services.AddOptions<ExecutionContextOptions>();
+        services.TryAddScoped<IExecutionContext, HttpExecutionContext>();
         return services;
     }
 

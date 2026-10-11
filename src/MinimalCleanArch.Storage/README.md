@@ -3,7 +3,7 @@
 Shared blob storage abstractions for MinimalCleanArch.
 
 ## Version
-- Current stable: 0.1.19-preview (net9.0, net10.0).
+- Current stable: 0.1.20-preview (net9.0, net10.0).
 
 ## Why Use It
 - keep blob upload and download capabilities behind a reusable infrastructure abstraction instead of baking storage-provider details into application handlers
@@ -24,21 +24,64 @@ Shared blob storage abstractions for MinimalCleanArch.
 ## Overview
 - `IBlobStorage` for provider-neutral upload/download access
 - `AzureBlobStorage` for Azure Blob Storage and Azurite-backed local development
-- DI extensions to register Azure Blob Storage from configuration or code
+- `R2BlobStorage` for Cloudflare R2 (S3-compatible API via AWSSDK.S3)
+- Unified `BlobStorageOptions` with `Provider` = `Azure` (default) or `R2`
+- DI helpers: `AddBlobStorage`, `AddAzureBlobStorage`, `AddR2BlobStorage`
 - signed upload/download URL support plus blob metadata lookup
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch.Storage --version 0.1.19-preview
+dotnet add package MinimalCleanArch.Storage --version 0.1.20-preview
 ```
 
-Recommended service registration:
+### Provider switch (recommended)
+
+```csharp
+// Reads BlobStorage:Provider — "Azure" (default) or "R2"
+builder.Services.AddBlobStorage(builder.Configuration);
+```
+
+```json
+{
+  "BlobStorage": {
+    "Provider": "Azure",
+    "ConnectionString": "UseDevelopmentStorage=true",
+    "ContainerName": "app-data",
+    "UploadUrlTtlMinutes": 15,
+    "DownloadUrlTtlMinutes": 15
+  }
+}
+```
+
+Cloudflare R2:
+
+```json
+{
+  "BlobStorage": {
+    "Provider": "R2",
+    "R2ServiceUrl": "https://<accountid>.r2.cloudflarestorage.com",
+    "R2AccessKeyId": "<access-key-id>",
+    "R2SecretAccessKey": "<secret-access-key>",
+    "R2BucketName": "app-data",
+    "R2PublicBaseUrl": "https://cdn.example.com",
+    "KeyPrefix": "uploads/",
+    "UploadUrlTtlMinutes": 15,
+    "DownloadUrlTtlMinutes": 15
+  }
+}
+```
+
+`KeyPrefix` (optional, e.g. `uploads/`) is prepended to every blob key for both
+`Azure` and `R2` providers — useful for shared containers/buckets. It is
+normalized to end with a `/` when non-empty.
+
+### Explicit Azure / R2 registration
+
 ```csharp
 builder.Services.AddAzureBlobStorage(builder.Configuration);
-```
+// or
+builder.Services.AddR2BlobStorage(builder.Configuration);
 
-Explicit registration:
-```csharp
 builder.Services.AddAzureBlobStorage(options =>
 {
     options.ConnectionString = builder.Configuration.GetConnectionString("BlobStorage")!;
@@ -63,6 +106,9 @@ Recommended guidance:
 - keep blob keys, retention rules, and business validation in the application layer
 - keep provider registration and connection settings in infrastructure or the host
 - use Azurite for local development when targeting Azure Blob Storage in production
+- use R2 API tokens with Object Read & Write; set `R2PublicBaseUrl` when objects are served from a custom domain or r2.dev
+- blob keys must be relative paths within the container/bucket; backslashes are normalized to `/`, `./` segments are collapsed, and `..` traversal / absolute paths / drive specifiers are rejected
+- returned descriptors/info carry the normalized key (no leading `/`, no `..`) so callers see the canonical storage key
 - add app-specific wrappers only when they genuinely add business meaning beyond generic blob operations
 
 ## Local Azurite Notes

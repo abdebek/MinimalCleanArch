@@ -1,4 +1,5 @@
 using System.Reflection;
+using JasperFx.CodeGeneration.Model;
 using Wolverine.ErrorHandling;
 using Wolverine;
 
@@ -14,6 +15,14 @@ public class MessagingOptions
     /// Default: Entry assembly name.
     /// </summary>
     public string? ServiceName { get; set; }
+
+    /// <summary>
+    /// Controls whether generated handlers may resolve dependencies via the service provider
+    /// (service location). Wolverine 6 defaults to <see cref="ServiceLocationPolicy.NotAllowed"/>;
+    /// MCA defaults to <see cref="ServiceLocationPolicy.AllowedButWarn"/> so constructor-injected
+    /// handler classes registered with MS.DI continue to work.
+    /// </summary>
+    public ServiceLocationPolicy ServiceLocationPolicy { get; set; } = ServiceLocationPolicy.AllowedButWarn;
 
     /// <summary>
     /// Gets or sets the database schema name for message persistence tables.

@@ -1,3 +1,5 @@
+using MinimalCleanArch.Email;
+
 namespace MCA.Infrastructure.Configuration;
 
 public class EmailSettings
@@ -17,12 +19,6 @@ public class EmailSettings
     public string AppBaseUrl { get; set; } = "https://localhost:5001";
     public string AppName { get; set; } = "MCA";
     public ApiEmailSettings Api { get; set; } = new();
-}
-
-public static class EmailProviders
-{
-    public const string Smtp = "Smtp";
-    public const string Api = "Api";
 }
 
 public class ApiEmailSettings
