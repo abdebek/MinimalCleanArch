@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Metadata;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Execution;
 
@@ -136,7 +135,7 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     private void ApplyAuditInfo()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is IAuditableEntity && 
+            .Where(e => e.Entity is IAuditableEntity &&
                        (e.State == EntityState.Added || e.State == EntityState.Modified))
             .ToList(); // Materialize to avoid multiple enumeration
 
@@ -241,7 +240,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
 
         // Configure Identity entities if they implement our interfaces
         ConfigureIdentityEntitiesIfNeeded(modelBuilder);
-        
+
         // Configure Identity tables with optimized indexes
         ConfigureIdentityTablesOptimized(modelBuilder);
     }
@@ -261,7 +260,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
                 entity.Property("CreatedBy").HasMaxLength(450);
                 entity.Property("LastModifiedAt");
                 entity.Property("LastModifiedBy").HasMaxLength(450);
-                
+
                 // Add indexes for audit queries
                 entity.HasIndex("CreatedAt");
                 entity.HasIndex("CreatedBy");
@@ -286,7 +285,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
                 entity.Property("CreatedBy").HasMaxLength(450);
                 entity.Property("LastModifiedAt");
                 entity.Property("LastModifiedBy").HasMaxLength(450);
-                
+
                 // Add indexes for audit queries
                 entity.HasIndex("CreatedAt");
                 entity.HasIndex("CreatedBy");
@@ -419,7 +418,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     private void ApplyAuditInfo()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is IAuditableEntity && 
+            .Where(e => e.Entity is IAuditableEntity &&
                        (e.State == EntityState.Added || e.State == EntityState.Modified))
             .ToList();
 

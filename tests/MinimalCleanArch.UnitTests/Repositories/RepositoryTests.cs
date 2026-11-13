@@ -7,7 +7,6 @@ using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;
 using MinimalCleanArch.Security.Configuration;
 using MinimalCleanArch.Security.Encryption;
-using Moq;
 using FluentAssertions;
 
 namespace MinimalCleanArch.UnitTests.Repositories;
@@ -26,7 +25,7 @@ public class TestEncryptionService : IEncryptionService
 
     public string Encrypt(string plainText) => _innerService.Encrypt(plainText);
     public string Decrypt(string cipherText) => _innerService.Decrypt(cipherText);
-    
+
     // Don't dispose in tests to avoid ObjectDisposedException
     public void Dispose()
     {
@@ -46,13 +45,13 @@ public class RepositoryTests : IDisposable
     public RepositoryTests()
     {
         _databasePath = $"test_repository_{Guid.NewGuid()}.db";
-        
+
         // Setup dependency injection for tests
         var services = new ServiceCollection();
-        
+
         // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
-        
+
         // Add encryption service with proper test configuration
         var encryptionOptions = new EncryptionOptions
         {
@@ -62,27 +61,27 @@ public class RepositoryTests : IDisposable
             AllowEnvironmentVariables = false // Don't load from environment in tests
         };
         services.AddSingleton(encryptionOptions);
-        
+
         // Use test-specific encryption service that doesn't dispose
-        services.AddSingleton<IEncryptionService>(provider => 
+        services.AddSingleton<IEncryptionService>(provider =>
             new TestEncryptionService(provider.GetRequiredService<EncryptionOptions>()));
-        
+
         // Add DbContext with SQLite instead of InMemory for better reliability
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             options.UseSqlite($"Data Source={_databasePath}"));
-        
+
         // Add repositories and unit of work
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IRepository<Todo>, Repository<Todo>>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _scope = _serviceProvider.CreateScope();
-        
+
         _dbContext = _scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         _repository = _scope.ServiceProvider.GetRequiredService<IRepository<Todo>>();
         _unitOfWork = _scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        
+
         // Ensure database is created
         _dbContext.Database.EnsureCreated();
     }
@@ -93,7 +92,7 @@ public class RepositoryTests : IDisposable
         // Arrange
         var testTitle = "Test Todo";
         var todo = new Todo(testTitle, "Description");
-        
+
         await _repository.AddAsync(todo);
         await _unitOfWork.SaveChangesAsync();
 
@@ -183,7 +182,7 @@ public class RepositoryTests : IDisposable
         // Arrange
         var testTitle = "Test Todo";
         var todo = new Todo(testTitle, "Description");
-        
+
         await _repository.AddAsync(todo);
         await _unitOfWork.SaveChangesAsync();
 
@@ -200,7 +199,7 @@ public class RepositoryTests : IDisposable
         var todoWithDeleted = await _dbContext.Todos
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.Id == todo.Id);
-        
+
         todoWithDeleted.Should().NotBeNull();
         todoWithDeleted!.IsDeleted.Should().BeTrue();
     }
@@ -232,7 +231,7 @@ public class RepositoryTests : IDisposable
             new("Todo 2", "Description 2", 2),
             new("Todo 3", "Description 3", 1)
         };
-        
+
         await _repository.AddRangeAsync(todos);
         await _unitOfWork.SaveChangesAsync();
 
@@ -255,7 +254,7 @@ public class RepositoryTests : IDisposable
             new("Medium Priority", "Description", 3),
             new("Low Priority", "Description", 1)
         };
-        
+
         await _repository.AddRangeAsync(todos);
         await _unitOfWork.SaveChangesAsync();
 
@@ -281,10 +280,10 @@ public class RepositoryTests : IDisposable
             {
                 await _repository.AddAsync(todo1);
                 await _unitOfWork.SaveChangesAsync();
-                
+
                 await _repository.AddAsync(todo2);
                 await _unitOfWork.SaveChangesAsync();
-                
+
                 // Force an exception
                 throw new InvalidOperationException("Test exception");
             });
@@ -337,16 +336,16 @@ public class RepositoryTests : IDisposable
         // Note: This is SQLite specific - adjust for other databases
         var connection = _dbContext.Database.GetDbConnection();
         await connection.OpenAsync();
-        
+
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT Description FROM Todos WHERE Id = @id";
         var parameter = command.CreateParameter();
         parameter.ParameterName = "@id";
         parameter.Value = todo.Id;
         command.Parameters.Add(parameter);
-        
+
         var encryptedValue = await command.ExecuteScalarAsync() as string;
-        
+
         // The encrypted value should be different from the original
         encryptedValue.Should().NotBe(sensitiveDescription);
         encryptedValue.Should().NotBeNullOrEmpty();
@@ -356,7 +355,7 @@ public class RepositoryTests : IDisposable
     {
         _scope?.Dispose();
         _serviceProvider?.Dispose();
-        
+
         // Clean up test database file
         try
         {

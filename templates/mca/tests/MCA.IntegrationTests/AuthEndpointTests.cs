@@ -478,4 +478,3 @@ public class AuthEndpointTests : IClassFixture<AuthTestApiFactory>
     private record RegisterResult(string userId, string message);
 }
 
-

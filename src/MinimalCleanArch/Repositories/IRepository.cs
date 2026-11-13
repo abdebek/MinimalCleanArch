@@ -9,8 +9,8 @@ namespace MinimalCleanArch.Repositories;
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity</typeparam>
 /// <typeparam name="TKey">The type of the entity's key</typeparam>
-public interface IRepository<TEntity, TKey> 
-    where TEntity : IEntity<TKey> 
+public interface IRepository<TEntity, TKey>
+    where TEntity : IEntity<TKey>
     where TKey : IEquatable<TKey>
 {
     /// <summary>
@@ -19,7 +19,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets entities based on the specified filter
     /// </summary>
@@ -29,7 +29,7 @@ public interface IRepository<TEntity, TKey>
     Task<IReadOnlyList<TEntity>> GetAsync(
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets entities using a specification
     /// </summary>
@@ -73,7 +73,7 @@ public interface IRepository<TEntity, TKey>
     {
         return await GetFirstAsync(specification, cancellationToken).ConfigureAwait(false) is not null;
     }
-    
+
     /// <summary>
     /// Gets a single entity by its key
     /// </summary>
@@ -81,7 +81,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets the first entity that matches the filter
     /// </summary>
@@ -91,7 +91,7 @@ public interface IRepository<TEntity, TKey>
     Task<TEntity?> GetFirstAsync(
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets the first entity that matches the specification
     /// </summary>
@@ -149,7 +149,7 @@ public interface IRepository<TEntity, TKey>
             _ => throw new InvalidOperationException("Sequence contains more than one matching element.")
         };
     }
-    
+
     /// <summary>
     /// Counts entities that match the filter
     /// </summary>
@@ -177,7 +177,7 @@ public interface IRepository<TEntity, TKey>
         var results = await GetAsync(specification, cancellationToken).ConfigureAwait(false);
         return results.Count;
     }
-    
+
     /// <summary>
     /// Adds an entity (does not save to database until SaveChanges is called)
     /// </summary>
@@ -185,7 +185,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Adds multiple entities (does not save to database until SaveChanges is called)
     /// </summary>
@@ -193,7 +193,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<IEnumerable<TEntity>> AddRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Updates an entity (does not save to database until SaveChanges is called)
     /// </summary>
@@ -201,7 +201,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Updates multiple entities (does not save to database until SaveChanges is called)
     /// </summary>
@@ -209,7 +209,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task<IEnumerable<TEntity>> UpdateRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Deletes an entity (does not save to database until SaveChanges is called)
     /// </summary>
@@ -217,7 +217,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Deletes an entity by its key (does not save to database until SaveChanges is called)
     /// </summary>
@@ -225,7 +225,7 @@ public interface IRepository<TEntity, TKey>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task DeleteAsync(TKey id, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Deletes multiple entities (does not save to database until SaveChanges is called)
     /// </summary>
@@ -239,7 +239,7 @@ public interface IRepository<TEntity, TKey>
 /// Generic repository interface for entities with int key
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity</typeparam>
-public interface IRepository<TEntity> : IRepository<TEntity, int> 
+public interface IRepository<TEntity> : IRepository<TEntity, int>
     where TEntity : IEntity<int>
 {
 }

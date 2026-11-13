@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http.Json;
 using MinimalCleanArch.IntegrationTests.Infrastructure;
 using MinimalCleanArch.Sample.API.Models;
 using FluentAssertions;
@@ -39,17 +38,17 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/todos", newTodo);
-        
+
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var todoResponse = await response.Content.ReadFromJsonAsync<TodoResponse>();
         todoResponse.Should().NotBeNull();
         todoResponse!.Title.Should().Be(newTodo.Title);
         todoResponse.Description.Should().Be(newTodo.Description);
         todoResponse.Priority.Should().Be(newTodo.Priority);
         todoResponse.Id.Should().BeGreaterThan(0);
-        
+
         // Verify location header
         response.Headers.Location.Should().NotBeNull();
         response.Headers.Location!.ToString().Should().Contain($"/api/todos/{todoResponse.Id}");
@@ -104,7 +103,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
         createdTodo.Should().NotBeNull();
 
@@ -113,7 +112,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         // Assert
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var todoResponse = await getResponse.Content.ReadFromJsonAsync<TodoResponse>();
         todoResponse.Should().NotBeNull();
         todoResponse!.Id.Should().Be(createdTodo.Id);
@@ -143,7 +142,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
         createdTodo.Should().NotBeNull();
 
@@ -160,7 +159,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         // Assert
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var updatedTodo = await updateResponse.Content.ReadFromJsonAsync<TodoResponse>();
         updatedTodo.Should().NotBeNull();
         updatedTodo!.Title.Should().Be(updateRequest.Title);
@@ -201,7 +200,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
         createdTodo.Should().NotBeNull();
 
@@ -210,7 +209,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         // Assert
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        
+
         // Verify the todo is actually deleted (soft delete)
         var getResponse = await _client.GetAsync($"/api/todos/{createdTodo.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -252,7 +251,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         content.Should().Contain("items");
         content.Should().Contain("pagination");
@@ -278,7 +277,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         var highResponse = await _client.PostAsJsonAsync("/api/todos", highPriorityTodo);
         highResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var lowResponse = await _client.PostAsJsonAsync("/api/todos", lowPriorityTodo);
         lowResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
@@ -318,7 +317,7 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
 
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
         createdTodo.Should().NotBeNull();
         createdTodo!.Id.Should().BeGreaterThan(0);
@@ -333,28 +332,28 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
         };
 
         var updateResponse = await _client.PutAsJsonAsync($"/api/todos/{createdTodo.Id}", updateRequest);
-        
+
         // Debug information if update fails
         if (updateResponse.StatusCode != HttpStatusCode.OK)
         {
             var errorContent = await updateResponse.Content.ReadAsStringAsync();
             throw new Exception($"Update failed with status {updateResponse.StatusCode}: {errorContent}");
         }
-        
+
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updatedTodo = await updateResponse.Content.ReadFromJsonAsync<TodoResponse>();
         updatedTodo.Should().NotBeNull();
 
         // Act - Get (verify the update worked)
         var getResponse = await _client.GetAsync($"/api/todos/{createdTodo.Id}");
-        
+
         // Debug information if get fails
         if (getResponse.StatusCode != HttpStatusCode.OK)
         {
             var errorContent = await getResponse.Content.ReadAsStringAsync();
             throw new Exception($"Get failed with status {getResponse.StatusCode}: {errorContent}");
         }
-        
+
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var retrievedTodo = await getResponse.Content.ReadFromJsonAsync<TodoResponse>();
         retrievedTodo.Should().NotBeNull();
@@ -517,14 +516,14 @@ public class TodoEndpointsTests : IClassFixture<TestWebApplicationFactory>, IAsy
         // Act - Create
         var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        
+
         var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoResponse>();
         createdTodo.Should().NotBeNull();
 
         // Act - Retrieve
         var getResponse = await _client.GetAsync($"/api/todos/{createdTodo!.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var retrievedTodo = await getResponse.Content.ReadFromJsonAsync<TodoResponse>();
 
         // Assert

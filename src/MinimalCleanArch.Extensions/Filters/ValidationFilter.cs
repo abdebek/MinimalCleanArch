@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
+﻿using System.Net;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using MinimalCleanArch.Extensions.Errors;
@@ -35,7 +32,7 @@ namespace MinimalCleanArch.Extensions.Filters
         public async Task<object?> InvokeAsync(T parameter, HttpContext context, Func<Task<object?>> next)
         {
             var validationResult = await _validator.ValidateAsync(parameter);
-            
+
             if (!validationResult.IsValid)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -51,7 +48,7 @@ namespace MinimalCleanArch.Extensions.Filters
                 await context.Response.WriteAsJsonAsync(problemDetails);
                 return null;
             }
-            
+
             return await next();
         }
     }

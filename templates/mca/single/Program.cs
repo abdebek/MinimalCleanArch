@@ -14,8 +14,6 @@ using FastEndpoints;
 using MCA.Infrastructure.Services;
 #endif
 using Microsoft.EntityFrameworkCore;
-using MinimalCleanArch.DataAccess.Repositories;
-using MinimalCleanArch.Repositories;
 #if (UseValidation)
 using MCA.Application.Validation;
 #endif
@@ -59,7 +57,6 @@ using MinimalCleanArch.Storage;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
-using System;
 #endif
 #if (UseAuth)
 using MCA.Application.Interfaces;

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Specifications;
 

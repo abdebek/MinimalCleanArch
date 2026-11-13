@@ -12,8 +12,8 @@ namespace MinimalCleanArch.DataAccess.Repositories;
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity</typeparam>
 /// <typeparam name="TKey">The type of the entity's key</typeparam>
-public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> 
-    where TEntity : class, IEntity<TKey> 
+public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
+    where TEntity : class, IEntity<TKey>
     where TKey : IEquatable<TKey>
 {
     /// <summary>
@@ -262,7 +262,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     public virtual Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
     {
         var entitiesList = entities.ToList();
-        
+
         foreach (var entity in entitiesList)
         {
             if (entity is ISoftDelete softDeleteEntity)
@@ -275,7 +275,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
                 DbSet.Remove(entity);
             }
         }
-        
+
         return Task.CompletedTask;
     }
 

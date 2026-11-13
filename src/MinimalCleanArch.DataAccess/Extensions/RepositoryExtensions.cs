@@ -123,7 +123,7 @@ public static class RepositoryExtensions
     }
 
     // Convenience methods for repositories with int keys
-    
+
     /// <summary>
     /// Adds an entity and immediately saves changes to the database
     /// </summary>

@@ -4,7 +4,7 @@
 /// Base implementation of <see cref="ISoftDelete"/> with a specific key type
 /// </summary>
 /// <typeparam name="TKey">The type of the entity's key</typeparam>
-public abstract class BaseSoftDeleteEntity<TKey> : BaseAuditableEntity<TKey>, ISoftDelete 
+public abstract class BaseSoftDeleteEntity<TKey> : BaseAuditableEntity<TKey>, ISoftDelete
     where TKey : IEquatable<TKey>
 {
     /// <summary>

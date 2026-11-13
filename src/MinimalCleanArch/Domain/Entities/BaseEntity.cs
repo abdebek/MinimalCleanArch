@@ -10,7 +10,7 @@ public abstract class BaseEntity<TKey> : IEntity<TKey> where TKey : IEquatable<T
     /// Gets or sets the unique identifier for this entity
     /// </summary>
     public TKey Id { get; set; } = default!;
-    
+
     /// <summary>
     /// Determines whether the specified entity is equal to the current entity
     /// </summary>

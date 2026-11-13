@@ -69,7 +69,7 @@ public abstract class DbContextBase : DbContext
     private void ApplyAuditInfo()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is IAuditableEntity && 
+            .Where(e => e.Entity is IAuditableEntity &&
                        (e.State == EntityState.Added || e.State == EntityState.Modified));
 
         string? userId = GetCurrentUserId();

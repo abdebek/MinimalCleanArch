@@ -19,13 +19,13 @@ public static class ModelBuilderExtensions
     /// <param name="serviceProvider">Optional service provider for logging</param>
     /// <returns>The model builder</returns>
     public static ModelBuilder UseEncryption(
-        this ModelBuilder modelBuilder, 
+        this ModelBuilder modelBuilder,
         IEncryptionService encryptionService,
         IServiceProvider? serviceProvider = null)
     {
         if (modelBuilder == null)
             throw new ArgumentNullException(nameof(modelBuilder));
-        
+
         if (encryptionService == null)
             throw new ArgumentNullException(nameof(encryptionService));
 
@@ -74,7 +74,7 @@ public static class ModelBuilderExtensions
                     if (isNullable)
                     {
                         propertyBuilder.HasConversion(encryptedConverter);
-                        logger?.LogDebug("Configured nullable encrypted property: {EntityType}.{PropertyName}", 
+                        logger?.LogDebug("Configured nullable encrypted property: {EntityType}.{PropertyName}",
                             entityType.ClrType.Name, property.Name);
                     }
                     else
@@ -83,7 +83,7 @@ public static class ModelBuilderExtensions
                         // This avoids the nullability mismatch while still providing proper validation
                         propertyBuilder.HasConversion(encryptedConverter);
                         propertyBuilder.IsRequired(); // Ensure the property is required at the database level
-                        loggerNonNull?.LogDebug("Configured non-null encrypted property: {EntityType}.{PropertyName}", 
+                        loggerNonNull?.LogDebug("Configured non-null encrypted property: {EntityType}.{PropertyName}",
                             entityType.ClrType.Name, property.Name);
                     }
 
@@ -92,7 +92,7 @@ public static class ModelBuilderExtensions
                 else
                 {
                     var generalLogger = serviceProvider?.GetService<ILogger>();
-                    generalLogger?.LogWarning("Unsupported property type for encryption: {EntityType}.{PropertyName} ({PropertyType})", 
+                    generalLogger?.LogWarning("Unsupported property type for encryption: {EntityType}.{PropertyName} ({PropertyType})",
                         entityType.ClrType.Name, property.Name, propertyType.Name);
                 }
             }
@@ -111,7 +111,7 @@ public static class ModelBuilderExtensions
     /// <param name="encryptionService">The encryption service</param>
     /// <returns>The model builder</returns>
     public static ModelBuilder UseEncryption(
-        this ModelBuilder modelBuilder, 
+        this ModelBuilder modelBuilder,
         IEncryptionService encryptionService)
     {
         return UseEncryption(modelBuilder, encryptionService, null);
@@ -137,10 +137,10 @@ public static class ModelBuilderExtensions
     {
         if (modelBuilder == null)
             throw new ArgumentNullException(nameof(modelBuilder));
-        
+
         if (propertyExpression == null)
             throw new ArgumentNullException(nameof(propertyExpression));
-        
+
         if (encryptionService == null)
             throw new ArgumentNullException(nameof(encryptionService));
 

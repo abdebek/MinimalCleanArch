@@ -27,7 +27,7 @@ public class TestEncryptionService : IEncryptionService
 
     public string Encrypt(string plainText) => _innerService.Encrypt(plainText);
     public string Decrypt(string cipherText) => _innerService.Decrypt(cipherText);
-    
+
     // Don't dispose in tests to avoid ObjectDisposedException
     public void Dispose()
     {
@@ -47,13 +47,13 @@ public class SpecificationTests : IDisposable
     public SpecificationTests()
     {
         _databasePath = $"test_specifications_{Guid.NewGuid()}.db";
-        
+
         // Setup dependency injection for tests
         var services = new ServiceCollection();
-        
+
         // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
-        
+
         // Add encryption service with proper test configuration
         var encryptionOptions = new EncryptionOptions
         {
@@ -63,30 +63,30 @@ public class SpecificationTests : IDisposable
             AllowEnvironmentVariables = false // Don't load from environment in tests
         };
         services.AddSingleton(encryptionOptions);
-        
+
         // Use test-specific encryption service that doesn't dispose
-        services.AddSingleton<IEncryptionService>(provider => 
+        services.AddSingleton<IEncryptionService>(provider =>
             new TestEncryptionService(provider.GetRequiredService<EncryptionOptions>()));
-        
+
         // Add DbContext with SQLite for better reliability
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             options.UseSqlite($"Data Source={_databasePath}"));
-        
+
         // Add repositories and unit of work
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IRepository<Todo>, Repository<Todo>>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _scope = _serviceProvider.CreateScope();
-        
+
         _dbContext = _scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         _repository = _scope.ServiceProvider.GetRequiredService<IRepository<Todo>>();
         _unitOfWork = _scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        
+
         // Ensure database is created
         _dbContext.Database.EnsureCreated();
-        
+
         // Seed test data
         SeedTestData();
     }
@@ -152,7 +152,7 @@ public class SpecificationTests : IDisposable
         // Assert
         completedTodos.Should().HaveCount(1);
         completedTodos.All(t => t.IsCompleted).Should().BeTrue();
-        
+
         incompleteTodos.Should().HaveCount(4);
         incompleteTodos.All(t => !t.IsCompleted).Should().BeTrue();
     }
@@ -172,15 +172,15 @@ public class SpecificationTests : IDisposable
         // Assert
         // dueBefore should include: High Priority (due tomorrow), Overdue (past due)
         dueBefore.Should().HaveCount(2, "Should include todos due on or before tomorrow");
-        
+
         // dueAfter should include: High Priority (due tomorrow), Medium Priority (7 days), Low Priority (30 days)
         dueAfter.Should().HaveCount(3, "Should include todos due on or after tomorrow");
-        
+
         // Verify specific todos in results
         var dueBeforeTitles = dueBefore.Select(t => t.Title).ToList();
         dueBeforeTitles.Should().Contain("High Priority Task");
         dueBeforeTitles.Should().Contain("Overdue Task");
-        
+
         var dueAfterTitles = dueAfter.Select(t => t.Title).ToList();
         dueAfterTitles.Should().Contain("High Priority Task");
         dueAfterTitles.Should().Contain("Medium Priority Task");
@@ -221,7 +221,7 @@ public class SpecificationTests : IDisposable
         // Assert
         firstPage.Should().HaveCount(2);
         secondPage.Should().HaveCount(2);
-        
+
         // Ensure no overlap between pages
         var firstPageIds = firstPage.Select(t => t.Id).ToHashSet();
         var secondPageIds = secondPage.Select(t => t.Id).ToHashSet();
@@ -240,20 +240,20 @@ public class SpecificationTests : IDisposable
 
         // Assert
         result.Should().HaveCount(5);
-        
+
         // Verify ordering (by priority, then by due date descending)
         for (int i = 1; i < result.Count; i++)
         {
             var current = result[i - 1];
             var next = result[i];
-            
+
             // Either current priority <= next priority
             // Or if same priority, current due date >= next due date (nulls last)
             var isCorrectOrder = current.Priority <= next.Priority ||
-                                (current.Priority == next.Priority && 
+                                (current.Priority == next.Priority &&
                                  CompareDueDates(current.DueDate, next.DueDate) >= 0);
-            
-            isCorrectOrder.Should().BeTrue($"Item {i-1} should come before item {i}");
+
+            isCorrectOrder.Should().BeTrue($"Item {i - 1} should come before item {i}");
         }
     }
 
@@ -290,7 +290,7 @@ public class SpecificationTests : IDisposable
         // Assert
         result.Should().NotBeEmpty();
         result.All(t => !t.IsCompleted).Should().BeTrue();
-        result.All(t => t.Title.ToLower().Contains("priority") || 
+        result.All(t => t.Title.ToLower().Contains("priority") ||
                        t.Description.ToLower().Contains("priority")).Should().BeTrue();
     }
 
@@ -345,7 +345,7 @@ public class SpecificationTests : IDisposable
         if (date1 == null && date2 == null) return 0;
         if (date1 == null) return -1; // null comes after non-null in descending order
         if (date2 == null) return 1;  // non-null comes before null in descending order
-        
+
         return DateTime.Compare(date1.Value, date2.Value);
     }
 

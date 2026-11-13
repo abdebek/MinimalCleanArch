@@ -96,7 +96,7 @@ public static class DataProtectionServiceExtensions
             // keyIdentifier should be the full key URI: https://vault.vault.azure.net/keys/keyname
             var keyIdentifier = new Uri($"{keyVaultUri.TrimEnd('/')}/keys/{keyName}");
             dataProtectionBuilder.ProtectKeysWithAzureKeyVault(
-                keyIdentifier, 
+                keyIdentifier,
                 new DefaultAzureCredential());
         }
         else
@@ -145,9 +145,9 @@ public static class DataProtectionServiceExtensions
         // Configure Data Protection with Azure Key Vault and Blob Storage
         services.AddDataProtection()
             .SetApplicationName(options.ApplicationName)
-           // .PersistKeysToAzureBlobStorage(blobStorageConnectionString, containerName, "keys.xml") //TPDP: add support for Azure blob storage
+            // .PersistKeysToAzureBlobStorage(blobStorageConnectionString, containerName, "keys.xml") //TPDP: add support for Azure blob storage
             .ProtectKeysWithAzureKeyVault(
-                new Uri($"{keyVaultUri.TrimEnd('/')}/keys/{keyName}"), 
+                new Uri($"{keyVaultUri.TrimEnd('/')}/keys/{keyName}"),
                 new DefaultAzureCredential())
             .SetDefaultKeyLifetime(TimeSpan.FromDays(keyLifetimeDays));
 
@@ -168,9 +168,9 @@ public static class DataProtectionServiceExtensions
         string? applicationName = null)
     {
         applicationName ??= GetDefaultApplicationName();
-        
+
         // Store keys in a local directory for development
-        var keyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
+        var keyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MinimalCleanArch", applicationName, "DataProtection-Keys");
 
         return services.AddDataProtectionEncryption(keyPath, $"{applicationName}.Development", 30); // 30-day keys for dev
@@ -194,8 +194,8 @@ public static class DataProtectionServiceExtensions
         applicationName ??= GetDefaultApplicationName();
 
         // Add AES encryption for fallback
-        var aesOptions = new EncryptionOptions 
-        { 
+        var aesOptions = new EncryptionOptions
+        {
             Key = aesEncryptionKey,
             ValidateKeyStrength = false // Skip validation for legacy keys
         };

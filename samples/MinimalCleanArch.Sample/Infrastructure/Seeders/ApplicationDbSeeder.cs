@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using MinimalCleanArch.Extensions.Hosting;
 using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Sample.Infrastructure.Data;

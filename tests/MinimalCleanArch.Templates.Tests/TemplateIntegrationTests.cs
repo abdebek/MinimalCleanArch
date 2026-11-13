@@ -1,8 +1,5 @@
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using CliWrap;
@@ -1376,7 +1373,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
             .FirstOrDefault(f => f.EndsWith($"{projectName}.dll") || f.EndsWith($"{projectName}.Api.dll"));
 
         if (mainDll == null)
-             throw new FileNotFoundException("Main application DLL not found");
+            throw new FileNotFoundException("Main application DLL not found");
 
         var psi = new ProcessStartInfo
         {

@@ -91,18 +91,20 @@ public static class UserEndpoints
             var result = await userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
-                return Results.BadRequest(new { 
-                    Message = "Registration failed", 
-                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                return Results.BadRequest(new
+                {
+                    Message = "Registration failed",
+                    Errors = result.Errors.Select(e => e.Description).ToArray()
                 });
             }
 
             // Assign default User role
             await userManager.AddToRoleAsync(user, "User");
 
-            return Results.Ok(new { 
-                Message = "User registered successfully", 
-                UserId = user.Id 
+            return Results.Ok(new
+            {
+                Message = "User registered successfully",
+                UserId = user.Id
             });
         }
         catch (Exception ex)
@@ -228,9 +230,10 @@ public static class UserEndpoints
             var result = await userManager.UpdateAsync(currentUser);
             if (!result.Succeeded)
             {
-                return Results.BadRequest(new { 
-                    Message = "Update failed", 
-                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                return Results.BadRequest(new
+                {
+                    Message = "Update failed",
+                    Errors = result.Errors.Select(e => e.Description).ToArray()
                 });
             }
 
@@ -354,9 +357,10 @@ public static class UserEndpoints
 
             if (!result.Succeeded)
             {
-                return Results.BadRequest(new { 
-                    Message = "Delete failed", 
-                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                return Results.BadRequest(new
+                {
+                    Message = "Delete failed",
+                    Errors = result.Errors.Select(e => e.Description).ToArray()
                 });
             }
 
@@ -398,9 +402,10 @@ public static class UserEndpoints
             var result = await userManager.AddToRoleAsync(user, roleName);
             if (!result.Succeeded)
             {
-                return Results.BadRequest(new { 
-                    Message = "Role assignment failed", 
-                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                return Results.BadRequest(new
+                {
+                    Message = "Role assignment failed",
+                    Errors = result.Errors.Select(e => e.Description).ToArray()
                 });
             }
 
@@ -436,9 +441,10 @@ public static class UserEndpoints
             var result = await userManager.RemoveFromRoleAsync(user, roleName);
             if (!result.Succeeded)
             {
-                return Results.BadRequest(new { 
-                    Message = "Role removal failed", 
-                    Errors = result.Errors.Select(e => e.Description).ToArray() 
+                return Results.BadRequest(new
+                {
+                    Message = "Role removal failed",
+                    Errors = result.Errors.Select(e => e.Description).ToArray()
                 });
             }
 
