@@ -94,9 +94,15 @@ public sealed class AndSpecification<T> : BaseSpecification<T>
             IgnoreSoftDeleteFilter();
         }
 
-        if (left.AsNoTracking || right.AsNoTracking)
+        if (left.TrackingMode == QueryTrackingMode.NoTracking ||
+            right.TrackingMode == QueryTrackingMode.NoTracking)
         {
             UseNoTracking();
+        }
+        else if (left.TrackingMode == QueryTrackingMode.Tracking ||
+                 right.TrackingMode == QueryTrackingMode.Tracking)
+        {
+            UseTracking();
         }
 
         if (left.AsSplitQuery || right.AsSplitQuery)
@@ -206,9 +212,15 @@ public sealed class OrSpecification<T> : BaseSpecification<T>
             IgnoreSoftDeleteFilter();
         }
 
-        if (left.AsNoTracking || right.AsNoTracking)
+        if (left.TrackingMode == QueryTrackingMode.NoTracking ||
+            right.TrackingMode == QueryTrackingMode.NoTracking)
         {
             UseNoTracking();
+        }
+        else if (left.TrackingMode == QueryTrackingMode.Tracking ||
+                 right.TrackingMode == QueryTrackingMode.Tracking)
+        {
+            UseTracking();
         }
 
         if (left.AsSplitQuery || right.AsSplitQuery)
@@ -299,9 +311,14 @@ public sealed class NotSpecification<T> : BaseSpecification<T>
             IgnoreSoftDeleteFilter();
         }
 
-        if (source.AsNoTracking)
+        switch (source.TrackingMode)
         {
-            UseNoTracking();
+            case QueryTrackingMode.NoTracking:
+                UseNoTracking();
+                break;
+            case QueryTrackingMode.Tracking:
+                UseTracking();
+                break;
         }
 
         if (source.AsSplitQuery)

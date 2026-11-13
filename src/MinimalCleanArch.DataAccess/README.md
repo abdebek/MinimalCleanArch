@@ -94,6 +94,16 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 
 Use specifications through `IRepository<TEntity, TKey>` in application code. Treat `SpecificationEvaluator` as infrastructure-level plumbing for repository implementations and advanced EF integration points.
 
+### Tracking semantics
+
+Specifications support 3-state tracking via `QueryTrackingMode`:
+
+- **`Default` (neither `UseNoTracking()` nor `UseTracking()` called):** `SpecificationEvaluator` leaves tracking untouched, so queries follow whatever the host configured via `UseQueryTrackingBehavior(...)`.
+- **`UseNoTracking()`:** Explicitly applies `AsNoTracking()`, even on a tracking-on host (recommended for read-only queries).
+- **`UseTracking()`:** Explicitly applies `AsTracking()`, even on a global `UseQueryTrackingBehavior(NoTracking)` host (useful for write-path fetches that rely on change-tracker dirty detection rather than full-row `Repository.UpdateAsync` updates).
+
+Count-only specifications (`ForCountOnly()`) default to `QueryTrackingMode.NoTracking`, since counting never materializes entities, and can still override with `UseTracking()` if desired.
+
 When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
 
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MinimalCleanArch.DataAccess;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Specifications;
@@ -30,7 +30,8 @@ public static class SpecificationEvaluator<T> where T : class
             query = QueryFilters.IgnoreSoftDelete(query);
         }
 
-        // For count-only queries we only need criteria (and no-tracking if requested)
+        // For count-only queries we only need criteria. Count-only specifications
+        // default to QueryTrackingMode.NoTracking and can opt in with UseTracking().
         if (specification.IsCountOnly)
         {
             if (specification.Criteria != null)
@@ -38,12 +39,7 @@ public static class SpecificationEvaluator<T> where T : class
                 query = query.Where(specification.Criteria);
             }
 
-            if (specification.AsNoTracking)
-            {
-                query = query.AsNoTracking();
-            }
-
-            return query;
+            return ApplyTracking(query, specification);
         }
 
         // Apply criteria
@@ -88,11 +84,9 @@ public static class SpecificationEvaluator<T> where T : class
             query = query.Take(specification.Take.Value);
         }
 
-        // Apply no tracking if specified
-        if (specification.AsNoTracking)
-        {
-            query = query.AsNoTracking();
-        }
+        // Apply explicit tracking override if specified; otherwise keep EF Core's
+        // (host-configurable) tracking default — see README "Tracking semantics".
+        query = ApplyTracking(query, specification);
 
         // Apply split query behavior for include-heavy graphs
         if (specification.AsSplitQuery)
@@ -102,4 +96,12 @@ public static class SpecificationEvaluator<T> where T : class
 
         return query;
     }
+
+    private static IQueryable<T> ApplyTracking(IQueryable<T> query, ISpecification<T> specification) =>
+        specification.TrackingMode switch
+        {
+            QueryTrackingMode.NoTracking => query.AsNoTracking(),
+            QueryTrackingMode.Tracking => query.AsTracking(),
+            _ => query
+        };
 }

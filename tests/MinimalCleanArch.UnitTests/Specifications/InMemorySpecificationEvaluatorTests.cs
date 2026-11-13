@@ -38,9 +38,30 @@ public class InMemorySpecificationEvaluatorTests
 
         combined.AsSplitQuery.Should().BeTrue();
         combined.AsNoTracking.Should().BeTrue();
+        combined.TrackingMode.Should().Be(QueryTrackingMode.NoTracking);
         combined.IgnoreSoftDelete.Should().BeTrue();
         combined.IgnoreQueryFilters.Should().BeTrue();
         combined.IsCountOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CompositeSpecifications_PreserveThreeStateTrackingMode()
+    {
+        var defaultSpec = new FlagSpecification();
+        var trackingSpec = new FlagSpecification(asTracking: true);
+        var noTrackingSpec = new FlagSpecification(asNoTracking: true);
+        var trackedCountOnlySpec = new FlagSpecification(asTracking: true, isCountOnly: true);
+
+        defaultSpec.And(defaultSpec).TrackingMode.Should().Be(QueryTrackingMode.Default);
+        defaultSpec.And(trackingSpec).TrackingMode.Should().Be(QueryTrackingMode.Tracking);
+        defaultSpec.Or(trackingSpec).TrackingMode.Should().Be(QueryTrackingMode.Tracking);
+        trackingSpec.And(noTrackingSpec).TrackingMode.Should().Be(QueryTrackingMode.NoTracking);
+        trackedCountOnlySpec.And(defaultSpec).TrackingMode.Should().Be(QueryTrackingMode.Tracking);
+
+        defaultSpec.Not().TrackingMode.Should().Be(QueryTrackingMode.Default);
+        trackingSpec.Not().TrackingMode.Should().Be(QueryTrackingMode.Tracking);
+        noTrackingSpec.Not().TrackingMode.Should().Be(QueryTrackingMode.NoTracking);
+        trackedCountOnlySpec.Not().TrackingMode.Should().Be(QueryTrackingMode.Tracking);
     }
 
     [Fact]
@@ -90,6 +111,7 @@ public class InMemorySpecificationEvaluatorTests
     {
         public FlagSpecification(
             bool asNoTracking = false,
+            bool asTracking = false,
             bool asSplitQuery = false,
             bool ignoreQueryFilters = false,
             bool ignoreSoftDelete = false,
@@ -98,6 +120,10 @@ public class InMemorySpecificationEvaluatorTests
             if (asNoTracking)
             {
                 UseNoTracking();
+            }
+            else if (asTracking)
+            {
+                UseTracking();
             }
 
             if (asSplitQuery)
