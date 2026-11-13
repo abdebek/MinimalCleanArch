@@ -28,6 +28,11 @@ public class TemplateTestFixture : IAsyncLifetime
             .WithValidation(CommandResultValidation.None)
             .ExecuteAsync();
 
+        await Cli.Wrap("dotnet")
+            .WithArguments(new[] { "new", "uninstall", TemplatePath })
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteAsync();
+
         // Clear the template cache
         await Cli.Wrap("dotnet")
             .WithArguments(new[] { "new", "--debug:reinit" })

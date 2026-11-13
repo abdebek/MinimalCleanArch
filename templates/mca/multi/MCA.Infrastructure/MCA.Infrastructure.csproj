@@ -22,59 +22,27 @@
     <!--#endif-->
   </ItemGroup>
 
-  <!--#if (UseNet9)-->
   <ItemGroup>
     <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.3" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0" />
     <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0" />
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="11.0.0" />
     <!--#endif-->
   </ItemGroup>
-  <!--#endif-->
-
-  <!--#if (UseNet10)-->
-  <ItemGroup>
-    <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
-    <!--#endif-->
-    <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
-    <!--#endif-->
-    <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    <!--#endif-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
-    <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.10" />
-    <!--#endif-->
-    <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
-    <!--#endif-->
-  </ItemGroup>
-  <!--#endif-->
 
   <ItemGroup>
     <ProjectReference Include="..\MCA.Domain\MCA.Domain.csproj" />

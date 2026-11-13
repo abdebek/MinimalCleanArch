@@ -3,7 +3,7 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
-- Current stable: 0.1.21 (net9.0, net10.0).
+- Current stable: 0.1.21 (net11.0).
 
 ## Why Use It
 - define entities, repository contracts, specifications, and result types without taking a dependency on EF Core, HTTP, or messaging frameworks

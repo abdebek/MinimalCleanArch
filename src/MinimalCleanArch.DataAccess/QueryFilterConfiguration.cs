@@ -42,7 +42,6 @@ internal static class QueryFilterConfiguration
 
             var builder = modelBuilder.Entity(clr);
 
-#if NET10_0_OR_GREATER
             if (isSoftDelete)
             {
                 builder.HasQueryFilter(QueryFilters.SoftDelete, SoftDeleteLambda(clr));
@@ -52,29 +51,6 @@ internal static class QueryFilterConfiguration
             {
                 builder.HasQueryFilter(QueryFilters.Tenant, TenantLambda(clr, currentTenant));
             }
-#else
-            var parameter = Expression.Parameter(clr, "e");
-            Expression? body = null;
-
-            if (isSoftDelete)
-            {
-                var isDeleted = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
-                body = Expression.Equal(isDeleted, Expression.Constant(false));
-            }
-
-            if (isTenant)
-            {
-                var tenantProperty = Expression.Property(parameter, nameof(ITenantEntity.TenantId));
-                var hasTenant = Expression.NotEqual(
-                    currentTenant,
-                    Expression.Constant(null, typeof(string)));
-                var matchesTenant = Expression.Equal(tenantProperty, currentTenant);
-                var tenantFilter = Expression.AndAlso(hasTenant, matchesTenant);
-                body = body is null ? tenantFilter : Expression.AndAlso(body, tenantFilter);
-            }
-
-            builder.HasQueryFilter(Expression.Lambda(body!, parameter));
-#endif
         }
     }
 

@@ -11,14 +11,6 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="9.0.18" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />
     <ProjectReference Include="..\MinimalCleanArch\MinimalCleanArch.csproj" />

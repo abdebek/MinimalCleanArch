@@ -1,8 +1,6 @@
 <Project>
         <PropertyGroup>
-                <!-- Clear repo default to allow multi-targeting. -->
-                <TargetFramework></TargetFramework>
-                <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+                <TargetFramework>net11.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile Condition="'$(Configuration)' == 'Debug'">true</GenerateDocumentationFile>

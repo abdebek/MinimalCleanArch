@@ -11,27 +11,24 @@ This keeps CPM **out of** `temp/` template smoke builds and other trees that mus
 
 - **Versions live in** `eng/Directory.Packages.props`
 - **Project files** use versionless `PackageReference` entries
-- **Multi-targeting** (`net9.0` / `net10.0`) uses `VersionOverride` on TFM-conditioned package groups when the net9 line must differ from the central net10 default
-- **Transitive pinning** is off (`CentralPackageTransitivePinningEnabled=false`) so net9 graphs are not forced onto net10 package versions
+- **Target framework**: Repo projects single-target `net11.0`
+- **Transitive pinning** is enabled (`CentralPackageTransitivePinningEnabled=true`) to centrally manage all dependency versions
 
 ```xml
-<!-- Directory.Packages.props (central = net10 defaults) -->
-<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+<!-- Directory.Packages.props (central = net11 defaults) -->
+<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
 
 <!-- src project -->
-<PackageReference Include="Microsoft.EntityFrameworkCore" /> <!-- uses 10.0.10 on net10 -->
-<PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.18"
-                  Condition="'$(TargetFramework)' == 'net9.0'" />
+<PackageReference Include="Microsoft.EntityFrameworkCore" />
 ```
 
 | Channel | Microsoft.AspNetCore / EF / Extensions |
 |---------|----------------------------------------|
-| **net10.0** (default) | **10.0.10** |
-| **net9.0** (`VersionOverride`) | **9.0.18** |
+| **net11.0** (default) | **11.0.0** |
 
-TFM-specific third-party notes:
-- `Serilog.AspNetCore` **10.0.0** (net10) / **9.0.0** (net9)
-- `Asp.Versioning.Http` **10.0.1** (net10) / **8.1.1** (net9)
+Third-party package notes:
+- `Serilog.AspNetCore` **10.0.0**
+- `Asp.Versioning.Http` **10.0.1**
 - `WolverineFx` **6.24.0**
 - Aspire hosting **13.4.6** (latest stable line)
 
@@ -61,7 +58,7 @@ WolverineFx **6.24.0** is pinned centrally, including **`WolverineFx.RuntimeComp
 
 ## Health checks
 
-Generated templates use **AspNetCore.HealthChecks.\*** **9.0.0** (Xabaril) for net9/net10 compatibility (replacing the previous 8.x pins).
+Generated templates use **AspNetCore.HealthChecks.\*** **9.0.0** (Xabaril) (replacing the previous 8.x pins).
 
 ## Versioning note
 

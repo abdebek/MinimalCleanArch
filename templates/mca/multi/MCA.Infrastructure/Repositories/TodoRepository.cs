@@ -46,11 +46,7 @@ public class TodoRepository : Repository<Todo>, ITodoRepository
 
     public async Task<Todo?> GetByIdIncludingDeletedAsync(int id, CancellationToken cancellationToken = default)
     {
-#if (UseNet10)
         var query = DbSet.IgnoreQueryFilters(["SoftDelete"]).Where(t => t.Id == id);
-#else
-        var query = DbSet.IgnoreQueryFilters().Where(t => t.Id == id);
-#endif
 #if (UseMultiTenant)
         var tenantId = _execution.TenantId ?? string.Empty;
         query = query.Where(t => t.TenantId == tenantId);

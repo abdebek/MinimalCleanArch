@@ -3,7 +3,7 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
-- Current stable: 0.1.21 (net9.0, net10.0).
+- Current stable: 0.1.21 (net11.0).
 
 ## Why Use It
 - implement repository and unit-of-work patterns with EF Core instead of hand-rolling the infrastructure layer
@@ -62,7 +62,7 @@ public sealed class AppDbContext : DbContextBase
 
 Use the constructor overload that accepts `IExecutionContext` when you want audit stamping and tenant isolation to flow from the current HTTP request or message-handler scope without overriding `GetCurrentUserId()` / `GetCurrentTenantId()`.
 
-Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. Soft-delete and tenant are **named** filters on EF 10 (`QueryFilters.SoftDelete`, `QueryFilters.Tenant`). On EF 9 they are one combined filter; `IgnoreSoftDelete()` still re-applies tenant (fail-closed). `IgnoreQueryFilters()` disables every filter (admin/seed and process-wide jobs). Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
+Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. Soft-delete and tenant are **named** filters (`QueryFilters.SoftDelete`, `QueryFilters.Tenant`). `IgnoreSoftDelete()` disables only the soft-delete filter while maintaining tenant isolation. `IgnoreQueryFilters()` disables every filter (admin/seed and process-wide jobs). Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
 
 ### Recommended specification usage
 ```csharp

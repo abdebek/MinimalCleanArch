@@ -3,7 +3,7 @@
 Validation components for MinimalCleanArch.
 
 ## Version
-- Current stable: 0.1.21 (net9.0, net10.0).
+- Current stable: 0.1.21 (net11.0).
 
 ## Why Use It
 - register FluentValidation validators with short, MCA-oriented extension methods

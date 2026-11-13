@@ -4,12 +4,7 @@
     <Description>Entity Framework Core implementation for MinimalCleanArch</Description>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="9.0.18" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="9.0.18" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>

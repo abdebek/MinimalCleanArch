@@ -16,8 +16,6 @@
     <PackageReference Include="WolverineFx.Postgresql" />
     <!-- Wolverine 6: dynamic handler compilation moved out of core -->
     <PackageReference Include="WolverineFx.RuntimeCompilation" />
-    <!-- Lifts the vulnerable transitive System.Security.Cryptography.Pkcs 9.0.4 (NU1902/NU1903) from Microsoft.Data.SqlClient -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <!-- Pin Roslyn with Wolverine to keep the dependency graph aligned -->
     <PackageReference Include="Microsoft.CodeAnalysis.Common" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />

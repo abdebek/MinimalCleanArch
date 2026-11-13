@@ -19,7 +19,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
     private readonly string _packageSource;
     private readonly string _templateVersion;
     private readonly int _appPort;
-    private const string TemplateFramework = "net10.0";
+    private const string TemplateFramework = "net11.0";
 
     /// <summary>
     /// When true (env MCA_KEEP_TEMPLATE_OUTPUT=1), scaffold dirs under temp/MCA_Tests are kept for debugging.
@@ -385,8 +385,8 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         File.Exists(apiCsproj).Should().BeTrue();
         File.ReadAllText(apiCsproj).Should().Contain("MinimalCleanArch.Storage");
         // Scaffolded TFM is fixed — no dead dual-package groups for the other TFM
-        File.ReadAllText(apiCsproj).Should().NotContain("net9.0");
-        File.ReadAllText(apiCsproj).Should().Contain("net10.0");
+        File.ReadAllText(apiCsproj).Should().NotContain("net10.0");
+        File.ReadAllText(apiCsproj).Should().Contain("net11.0");
 
         var storageEndpoints = MultiSrc(projectDir, projectName, "Api", "Endpoints", "StorageEndpoints.cs");
         File.Exists(storageEndpoints).Should().BeTrue();
@@ -560,7 +560,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         apiCsproj.Should().NotContain("MinimalCleanArch.Email");
         apiCsproj.Should().NotContain("OpenIddict");
         apiCsproj.Should().NotContain("WolverineFx.FluentValidation");
-        // Only the selected TFM package line (net10 default)
+        // Only the selected TFM package line (.NET 11)
         apiCsproj.Should().NotContain("Version=\"9.0.");
         apiCsproj.Should().NotContain("Condition=\"'$(TargetFramework)'");
 
@@ -636,7 +636,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         pkg.Should().Contain("oidc-client-ts");
 
         var identity = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "Configuration", "IdentityServiceExtensions.cs"));
-        identity.Should().Contain("mca-spa-client");
+        identity.Should().Contain($"{projectName.ToLowerInvariant()}-spa-client");
         identity.Should().Contain("http://localhost:4321/callback");
         identity.Should().Contain("http://127.0.0.1:4321/callback");
         identity.Should().Contain("AddEphemeralSigningKey");
@@ -645,7 +645,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         identity.Should().NotContain("#if");
 
         var appsettings = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "appsettings.json"));
-        appsettings.Should().Contain("mca-spa-client");
+        appsettings.Should().Contain($"{projectName.ToLowerInvariant()}-spa-client");
         appsettings.Should().Contain("http://localhost:4321");
         appsettings.Should().Contain("http://127.0.0.1:4321");
         appsettings.Should().NotContain("#if");
@@ -948,6 +948,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
     public async Task Create_Postgres_Docker_Uses_DbName_In_Compose_And_ConnectionStrings()
     {
         var namedDir = Path.Combine(_baseOutputDir, "ShopNamed");
+        CreateNugetConfig(namedDir);
         await RunDotnetCommandAsync(BuildTemplateArgs(
             "new", "mca", "-n", "Shop", "-o", namedDir,
             "--db", "postgres", "--dbName", "shop", "--docker"));
@@ -959,6 +960,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
             singleProject: false);
 
         var defaultDir = Path.Combine(_baseOutputDir, "ShopDefault");
+        CreateNugetConfig(defaultDir);
         await RunDotnetCommandAsync(BuildTemplateArgs(
             "new", "mca", "-n", "Shop", "-o", defaultDir,
             "--db", "postgres", "--docker"));
@@ -970,6 +972,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
             singleProject: false);
 
         var singleDir = Path.Combine(_baseOutputDir, "ShopSingle");
+        CreateNugetConfig(singleDir);
         await RunDotnetCommandAsync(BuildTemplateArgs(
             "new", "mca", "-n", "Shop", "-o", singleDir,
             "--single-project", "--db", "postgres", "--dbName", "shop", "--docker"));
@@ -1304,6 +1307,7 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
     {
         var result = await Cli.Wrap("dotnet")
             .WithArguments(args)
+            .WithEnvironmentVariables(e => e.Set("DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER", "1"))
             .WithValidation(CommandResultValidation.None)
             .ExecuteBufferedAsync();
 

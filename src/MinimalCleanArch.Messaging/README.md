@@ -3,7 +3,7 @@
 Messaging and domain event helpers for MinimalCleanArch (Wolverine integration).
 
 ## Version
-- Current stable: 0.1.21 (net9.0, net10.0).
+- Current stable: 0.1.21 (net11.0).
 
 ## Why Use It
 - publish and handle domain events through Wolverine without building the integration layer from scratch

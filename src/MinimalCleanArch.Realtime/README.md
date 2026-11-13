@@ -3,7 +3,7 @@
 Realtime publish port: channel, payload, optional tenant/user audience. No SignalR types on the port.
 
 ## Version
-- Current: 0.1.21 (net9.0, net10.0).
+- Current: 0.1.21 (net11.0).
 
 ## Why Use It
 - push domain events to connected clients without taking a SignalR dependency in application code

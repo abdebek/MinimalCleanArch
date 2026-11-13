@@ -403,7 +403,7 @@ Also includes `scripts/smoke-test.*` for hitting the API once the host is up (us
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--mcaVersion <version>` | 0.1.21 | MinimalCleanArch package version |
-| `--framework <tfm>` | net10.0 | Target framework (`net9.0` or `net10.0`) |
+| `--framework <tfm>` | net11.0 | Target framework (`net11.0`) |
 
 ## Architecture Overview
 
@@ -596,11 +596,11 @@ Provider callback URLs (register these at the IdP):
 ```bash
 # From repo root — pack then validate
 ./scripts/pack.sh --package-version 0.1.21
-./scripts/validate-templates.sh -McaVersion 0.1.21 -Framework net10.0
+./scripts/validate-templates.sh -McaVersion 0.1.21 -Framework net11.0
 
 # PowerShell equivalents
 # ./scripts/pack.ps1 -PackageVersion 0.1.21
-# ./scripts/validate-templates.ps1 -McaVersion 0.1.21 -Framework net10.0
+# ./scripts/validate-templates.ps1 -McaVersion 0.1.21 -Framework net11.0
 ```
 
 `scripts/validate-templates.*` wraps `templates/scripts/validate-templates.ps1` (implementation lives under `templates/scripts/`).

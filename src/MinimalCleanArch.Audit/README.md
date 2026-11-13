@@ -3,7 +3,7 @@
 Audit logging components for MinimalCleanArch.
 
 ## Version
-- Current stable: 0.1.21 (net9.0, net10.0).
+- Current stable: 0.1.21 (net11.0).
 
 ## Why Use It
 - persist entity change history and audit metadata without duplicating audit plumbing in each EF Core DbContext
