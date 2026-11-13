@@ -23,6 +23,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <!-- Lift transitive OpenApi 2.0.0 (NU1903) pulled by Microsoft.AspNetCore.OpenApi -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.11.0" />
+    <!-- Lift transitive System.Security.Cryptography.Pkcs 9.0.4 (NU1902/NU1903) pulled by Microsoft.Data.SqlClient via Weasel.SqlServer -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.23" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
