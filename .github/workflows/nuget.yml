@@ -1,9 +1,7 @@
-name: Build and Publish NuGet Packages
+name: Build and Test
 
 on:
   push:
-    tags:
-      - 'v*'
     branches:
       - dev
       - main
@@ -15,14 +13,6 @@ on:
       - master
   workflow_dispatch:
     inputs:
-      publish:
-        description: 'Publish to NuGet.org'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
       version:
         description: 'Package version (optional - overrides default)'
         required: false
@@ -31,10 +21,10 @@ on:
 
 # Add permissions at the workflow level
 permissions:
-  contents: write    # Required for creating releases
-  packages: write    # Required for publishing packages
-  actions: read      # Required for downloading artifacts
-  checks: write      # Required for test reporting
+  contents: read
+  packages: read
+  actions: read
+  checks: write
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -246,146 +236,9 @@ jobs:
         retention-days: 90
         if-no-files-found: ignore
 
-  publish:
-    needs: [pack, security-scan]
-    runs-on: ubuntu-latest
-    if: |
-      (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true') && 
-      github.repository_owner != 'dependabot[bot]' &&
-      !contains(github.event.head_commit.message, '[skip-publish]')
-    environment: 
-      name: nuget-publishing
-      url: https://www.nuget.org/packages?q=MinimalCleanArch
-
-    # Add specific permissions for this job
-    permissions:
-      contents: write
-      packages: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v5
-      with:
-        global-json-file: global.json
-
-    - name: Download packages artifact
-      uses: actions/download-artifact@v6
-      with:
-        name: nuget-packages-${{ github.run_number }}
-        path: ./artifacts/packages
-
-    - name: Download symbols artifact
-      uses: actions/download-artifact@v6
-      with:
-        name: nuget-symbols-${{ github.run_number }}
-        path: ./artifacts/packages
-      continue-on-error: true
-
-    - name: Validate packages
-      run: |
-        echo "Validating packages..."
-        package_count=$(find ./artifacts/packages -name "*.nupkg" | wc -l)
-        if [ $package_count -eq 0 ]; then
-          echo "Error: No packages found to publish!"
-          exit 1
-        fi
-        echo "Found $package_count packages to publish"
-
-        # List packages with sizes
-        find ./artifacts/packages -name "*.nupkg" -exec ls -lh {} \;
-
-    - name: Publish to NuGet.org (What-If)
-      if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
-      run: |
-        echo "What-If Mode: Showing what would be published..."
-        echo "Found packages:"
-        ls -la ./artifacts/packages/*.nupkg
-        echo ""
-        echo "These packages would be published to NuGet.org"
-        echo "To actually publish, create a tag like: git tag v0.0.1 && git push origin v0.0.1"
-
-    - name: Publish to NuGet.org
-      if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
-      run: |
-        echo "Publishing packages to NuGet.org..."
-
-        success_count=0
-        total_count=0
-
-        for package in ./artifacts/packages/*.nupkg; do
-          if [ -f "$package" ]; then
-            total_count=$((total_count + 1))
-            package_name=$(basename "$package")
-            echo "Publishing: $package_name"
-
-            if dotnet nuget push "$package" \
-              --api-key "$NUGET_API_KEY" \
-              --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate \
-              --timeout 300; then
-              success_count=$((success_count + 1))
-              echo "✓ Successfully published $package_name"
-            else
-              echo "✗ Failed to publish $package_name"
-            fi
-
-            # Add delay between publishes to avoid rate limiting
-            sleep 5
-          fi
-        done
-
-        echo ""
-        echo "Publishing Summary:"
-        echo "  Total packages: $total_count"
-        echo "  Successful: $success_count"
-        echo "  Failed: $((total_count - success_count))"
-
-        if [ $success_count -eq 0 ]; then
-          echo "Error: No packages were published successfully"
-          exit 1
-        elif [ $success_count -lt $total_count ]; then
-          echo "Warning: Some packages failed to publish"
-        else
-          echo "All packages published successfully!"
-        fi
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-
-    - name: Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/v') && success()
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        IS_PRERELEASE: ${{ contains(github.ref, '-') || contains(needs.pack.outputs.package-version, '-') }}
-        PACKAGE_VERSION: ${{ needs.pack.outputs.package-version }}
-      run: |
-        set -euo pipefail
-
-        release_assets=(./artifacts/packages/*.nupkg ./artifacts/packages/*.snupkg)
-        if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-          gh release upload "${GITHUB_REF_NAME}" "${release_assets[@]}" --clobber
-        else
-          prerelease_flag=()
-          if [ "${IS_PRERELEASE}" = "true" ]; then
-            prerelease_flag+=(--prerelease)
-          fi
-
-          release_notes_template="$(cat release-notes.md)"
-          release_notes="${release_notes_template//\{\{TAG\}\}/${GITHUB_REF_NAME}}"
-          release_notes="${release_notes//\{\{VERSION\}\}/${PACKAGE_VERSION}}"
-
-          gh release create "${GITHUB_REF_NAME}" "${release_assets[@]}" \
-            --title "Release ${GITHUB_REF_NAME}" \
-            --notes "${release_notes}" \
-            --generate-notes \
-            "${prerelease_flag[@]}"
-        fi
-
   security-scan:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
+    needs: [build-and-test]
 
     steps:
     - name: Checkout code
