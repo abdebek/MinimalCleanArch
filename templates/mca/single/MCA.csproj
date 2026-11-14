@@ -103,15 +103,11 @@
     <!--#endif-->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
-    <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0" />
-    <!--#if (!UseAspire)-->
+    <!--#if (UseCaching && !UseAspire)-->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0" />
-    <!--#endif-->
     <!--#endif-->
     <!--#if (UseAuth)-->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="11.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="11.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="11.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="11.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />

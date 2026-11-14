@@ -3,7 +3,7 @@
 Core primitives for Clean Architecture: entities, repositories, specifications, result pattern, and common types.
 
 ## Version
-- Current stable: 0.1.21 (net11.0).
+- Current stable: 0.2.0-preview (net11.0).
 
 ## Why Use It
 - define entities, repository contracts, specifications, and result types without taking a dependency on EF Core, HTTP, or messaging frameworks
@@ -34,7 +34,7 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 
 ## Usage
 ```bash
-dotnet add package MinimalCleanArch --version 0.1.21
+dotnet add package MinimalCleanArch --version 0.2.0-preview
 ```
 
 Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` for typed operation results.

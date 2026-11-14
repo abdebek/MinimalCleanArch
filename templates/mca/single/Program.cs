@@ -14,6 +14,8 @@ using FastEndpoints;
 using MCA.Infrastructure.Services;
 #endif
 using Microsoft.EntityFrameworkCore;
+using MinimalCleanArch.DataAccess.Repositories;
+using MinimalCleanArch.Repositories;
 #if (UseValidation)
 using MCA.Application.Validation;
 #endif

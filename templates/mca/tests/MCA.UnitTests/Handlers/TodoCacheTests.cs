@@ -1,4 +1,5 @@
 #if (UseCaching)
+using System.Data;
 using System.Linq.Expressions;
 using FluentAssertions;
 using MCA.Application.Commands;

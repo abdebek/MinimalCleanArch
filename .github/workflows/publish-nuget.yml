@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish (e.g. 0.1.21-preview)'
+        description: 'Version to publish (e.g. 0.2.0-preview)'
         required: true
       nuget_user:
         description: 'Optional nuget.org username override (default: abdebek)'
