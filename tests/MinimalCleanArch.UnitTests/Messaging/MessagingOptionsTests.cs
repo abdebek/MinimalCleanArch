@@ -1,4 +1,3 @@
-using System.Reflection;
 using FluentAssertions;
 using MinimalCleanArch.Messaging.Extensions;
 

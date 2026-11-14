@@ -80,7 +80,7 @@ public class UnitOfWork : IUnitOfWork
         // Always use the async version with default isolation level
         // EF Core doesn't provide good async support for custom isolation levels
         _currentTransaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        
+
         // Note: Custom isolation levels are not fully supported in this implementation
         // Most applications work fine with the default ReadCommitted level
         // If you need custom isolation levels, consider managing transactions at a higher level
@@ -153,7 +153,7 @@ public class UnitOfWork : IUnitOfWork
             throw new ArgumentNullException(nameof(action));
 
         var hadActiveTransaction = HasActiveTransaction;
-        
+
         if (!hadActiveTransaction)
         {
             await BeginTransactionAsync(isolationLevel, cancellationToken);
@@ -162,12 +162,12 @@ public class UnitOfWork : IUnitOfWork
         try
         {
             var result = await action();
-            
+
             if (!hadActiveTransaction)
             {
                 await CommitTransactionAsync(cancellationToken);
             }
-            
+
             return result;
         }
         catch

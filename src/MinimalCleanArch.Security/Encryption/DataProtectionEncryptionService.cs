@@ -37,7 +37,7 @@ public class DataProtectionEncryptionService : IEncryptionService
             // Create a data protector with a specific purpose string
             // This ensures data encrypted for one purpose cannot be decrypted by another
             _dataProtector = dataProtectionProvider.CreateProtector(_options.Purpose);
-            
+
             // If lifetime is specified, create a time-limited protector
             if (_options.KeyLifetime.HasValue)
             {
@@ -74,15 +74,15 @@ public class DataProtectionEncryptionService : IEncryptionService
                 // Use time-limited protection
                 var expiration = DateTimeOffset.UtcNow.Add(_options.KeyLifetime.Value);
                 result = timeLimitedProtector.Protect(plainText, expiration);
-                
+
                 _logger?.LogDebug("Successfully encrypted data with expiration: {Expiration}", expiration);
             }
             else
             {
                 // Use standard protection
                 result = _dataProtector.Protect(plainText);
-                
-                _logger?.LogDebug("Successfully encrypted data (length: {PlainLength} -> {EncryptedLength})", 
+
+                _logger?.LogDebug("Successfully encrypted data (length: {PlainLength} -> {EncryptedLength})",
                     plainText.Length, result.Length);
             }
 
@@ -128,7 +128,7 @@ public class DataProtectionEncryptionService : IEncryptionService
                 result = _dataProtector.Unprotect(cipherText);
             }
 
-            _logger?.LogDebug("Successfully decrypted data (length: {EncryptedLength} -> {PlainLength})", 
+            _logger?.LogDebug("Successfully decrypted data (length: {EncryptedLength} -> {PlainLength})",
                 cipherText.Length, result.Length);
 
             return result;

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using System.Reflection;
 using MinimalCleanArch.Execution;

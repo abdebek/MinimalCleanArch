@@ -59,7 +59,6 @@ using MinimalCleanArch.Storage;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
-using System;
 #endif
 #if (UseAuth)
 using MCA.Application.Interfaces;
@@ -171,7 +170,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 #endif
 
 // Repositories
-builder.Services.AddScoped<ITodoRepository>(sp => new TodoRepository(sp.GetRequiredService<AppDbContext>()));
+builder.Services.AddScoped<ITodoRepository, TodoRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(sp.GetRequiredService<AppDbContext>()));
 
 // Application handlers (use cases)

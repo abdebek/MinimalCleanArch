@@ -4,7 +4,7 @@
     <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU1608;NU1510</NoWarn>
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -88,69 +88,31 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
   </ItemGroup>
 
-  <!--#if (UseNet9)-->
-  <ItemGroup>
-    <!--#if (UseSerilog)-->
-    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-    <!--#endif-->
-    <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.18" />
-    <!--#endif-->
-    <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.18" />
-    <!--#endif-->
-    <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-    <!--#endif-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
-    <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.18" />
-    <!--#if (!UseAspire)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
-    <!--#endif-->
-    <!--#endif-->
-    <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.18" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.18" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="9.0.18" />
-    <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="9.4.1" />
-    <!--#endif-->
-  </ItemGroup>
-  <!--#endif-->
-
-  <!--#if (UseNet10)-->
   <ItemGroup>
     <!--#if (UseSerilog)-->
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <!--#endif-->
     <!--#if (UseSqlite)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
     <!--#endif-->
     <!--#if (UsePostgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.3" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
-    <!--#if (UseCaching)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.10" />
-    <!--#if (!UseAspire)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
-    <!--#endif-->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
+    <!--#if (UseCaching && !UseAspire)-->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0" />
     <!--#endif-->
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="11.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
     <!--#endif-->
   </ItemGroup>
-  <!--#endif-->
 
   <ItemGroup>
     <Compile Remove="tests/**" />

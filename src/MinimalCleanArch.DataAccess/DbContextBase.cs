@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Execution;
@@ -8,7 +8,7 @@ namespace MinimalCleanArch.DataAccess;
 /// <summary>
 /// Base DbContext with support for auditing, soft delete, and tenant isolation
 /// </summary>
-public abstract class DbContextBase : DbContext, IQueryFilterTenantContext
+public abstract class DbContextBase : DbContext
 {
     private readonly IExecutionContext? _executionContext;
 
@@ -69,7 +69,7 @@ public abstract class DbContextBase : DbContext, IQueryFilterTenantContext
     private void ApplyAuditInfo()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is IAuditableEntity && 
+            .Where(e => e.Entity is IAuditableEntity &&
                        (e.State == EntityState.Added || e.State == EntityState.Modified));
 
         string? userId = GetCurrentUserId();
@@ -113,8 +113,6 @@ public abstract class DbContextBase : DbContext, IQueryFilterTenantContext
     /// <see cref="IExecutionContext"/>, not captured at model compile time.
     /// </summary>
     protected string? CurrentTenantId => GetCurrentTenantId();
-
-    string? IQueryFilterTenantContext.QueryFilterTenantId => GetCurrentTenantId();
 
     private void ApplyTenantStamps() => TenantStamper.Apply(ChangeTracker, GetCurrentTenantId());
 }

@@ -17,10 +17,10 @@ public class EncryptionOptions
     /// Priority: 1. Explicitly set Key property, 2. ENCRYPTION_KEY environment variable, 3. MINIMALCLEANARCH_ENCRYPTION_KEY
     /// </summary>
     [Required]
-    public string Key 
-    { 
+    public string Key
+    {
         get => _key ?? LoadKeyFromEnvironment() ?? throw new InvalidOperationException("Encryption key not configured");
-        set 
+        set
         {
             _key = value;
             _keyLoadedFromEnvironment = false;
@@ -109,7 +109,7 @@ public class EncryptionOptions
     {
         var validationContext = new ValidationContext(this);
         var validationResults = new List<ValidationResult>();
-        
+
         if (!Validator.TryValidateObject(this, validationContext, validationResults, true))
         {
             return validationResults.First();
@@ -179,7 +179,7 @@ public class EncryptionOptions
         };
 
         var lowerKey = key.ToLowerInvariant();
-        
+
         // Check for common weak patterns
         if (weakPatterns.Any(pattern => lowerKey.Contains(pattern)))
         {
@@ -240,11 +240,11 @@ public class EncryptionOptions
 
         // Use only alphanumeric and safe symbols to avoid encoding issues
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-        
+
         using var rng = RandomNumberGenerator.Create();
         var bytes = new byte[length * 2]; // Generate more bytes than needed for better randomness
         rng.GetBytes(bytes);
-        
+
         var result = new StringBuilder(length);
         for (int i = 0; i < length; i++)
         {
@@ -252,7 +252,7 @@ public class EncryptionOptions
             var randomIndex = (bytes[i * 2] << 8 | bytes[i * 2 + 1]) % chars.Length;
             result.Append(chars[randomIndex]);
         }
-        
+
         return result.ToString();
     }
 
@@ -264,7 +264,7 @@ public class EncryptionOptions
     public static string GenerateKeyWithInstructions(int length = 64)
     {
         var key = GenerateStrongKey(length);
-        
+
         var instructions = new StringBuilder();
         instructions.AppendLine("Generated strong encryption key. Set it as an environment variable:");
         instructions.AppendLine();
@@ -288,7 +288,7 @@ public class EncryptionOptions
         instructions.AppendLine("}");
         instructions.AppendLine();
         instructions.AppendLine("⚠️  SECURITY WARNING: Never commit this key to source control!");
-        
+
         return instructions.ToString();
     }
 

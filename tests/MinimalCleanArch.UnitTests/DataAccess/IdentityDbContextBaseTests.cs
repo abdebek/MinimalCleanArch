@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using MinimalCleanArch.DataAccess;
 
 namespace MinimalCleanArch.UnitTests.DataAccess;

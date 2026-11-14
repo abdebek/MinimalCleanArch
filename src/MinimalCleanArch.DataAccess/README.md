@@ -3,7 +3,7 @@
 Entity Framework Core implementation for MinimalCleanArch (repositories, unit of work, specifications, DbContext helpers).
 
 ## Version
-- Current stable: 0.1.21 (net9.0, net10.0).
+- Current stable: 0.2.0-preview (net11.0).
 
 ## Why Use It
 - implement repository and unit-of-work patterns with EF Core instead of hand-rolling the infrastructure layer
@@ -62,7 +62,7 @@ public sealed class AppDbContext : DbContextBase
 
 Use the constructor overload that accepts `IExecutionContext` when you want audit stamping and tenant isolation to flow from the current HTTP request or message-handler scope without overriding `GetCurrentUserId()` / `GetCurrentTenantId()`.
 
-Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. Soft-delete and tenant are **named** filters on EF 10 (`QueryFilters.SoftDelete`, `QueryFilters.Tenant`). On EF 9 they are one combined filter; `IgnoreSoftDelete()` still re-applies tenant (fail-closed). `IgnoreQueryFilters()` disables every filter (admin/seed and process-wide jobs). Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
+Entities that implement `ITenantEntity` are filtered to `TenantId == IExecutionContext.TenantId`. Inserts without a tenant throw. Soft-delete and tenant are **named** filters (`QueryFilters.SoftDelete`, `QueryFilters.Tenant`). `IgnoreSoftDelete()` disables only the soft-delete filter while maintaining tenant isolation. `IgnoreQueryFilters()` disables every filter (admin/seed and process-wide jobs). Template `--multitenant` opts generated Todo rows in; combine with `--auth` so login issues a `tenant_id` claim.
 
 ### Recommended specification usage
 ```csharp
@@ -93,6 +93,16 @@ public sealed class DueTodaySpec : BaseSpecification<Todo>
 ```
 
 Use specifications through `IRepository<TEntity, TKey>` in application code. Treat `SpecificationEvaluator` as infrastructure-level plumbing for repository implementations and advanced EF integration points.
+
+### Tracking semantics
+
+Specifications support 3-state tracking via `QueryTrackingMode`:
+
+- **`Default` (neither `UseNoTracking()` nor `UseTracking()` called):** `SpecificationEvaluator` leaves tracking untouched, so queries follow whatever the host configured via `UseQueryTrackingBehavior(...)`.
+- **`UseNoTracking()`:** Explicitly applies `AsNoTracking()`, even on a tracking-on host (recommended for read-only queries).
+- **`UseTracking()`:** Explicitly applies `AsTracking()`, even on a global `UseQueryTrackingBehavior(NoTracking)` host (useful for write-path fetches that rely on change-tracker dirty detection rather than full-row `Repository.UpdateAsync` updates).
+
+Count-only specifications (`ForCountOnly()`) default to `QueryTrackingMode.NoTracking`, since counting never materializes entities, and can still override with `UseTracking()` if desired.
 
 When using a locally built package, add a `nuget.config` pointing to your local feed (e.g., `artifacts/nuget`) before restoring.
 

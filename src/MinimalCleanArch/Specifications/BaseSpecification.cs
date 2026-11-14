@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace MinimalCleanArch.Specifications;
 
@@ -69,10 +69,21 @@ public abstract class BaseSpecification<T> : ISpecification<T>
     /// </summary>
     public bool IgnoreSoftDelete { get; private set; }
 
+    private QueryTrackingMode? _trackingMode;
+
     /// <summary>
-    /// Gets a value indicating whether the query should be tracked by the EF Core change tracker
+    /// Gets the tracking mode for the query.
+    /// Regular specifications default to <see cref="QueryTrackingMode.Default"/>, following EF Core's
+    /// (host-configurable) tracking default. Count-only specifications default to
+    /// <see cref="QueryTrackingMode.NoTracking"/> unless <see cref="UseTracking"/> is called explicitly.
     /// </summary>
-    public bool AsNoTracking { get; private set; }
+    public QueryTrackingMode TrackingMode =>
+        _trackingMode ?? (IsCountOnly ? QueryTrackingMode.NoTracking : QueryTrackingMode.Default);
+
+    /// <summary>
+    /// Gets a value indicating whether the query should be executed without change tracking.
+    /// </summary>
+    public bool AsNoTracking => TrackingMode == QueryTrackingMode.NoTracking;
 
     /// <summary>
     /// Gets a value indicating whether includes should be loaded with split query behavior.
@@ -184,11 +195,21 @@ public abstract class BaseSpecification<T> : ISpecification<T>
     }
 
     /// <summary>
-    /// Configures the specification to use no tracking queries
+    /// Configures the specification to execute without change tracking,
+    /// overriding the host's tracking default.
     /// </summary>
     protected void UseNoTracking()
     {
-        AsNoTracking = true;
+        _trackingMode = QueryTrackingMode.NoTracking;
+    }
+
+    /// <summary>
+    /// Configures the specification to execute with change tracking enabled,
+    /// overriding both a host-level no-tracking default and the count-only no-tracking default.
+    /// </summary>
+    protected void UseTracking()
+    {
+        _trackingMode = QueryTrackingMode.Tracking;
     }
 
     /// <summary>
@@ -208,7 +229,8 @@ public abstract class BaseSpecification<T> : ISpecification<T>
     }
 
     /// <summary>
-    /// Configures the specification for count-only queries
+    /// Configures the specification for count-only queries. Count-only specifications
+    /// default to <see cref="QueryTrackingMode.NoTracking"/> unless <see cref="UseTracking"/> is called explicitly.
     /// </summary>
     protected void ForCountOnly()
     {

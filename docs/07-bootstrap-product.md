@@ -51,7 +51,7 @@ Kernel code is framework-neutral. Public contracts must stay free of ASP.NET typ
 | `IJobScheduler` | `MinimalCleanArch.Jobs` (hosted-service fallback; Wolverine adapter in Messaging) |
 | `IRealtimePublisher` | `MinimalCleanArch.Realtime` (SignalR adapter in Extensions) |
 | `IFeatureGate` | `MinimalCleanArch.Features` (config + optional store; HTTP `RequireFeature` in Extensions) |
-| `ITenantEntity` | `MinimalCleanArch` — row ownership; EF named filters on net10, combined + re-apply on net9 |
+| `ITenantEntity` | `MinimalCleanArch` — row ownership; EF named query filters |
 | Future ports (auth/token) | not shipped as kernel ports yet |
 
 `IDomainEventPublisher` exists; the Wolverine implementation is an **adapter**, not kernel.
@@ -206,7 +206,7 @@ Workflows live under `.github/workflows/`. Local equivalents are `scripts/pack.s
 
 | Workflow | File | When | What |
 |---|---|---|---|
-| Build, test, pack | `nuget.yml` | PR and push to `dev` / `main` / `master`; `v*` tags; `workflow_dispatch` | Restore `MinimalCleanArch.slnx` + templates; build/test `MinimalCleanArch.CI.slnx`; calls `validate-templates.yml`; pack job writes `artifacts/packages` |
+| Build, test, pack | `nuget.yml` | PR and push to `dev` / `main` / `master`; `v*` tags; `workflow_dispatch` | Restore `MinimalCleanArch.slnx` + templates; build/test `MinimalCleanArch.slnx`; calls `validate-templates.yml`; pack job writes `artifacts/packages` |
 | Validate templates | `validate-templates.yml` | Called from `nuget.yml`; also `workflow_dispatch` | Windows job: `scripts/pack.ps1` then `templates/scripts/validate-templates.ps1` against that local feed (`-McaVersion` from `src/Directory.Build.props`) |
 | Publish (Trusted Publishing) | `publish-nuget.yml` | `v*` tags; `workflow_dispatch` with a version | Pack, NuGet OIDC login (`id-token`), `dotnet nuget push` to nuget.org, GitHub Release on tag |
 

@@ -19,22 +19,22 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection</returns>
     public static IServiceCollection AddMinimalCleanArch<TContext>(
         this IServiceCollection services,
-        Action<DbContextOptionsBuilder> optionsAction) 
+        Action<DbContextOptionsBuilder> optionsAction)
         where TContext : DbContext
     {
         // Register DbContext
         services.AddDbContext<TContext>(optionsAction);
-        
+
         // Register DbContext as base class for DI
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<TContext>());
-        
+
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        
+
         // Register Repository implementations
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        
+
         return services;
     }
 
@@ -81,17 +81,17 @@ public static class ServiceCollectionExtensions
     {
         // Register DbContext with factory
         services.AddScoped<TContext>(dbContextFactory);
-        
+
         // Register DbContext as base class for DI
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<TContext>());
-        
+
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        
+
         // Register Repository implementations
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        
+
         return services;
     }
 
@@ -104,11 +104,11 @@ public static class ServiceCollectionExtensions
     {
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        
+
         // Register Repository implementations
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        
+
         return services;
     }
 
@@ -122,23 +122,23 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection</returns>
     public static IServiceCollection AddMinimalCleanArch<TContext, TUnitOfWork>(
         this IServiceCollection services,
-        Action<DbContextOptionsBuilder> optionsAction) 
+        Action<DbContextOptionsBuilder> optionsAction)
         where TContext : DbContext
         where TUnitOfWork : class, IUnitOfWork
     {
         // Register DbContext
         services.AddDbContext<TContext>(optionsAction);
-        
+
         // Register DbContext as base class for DI
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<TContext>());
-        
+
         // Register custom Unit of Work
         services.AddScoped<IUnitOfWork, TUnitOfWork>();
-        
+
         // Register Repository implementations
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        
+
         return services;
     }
 

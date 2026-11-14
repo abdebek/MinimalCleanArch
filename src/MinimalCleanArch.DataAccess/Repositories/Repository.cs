@@ -12,8 +12,8 @@ namespace MinimalCleanArch.DataAccess.Repositories;
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity</typeparam>
 /// <typeparam name="TKey">The type of the entity's key</typeparam>
-public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> 
-    where TEntity : class, IEntity<TKey> 
+public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
+    where TEntity : class, IEntity<TKey>
     where TKey : IEquatable<TKey>
 {
     /// <summary>
@@ -22,7 +22,9 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     protected readonly DbContext DbContext;
 
     /// <summary>
-    /// The entity set
+    /// The entity set. Used for write operations (add/update/remove) and as the
+    /// base queryable for the specification evaluator; read helpers never compose
+    /// <c>DbSet</c> queries directly.
     /// </summary>
     protected readonly DbSet<TEntity> DbSet;
 
@@ -43,7 +45,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <returns>A task that represents the asynchronous operation</returns>
     public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await DbSet.ToListAsync(cancellationToken);
+        return await ApplySpecification(new FilterSpecification<TEntity>()).ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -56,7 +58,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default)
     {
-        return await DbSet.Where(filter).ToListAsync(cancellationToken);
+        return await ApplySpecification(new FilterSpecification<TEntity>(filter)).ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -77,7 +79,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default)
     {
-        return await DbSet.AnyAsync(filter, cancellationToken);
+        return await ApplySpecification(new FilterSpecification<TEntity>(filter)).AnyAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -96,7 +98,8 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <returns>A task that represents the asynchronous operation</returns>
     public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
-        return await DbSet.FirstOrDefaultAsync(e => e.Id.Equals(id), cancellationToken);
+        return await ApplySpecification(new FilterSpecification<TEntity>(e => e.Id.Equals(id)))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     /// <summary>
@@ -109,7 +112,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default)
     {
-        return await DbSet.FirstOrDefaultAsync(filter, cancellationToken);
+        return await ApplySpecification(new FilterSpecification<TEntity>(filter)).FirstOrDefaultAsync(cancellationToken);
     }
 
     /// <summary>
@@ -130,7 +133,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default)
     {
-        return await DbSet.SingleOrDefaultAsync(filter, cancellationToken);
+        return await ApplySpecification(new FilterSpecification<TEntity>(filter)).SingleOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -151,9 +154,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>>? filter = null,
         CancellationToken cancellationToken = default)
     {
-        if (filter == null)
-            return await DbSet.CountAsync(cancellationToken);
-        return await DbSet.CountAsync(filter, cancellationToken);
+        return await ApplySpecification(new CountOnlySpecification<TEntity>(filter)).CountAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -261,7 +262,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     public virtual Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
     {
         var entitiesList = entities.ToList();
-        
+
         foreach (var entity in entitiesList)
         {
             if (entity is ISoftDelete softDeleteEntity)
@@ -274,7 +275,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
                 DbSet.Remove(entity);
             }
         }
-        
+
         return Task.CompletedTask;
     }
 

@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Http.Json;
+using System.Net;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,7 +34,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
     public Task DisposeAsync() => Task.CompletedTask;
 
     #region Basic Registration Tests
-      
+
     //TODO: fix
     //[Fact]
     //public async Task RegisterUser_WithValidData_ShouldReturnSuccess()
@@ -56,7 +55,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
 
     //    // Assert
     //    response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
     //    var content = await response.Content.ReadAsStringAsync();
     //    content.Should().Contain("User registered successfully");
     //    content.Should().Contain("UserId");
@@ -65,7 +64,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
     //    using var scope = _factory.Services.CreateScope();
     //    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     //    var user = await userManager.FindByEmailAsync(registerRequest.Email);
-        
+
     //    user.Should().NotBeNull();
     //    user!.Email.Should().Be(registerRequest.Email);
     //    user.FullName.Should().Be(registerRequest.FullName);
@@ -91,7 +90,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
     }
 
     //TODO: fix
-    //[Fact] 
+    //[Fact]
     //public async Task RegisterUser_WithWeakPassword_ShouldReturnBadRequest()
     //{
     //    // Arrange
@@ -108,7 +107,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
 
     //    // Assert
     //    response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        
+
     //    var content = await response.Content.ReadAsStringAsync();
     //    content.Should().Contain("Registration failed");
     //}
@@ -142,7 +141,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
         // Arrange - First register a user
         var email = $"logintest_{Guid.NewGuid():N}@example.com";
         var password = "TestPassword123!";
-        
+
         var registerRequest = new RegisterUserRequest
         {
             Email = email,
@@ -165,7 +164,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         content.Should().Contain("Login successful");
         content.Should().Contain(email);
@@ -186,7 +185,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         content.Should().Contain("Invalid email or password");
     }
@@ -206,7 +205,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        
+
         var content = await response.Content.ReadAsStringAsync();
         content.Should().Contain("Invalid email or password");
     }
@@ -474,7 +473,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
     #endregion
 
     #region User Management Tests
-      
+
     //TODO: fix
     //[Fact]
     //public async Task RegisterMultipleUsers_ShouldCreateUsersWithUniqueIds()
@@ -498,10 +497,10 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
     //    {
     //        var response = await _client.PostAsJsonAsync("/api/users/register", userRequest);
     //        response.StatusCode.Should().Be(HttpStatusCode.OK);
-            
+
     //        var content = await response.Content.ReadAsStringAsync();
     //        content.Should().Contain("UserId");
-            
+
     //        // Extract and verify unique user IDs (simplified check)
     //        using var scope = _factory.Services.CreateScope();
     //        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
@@ -538,7 +537,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
         using var scope = _factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var user = await userManager.FindByEmailAsync(email);
-        
+
         user.Should().NotBeNull();
         var roles = await userManager.GetRolesAsync(user!);
         roles.Should().Contain("User");
@@ -567,7 +566,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
         using var scope = _factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var user = await userManager.FindByEmailAsync(email);
-        
+
         user.Should().NotBeNull();
         user!.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
         user.CreatedBy.Should().NotBeNullOrEmpty();
@@ -641,7 +640,7 @@ public class UserEndpointsSimpleIntegrationTests : IClassFixture<TestWebApplicat
         // Verify data persistence
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         user.Should().NotBeNull();
         user!.Email.Should().Be(email);

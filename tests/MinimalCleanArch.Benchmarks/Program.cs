@@ -37,10 +37,10 @@ public class RepositoryBenchmarks
     {
         // Setup dependency injection
         var services = new ServiceCollection();
-        
+
         // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
-        
+
         // Add encryption
         var encryptionOptions = new EncryptionOptions
         {
@@ -49,27 +49,27 @@ public class RepositoryBenchmarks
         };
         services.AddSingleton(encryptionOptions);
         services.AddSingleton<IEncryptionService, AesEncryptionService>();
-        
+
         // Add DbContext with in-memory database
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"BenchmarkDb_{Guid.NewGuid()}"));
-        
+
         // Add repositories and unit of work
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IRepository<Todo>, Repository<Todo>>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _scope = _serviceProvider.CreateScope();
-        
+
         _dbContext = _scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         _repository = _scope.ServiceProvider.GetRequiredService<IRepository<Todo>>();
         _unitOfWork = _scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         _encryptionService = _scope.ServiceProvider.GetRequiredService<IEncryptionService>();
-        
+
         // Ensure database is created
         _dbContext.Database.EnsureCreated();
-        
+
         // Seed data for benchmarks
         SeedData();
     }
@@ -87,7 +87,7 @@ public class RepositoryBenchmarks
             );
             todos.Add(todo);
         }
-        
+
         // Use bulk operations for faster seeding
         _repository.AddRangeAsync(todos).GetAwaiter().GetResult();
         _unitOfWork.SaveChangesAsync().GetAwaiter().GetResult();
@@ -123,7 +123,7 @@ public class RepositoryBenchmarks
             $"Benchmark Todo {DateTime.Now.Ticks}",
             "Benchmark description with encrypted content",
             3);
-        
+
         await _repository.AddAsync(todo);
         await _unitOfWork.SaveChangesAsync();
     }
@@ -141,7 +141,7 @@ public class RepositoryBenchmarks
                     $"Batch description {i}",
                     i % 6));
             }
-            
+
             await _repository.AddRangeAsync(todos);
             await _unitOfWork.SaveChangesAsync();
         });
@@ -152,7 +152,7 @@ public class RepositoryBenchmarks
     {
         var id = Random.Shared.Next(1, 501); // Update from first half of data
         var todo = await _repository.GetByIdAsync(id);
-        
+
         if (todo != null)
         {
             todo.Update(
@@ -160,7 +160,7 @@ public class RepositoryBenchmarks
                 $"Updated {todo.Description}",
                 (todo.Priority + 1) % 6,
                 DateTime.Now.AddDays(7));
-            
+
             await _repository.UpdateAsync(todo);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -171,7 +171,7 @@ public class RepositoryBenchmarks
     {
         var id = Random.Shared.Next(501, 1001); // Delete from second half
         var todo = await _repository.GetByIdAsync(id);
-        
+
         if (todo != null && !todo.IsDeleted)
         {
             await _repository.DeleteAsync(todo);
@@ -191,7 +191,7 @@ public class RepositoryBenchmarks
     {
         var searchTerms = new[] { "Todo", "Description", "Benchmark", "Test" };
         var searchTerm = searchTerms[Random.Shared.Next(searchTerms.Length)];
-        
+
         var spec = new TodoFilterSpecification(searchTerm: searchTerm);
         await _repository.GetAsync(spec);
     }

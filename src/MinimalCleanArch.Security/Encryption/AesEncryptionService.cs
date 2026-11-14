@@ -40,7 +40,7 @@ public class AesEncryptionService : IEncryptionService, IDisposable
             // Create a strong key from the key string using SHA-256
             using var sha256 = SHA256.Create();
             _key = sha256.ComputeHash(Encoding.UTF8.GetBytes(encryptionOptions.Key));
-            
+
             _logger?.LogInformation("AES encryption service initialized successfully");
         }
         catch (Exception ex)
@@ -74,17 +74,17 @@ public class AesEncryptionService : IEncryptionService, IDisposable
             aes.Key = _key;
             aes.Mode = CipherMode.CBC; // Explicitly set secure mode
             aes.Padding = PaddingMode.PKCS7; // Explicitly set padding
-            
+
             // Generate a new IV for each encryption (crucial for security)
             aes.GenerateIV();
             var iv = aes.IV;
 
             using var encryptor = aes.CreateEncryptor();
             using var msEncrypt = new MemoryStream();
-            
+
             // Write the IV to the beginning of the output stream
             msEncrypt.Write(iv, 0, iv.Length);
-            
+
             using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
             using (var swEncrypt = new StreamWriter(csEncrypt, Encoding.UTF8))
             {
@@ -92,10 +92,10 @@ public class AesEncryptionService : IEncryptionService, IDisposable
             }
 
             var result = Convert.ToBase64String(msEncrypt.ToArray());
-            
-            _logger?.LogDebug("Successfully encrypted data (length: {PlainLength} -> {EncryptedLength})", 
+
+            _logger?.LogDebug("Successfully encrypted data (length: {PlainLength} -> {EncryptedLength})",
                 plainText.Length, result.Length);
-            
+
             return result;
         }
         catch (Exception ex)
@@ -126,20 +126,20 @@ public class AesEncryptionService : IEncryptionService, IDisposable
         try
         {
             var fullCipher = Convert.FromBase64String(cipherText);
-            
+
             // Validate minimum length (IV + at least one block)
             const int minLength = 16 + 16; // IV + minimum encrypted content
             if (fullCipher.Length < minLength)
             {
-                _logger?.LogError("Encrypted data is too short (length: {Length}, minimum: {MinLength})", 
+                _logger?.LogError("Encrypted data is too short (length: {Length}, minimum: {MinLength})",
                     fullCipher.Length, minLength);
                 throw new CryptographicException("Invalid encrypted data - insufficient length");
             }
-            
+
             // Extract IV from the beginning of the ciphertext
             var iv = new byte[16]; // AES block size is always 16 bytes
             Array.Copy(fullCipher, 0, iv, 0, iv.Length);
-            
+
             // Extract the actual ciphertext after the IV
             var cipher = new byte[fullCipher.Length - iv.Length];
             Array.Copy(fullCipher, iv.Length, cipher, 0, cipher.Length);
@@ -154,12 +154,12 @@ public class AesEncryptionService : IEncryptionService, IDisposable
             using var msDecrypt = new MemoryStream(cipher);
             using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
             using var srDecrypt = new StreamReader(csDecrypt, Encoding.UTF8);
-            
+
             var result = srDecrypt.ReadToEnd();
-            
-            _logger?.LogDebug("Successfully decrypted data (length: {EncryptedLength} -> {PlainLength})", 
+
+            _logger?.LogDebug("Successfully decrypted data (length: {EncryptedLength} -> {PlainLength})",
                 cipherText.Length, result.Length);
-            
+
             return result;
         }
         catch (Exception ex) when (ex is FormatException or ArgumentException)
@@ -202,7 +202,7 @@ public class AesEncryptionService : IEncryptionService, IDisposable
             {
                 Array.Clear(_key, 0, _key.Length);
             }
-            
+
             _disposed = true;
             _logger?.LogInformation("AES encryption service disposed");
         }

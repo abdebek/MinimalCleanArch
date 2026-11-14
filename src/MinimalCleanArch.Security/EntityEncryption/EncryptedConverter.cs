@@ -12,7 +12,7 @@ public class EncryptedConverter : ValueConverter<string?, string?>
 {
     private const string NULL_MARKER = "<<NULL>>";
     private const string EMPTY_MARKER = "<<EMPTY>>";
-    
+
     private readonly ILogger<EncryptedConverter>? _logger;
 
     /// <summary>
@@ -54,7 +54,7 @@ public class EncryptedConverter : ValueConverter<string?, string?>
 
             // Encrypt the actual value
             var encrypted = encryptionService.Encrypt(value);
-            
+
             if (string.IsNullOrEmpty(encrypted))
             {
                 logger?.LogError("Encryption service returned null or empty result for non-null input");
@@ -108,7 +108,7 @@ public class EncryptedConverter : ValueConverter<string?, string?>
 
             // Decrypt the actual value
             var decrypted = encryptionService.Decrypt(value);
-            
+
             // The encryption service should handle its own null checking,
             // but we verify the result for security
             if (decrypted == null)
@@ -164,7 +164,7 @@ public class EncryptedConverterNonNull : ValueConverter<string, string>
         try
         {
             var encrypted = encryptionService.Encrypt(value);
-            
+
             if (string.IsNullOrEmpty(encrypted))
             {
                 logger?.LogError("Encryption service returned null or empty result for non-null input");
@@ -194,7 +194,7 @@ public class EncryptedConverterNonNull : ValueConverter<string, string>
         try
         {
             var decrypted = encryptionService.Decrypt(value);
-            
+
             if (decrypted == null)
             {
                 logger?.LogError("Decryption service returned null for non-null encrypted input");

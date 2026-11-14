@@ -6,8 +6,6 @@ using MinimalCleanArch.Sample.Domain.Entities;
 using MinimalCleanArch.Execution;
 using MinimalCleanArch.Security.Encryption;
 using MinimalCleanArch.Security.EntityEncryption;
-using System.Linq.Expressions;
-using MinimalCleanArch.Domain.Entities;
 using MinimalCleanArch.Audit.Configuration;
 using MinimalCleanArch.Audit.Entities;
 using MinimalCleanArch.Audit.Extensions;
@@ -77,17 +75,17 @@ public class ApplicationDbContext : IdentityDbContextBase<User, IdentityRole, st
             entity.Property(e => e.FullName).HasMaxLength(200);
             entity.Property(e => e.DateOfBirth);
             entity.Property(e => e.PersonalNotes).HasMaxLength(1000);
-            
+
             // Audit fields (inherited from IAuditableEntity)
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.CreatedBy).HasMaxLength(450);
             entity.Property(e => e.LastModifiedAt);
             entity.Property(e => e.LastModifiedBy).HasMaxLength(450);
-            
+
             // Soft delete (inherited from ISoftDelete)
             entity.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
             entity.HasIndex(e => e.IsDeleted);
-            
+
             // Additional indexes for performance
             entity.HasIndex(e => e.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
             entity.HasIndex(e => e.UserName).IsUnique().HasFilter("[UserName] IS NOT NULL");

@@ -58,7 +58,7 @@ foreach ($dir in $directories) {
 $directoryBuildProps = @"
 <Project>
   <PropertyGroup>
-    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -132,10 +132,10 @@ Write-Host "`$env:NUGET_API_KEY='your-api-key'" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "Build and Test:" -ForegroundColor Green
-Write-Host "  ./scripts/pack.ps1 -PackageVersion 0.1.21" -ForegroundColor Cyan
-Write-Host "  ./scripts/pack.sh --package-version 0.1.21" -ForegroundColor Cyan
-Write-Host "  ./scripts/validate-templates.ps1 -McaVersion 0.1.21" -ForegroundColor Cyan
-Write-Host "  ./scripts/validate-templates.sh -McaVersion 0.1.21" -ForegroundColor Cyan
+Write-Host "  ./scripts/pack.ps1 -PackageVersion 0.2.0-preview" -ForegroundColor Cyan
+Write-Host "  ./scripts/pack.sh --package-version 0.2.0-preview" -ForegroundColor Cyan
+Write-Host "  ./scripts/validate-templates.ps1 -McaVersion 0.2.0-preview" -ForegroundColor Cyan
+Write-Host "  ./scripts/validate-templates.sh -McaVersion 0.2.0-preview" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "Publish:" -ForegroundColor Green

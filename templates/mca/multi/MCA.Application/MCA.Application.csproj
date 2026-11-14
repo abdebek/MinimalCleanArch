@@ -4,7 +4,7 @@
     <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU1608;NU1510</NoWarn>
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,23 +24,10 @@
     <!--#endif-->
   </ItemGroup>
 
-  <!--#if (UseNet9)-->
+  <!--#if (UseAuth)-->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.18" />
-    <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.18" />
-    <!--#endif-->
-  </ItemGroup>
-  <!--#endif-->
-
-  <!--#if (UseNet10)-->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
-    <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.10" />
-    <!--#endif-->
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="11.0.0" />
   </ItemGroup>
   <!--#endif-->
 

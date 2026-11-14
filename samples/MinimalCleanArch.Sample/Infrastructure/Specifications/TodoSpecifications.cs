@@ -104,7 +104,7 @@ public class TodoPaginatedSpecification : BaseSpecification<Todo>
         // Apply pagination
         var skip = (pageIndex - 1) * pageSize;
         ApplyPaging(skip, pageSize);
-        
+
         // Apply ordering from filter specification
         if (filter.OrderBy != null)
         {

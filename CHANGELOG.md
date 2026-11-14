@@ -6,6 +6,26 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.2.0-preview] - 2026-11-14
+
+### Changed (Breaking)
+- Single-target **.NET 11 (`net11.0`)** across all 12 core libraries, samples, and templates; phased out .NET 8, 9, and 10 completely.
+- Removed legacy EF Core 9 query filter fallbacks (`IQueryFilterTenantContext`, `TryGetTenantId`, and expression tree rewriting). Query filters now natively use EF named filters (`QueryFilters.SoftDelete` and `QueryFilters.Tenant`).
+- Consolidated solutions: retired `MinimalCleanArch.CI.slnx` in favor of a single `MinimalCleanArch.slnx` supporting Central Package Management across local dev and CI.
+- Pinned `Microsoft.AspNetCore.*`, `Microsoft.EntityFrameworkCore.*`, and `Microsoft.Extensions.*` packages to `11.0.0`.
+
+### Added
+- Central package transitive pinning enabled (`CentralPackageTransitivePinningEnabled: true`) in `eng/Directory.Packages.props`.
+- 3-state specification tracking support (`SpecificationTrackingBehavior: None, AsTracking, AsNoTracking`).
+
+### Fixed & Cleaned
+- Pruned redundant BCL package references (`Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Hosting.Abstractions`, `System.Threading.RateLimiting`, and `Microsoft.AspNetCore.DataProtection`) automatically available inbox in .NET 11, eliminating all `NU1510` compiler warnings.
+- Fixed template multi-tenant repository DI resolution via `builder.Services.AddScoped<ITodoRepository, TodoRepository>()`.
+- Fixed template project generation hygiene: removed orphan `#endif` directive and wrapped optional identity packages to prevent empty `<ItemGroup>` blocks when `--auth` is omitted.
+- Updated template Dockerfiles to `aspnet:11.0` and `sdk:11.0`.
+- GitHub Actions CI workflows now use `global-json-file: global.json` as the single source of truth for SDK versioning.
+- Code style and formatting pass across 56 files in the repository.
+
 ## [0.1.21] - 2026-10-11
 - stable release following 0.1.21-preview, with no additional changes
 

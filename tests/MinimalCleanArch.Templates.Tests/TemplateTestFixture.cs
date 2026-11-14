@@ -28,6 +28,11 @@ public class TemplateTestFixture : IAsyncLifetime
             .WithValidation(CommandResultValidation.None)
             .ExecuteAsync();
 
+        await Cli.Wrap("dotnet")
+            .WithArguments(new[] { "new", "uninstall", TemplatePath })
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteAsync();
+
         // Clear the template cache
         await Cli.Wrap("dotnet")
             .WithArguments(new[] { "new", "--debug:reinit" })
@@ -61,7 +66,7 @@ public class TemplateTestFixture : IAsyncLifetime
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .FirstOrDefault();
 
-        var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.1.21";
+        var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.2.0-preview";
 
         return (packagePath ?? TemplatePath, version);
     }
@@ -94,7 +99,7 @@ public class TemplateTestFixture : IAsyncLifetime
         }
 
         var version = fileName[prefix.Length..];
-        // Guard against mis-parsed symbol package names (e.g. 0.1.21.symbols).
+        // Guard against mis-parsed symbol package names (e.g. 0.2.0-preview.symbols).
         if (version.EndsWith(".symbols", StringComparison.OrdinalIgnoreCase))
         {
             version = version[..^".symbols".Length];
@@ -115,5 +120,4 @@ public class TemplateTestFixture : IAsyncLifetime
         return versionElement?.Value?.Trim();
     }
 }
-
 

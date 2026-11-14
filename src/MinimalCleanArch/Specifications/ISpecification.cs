@@ -1,6 +1,29 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace MinimalCleanArch.Specifications;
+
+/// <summary>
+/// Specifies how a specification query interacts with EF Core change tracking.
+/// </summary>
+public enum QueryTrackingMode
+{
+    /// <summary>
+    /// Leave tracking untouched so the query follows the host's configured
+    /// <c>UseQueryTrackingBehavior(...)</c> default.
+    /// </summary>
+    Default = 0,
+
+    /// <summary>
+    /// Execute the query without change tracking.
+    /// </summary>
+    NoTracking = 1,
+
+    /// <summary>
+    /// Execute the query with change tracking enabled, even if the host
+    /// configured a global no-tracking default.
+    /// </summary>
+    Tracking = 2
+}
 
 /// <summary>
 /// Specification pattern interface for querying data
@@ -12,51 +35,60 @@ public interface ISpecification<T>
     /// Gets the filter expression
     /// </summary>
     Expression<Func<T, bool>>? Criteria { get; }
-    
+
     /// <summary>
     /// Gets the include expressions for eager loading related entities
     /// </summary>
     List<Expression<Func<T, object>>> Includes { get; }
-    
+
     /// <summary>
     /// Gets the string-based include expressions for eager loading related entities
     /// </summary>
     List<string> IncludeStrings { get; }
-    
+
     /// <summary>
     /// Gets the order by expression
     /// </summary>
     Expression<Func<T, object>>? OrderBy { get; }
-    
+
     /// <summary>
     /// Gets the order by descending expression
     /// </summary>
     Expression<Func<T, object>>? OrderByDescending { get; }
-    
+
     /// <summary>
     /// Gets the additional order by expressions
     /// </summary>
     List<(Expression<Func<T, object>> KeySelector, bool Descending)> ThenBys { get; }
-    
+
     /// <summary>
     /// Gets the skip value for pagination
     /// </summary>
     int? Skip { get; }
-    
+
     /// <summary>
     /// Gets the take value for pagination
     /// </summary>
     int? Take { get; }
-    
+
     /// <summary>
     /// Gets a value indicating whether to include soft deleted entities
     /// </summary>
     bool IgnoreSoftDelete { get; }
-    
+
     /// <summary>
-    /// Gets a value indicating whether the query should be tracked by the EF Core change tracker
+    /// Gets a value indicating whether the query should be executed without EF Core change tracking.
     /// </summary>
     bool AsNoTracking { get; }
+
+    /// <summary>
+    /// Gets the tracking mode for the query.
+    /// Defaults to <see cref="QueryTrackingMode.NoTracking"/> when <see cref="AsNoTracking"/> is <see langword="true"/>,
+    /// otherwise <see cref="QueryTrackingMode.Default"/>.
+    /// </summary>
+    QueryTrackingMode TrackingMode => AsNoTracking
+        ? QueryTrackingMode.NoTracking
+        : QueryTrackingMode.Default;
 
     /// <summary>
     /// Gets a value indicating whether collection includes should be executed as split queries.

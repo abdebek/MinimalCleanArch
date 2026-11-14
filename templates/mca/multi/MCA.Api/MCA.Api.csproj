@@ -4,7 +4,7 @@
     <TargetFramework>__MCA_TFM__</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU1608;NU1510</NoWarn>
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -87,39 +87,20 @@
     <!--#endif-->
   </ItemGroup>
 
-  <!--#if (UseNet9)-->
-  <ItemGroup>
-    <!--#if (UseSerilog)-->
-    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-    <!--#endif-->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
-    <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.18" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="9.0.18" />
-    <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="9.4.1" />
-    <!--#endif-->
-    <!--#if (UseCaching && !UseAspire)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
-    <!--#endif-->
-  </ItemGroup>
-  <!--#endif-->
-
-  <!--#if (UseNet10)-->
   <ItemGroup>
     <!--#if (UseSerilog)-->
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <!--#endif-->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
     <!--#if (UseAuth)-->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="11.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
     <!--#endif-->
     <!--#if (UseCaching && !UseAspire)-->
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0" />
     <!--#endif-->
   </ItemGroup>
-  <!--#endif-->
 
   <ItemGroup>
     <ProjectReference Include="..\MCA.Domain\MCA.Domain.csproj" />

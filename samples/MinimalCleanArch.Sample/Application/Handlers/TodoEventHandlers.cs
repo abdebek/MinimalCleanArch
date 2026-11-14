@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using MinimalCleanArch.Sample.Domain.Events;
 
 namespace MinimalCleanArch.Sample.Application.Handlers;
