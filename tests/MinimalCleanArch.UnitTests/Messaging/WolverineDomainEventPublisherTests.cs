@@ -178,29 +178,33 @@ public class WolverineDomainEventPublisherTests
     public async Task PublishAsync_MultipleEvents_ShouldPublishConcurrently()
     {
         // Arrange
-        var publishStartTimes = new List<DateTimeOffset>();
+        var enteredBarrierCount = 0;
+        var allEntered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var events = Enumerable.Range(0, 5).Select(_ => (IDomainEvent)new TestEvent()).ToList();
 
         _messageBusMock
             .Setup(x => x.PublishAsync(It.IsAny<object>(), It.IsAny<DeliveryOptions?>()))
             .Returns(async () =>
             {
-                lock (publishStartTimes)
+                if (Interlocked.Increment(ref enteredBarrierCount) == events.Count)
                 {
-                    publishStartTimes.Add(DateTimeOffset.UtcNow);
+                    allEntered.TrySetResult(true);
                 }
-                await Task.Delay(50); // Simulate some async work
+
+                // If calls are concurrent, all tasks enter before any complete.
+                // A sequential publisher would deadlock here because the first call never finishes.
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await allEntered.Task.WaitAsync(cts.Token);
             });
 
         // Act
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         await _publisher.PublishAsync(events);
-        stopwatch.Stop();
 
         // Assert
-        // If concurrent, total time should be ~50ms (not 250ms for sequential)
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(400,
-            "events should be published concurrently with headroom for slower CI machines");
+        enteredBarrierCount.Should().Be(5);
+        _messageBusMock.Verify(
+            x => x.PublishAsync(It.IsAny<object>(), It.IsAny<DeliveryOptions?>()),
+            Times.Exactly(5));
     }
 
     #endregion
