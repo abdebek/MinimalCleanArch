@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>__MCA_TFM__</TargetFramework>
@@ -13,23 +11,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="17.0.0" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" Version="17.0.0" />
     <!--#if (UsePostgres)-->
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="17.0.0" />
     <!--#endif-->
     <!--#if (UseSqlServer)-->
-    <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="17.0.0" />
     <!--#endif-->
     <!--#if (UseCaching)-->
-    <PackageReference Include="Aspire.Hosting.Redis" Version="13.4.6" />
-    <!--#endif-->
-  </ItemGroup>
-
-  <ItemGroup>
-    <!--#if (MultiProject)-->
-    <ProjectReference Include="..\src\MCA.Api\MCA.Api.csproj" />
-    <!--#else-->
-    <ProjectReference Include="..\MCA.csproj" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="17.0.0" />
     <!--#endif-->
   </ItemGroup>
 

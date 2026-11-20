@@ -59,6 +59,21 @@ public static class InMemorySpecificationEvaluator
     }
 
     /// <summary>
+    /// Applies a projection specification to an in-memory collection.
+    /// </summary>
+    public static IReadOnlyList<TResult> Evaluate<T, TResult>(
+        IEnumerable<T> source,
+        ISpecification<T, TResult> specification)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(specification);
+
+        var filtered = Evaluate(source, (ISpecification<T>)specification);
+        var selector = specification.Selector.Compile();
+        return filtered.Select(selector).ToList();
+    }
+
+    /// <summary>
     /// Checks whether a single entity satisfies the specification's criteria.
     /// </summary>
     public static bool IsSatisfiedBy<T>(T entity, ISpecification<T> specification)

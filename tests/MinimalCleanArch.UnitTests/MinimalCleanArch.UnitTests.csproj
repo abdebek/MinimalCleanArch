@@ -27,11 +27,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\MinimalCleanArch.Audit\MinimalCleanArch.Audit.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.DataAccess\MinimalCleanArch.DataAccess.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch\MinimalCleanArch.csproj" />
     <ProjectReference Include="..\..\src\MinimalCleanArch.Extensions\MinimalCleanArch.Extensions.csproj" />

@@ -6,7 +6,7 @@ The `--aspire` template flag is now available (`dotnet new mca --aspire ...`) an
 
 ## Prerequisites
 
-- .NET 10 SDK
+- .NET 11 SDK
 - Docker (for Postgres + Redis containers)
 
 ## Projects

@@ -5,7 +5,7 @@ namespace MinimalCleanArch.Repositories;
 /// <summary>
 /// Unit of Work pattern interface for managing transactions and change persistence
 /// </summary>
-public interface IUnitOfWork : IDisposable
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Saves all pending changes to the database

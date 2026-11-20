@@ -20,13 +20,14 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     private const string SqlServerProviderName = "Microsoft.EntityFrameworkCore.SqlServer";
     private const string UserNameIndexName = "UserNameIndex";
     private readonly IExecutionContext? _executionContext;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IdentityDbContextBase{TUser}"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
     protected IdentityDbContextBase(DbContextOptions options)
-        : this(options, null)
+        : this(options, null, null)
     {
     }
 
@@ -35,10 +36,12 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
     /// </summary>
     /// <param name="options">The options to be used by the DbContext.</param>
     /// <param name="executionContext">The execution context for audit stamping.</param>
-    protected IdentityDbContextBase(DbContextOptions options, IExecutionContext? executionContext)
+    /// <param name="timeProvider">Optional time provider for deterministic audit timestamps.</param>
+    protected IdentityDbContextBase(DbContextOptions options, IExecutionContext? executionContext, TimeProvider? timeProvider = null)
         : base(options)
     {
         _executionContext = executionContext;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -143,7 +146,7 @@ public abstract class IdentityDbContextBase<TUser> : IdentityDbContext<TUser>
             return;
 
         string? userId = GetCurrentUserId();
-        DateTime now = DateTime.UtcNow;
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
         foreach (var entityEntry in entries)
         {
@@ -206,13 +209,14 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     private const string SqlServerProviderName = "Microsoft.EntityFrameworkCore.SqlServer";
     private const string UserNameIndexName = "UserNameIndex";
     private readonly IExecutionContext? _executionContext;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IdentityDbContextBase{TUser, TRole, TKey}"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
     protected IdentityDbContextBase(DbContextOptions options)
-        : this(options, null)
+        : this(options, null, null)
     {
     }
 
@@ -221,10 +225,12 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
     /// </summary>
     /// <param name="options">The options to be used by the DbContext.</param>
     /// <param name="executionContext">The execution context for audit stamping.</param>
-    protected IdentityDbContextBase(DbContextOptions options, IExecutionContext? executionContext)
+    /// <param name="timeProvider">Optional time provider for deterministic audit timestamps.</param>
+    protected IdentityDbContextBase(DbContextOptions options, IExecutionContext? executionContext, TimeProvider? timeProvider = null)
         : base(options)
     {
         _executionContext = executionContext;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -426,7 +432,7 @@ public abstract class IdentityDbContextBase<TUser, TRole, TKey> : IdentityDbCont
             return;
 
         string? userId = GetCurrentUserId();
-        DateTime now = DateTime.UtcNow;
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
         foreach (var entityEntry in entries)
         {

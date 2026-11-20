@@ -67,6 +67,6 @@ Recommended guidance:
 
 - EncryptedAttribute - Marks properties for encryption
 - IEncryptionService - Interface for encryption services
-- AesEncryptionService - AES implementation of IEncryptionService
+- AesEncryptionService - Authenticated AES-256-GCM + HKDF implementation of `IEncryptionService` (with legacy v1 AES-CBC decrypt fallback)
 - EncryptedConverter - Value converter for encrypted properties
 

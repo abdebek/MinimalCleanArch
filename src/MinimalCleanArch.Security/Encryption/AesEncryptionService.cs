@@ -1,16 +1,27 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using MinimalCleanArch.Security.Configuration;
 using Microsoft.Extensions.Logging;
+using MinimalCleanArch.Security.Configuration;
 
 namespace MinimalCleanArch.Security.Encryption;
 
 /// <summary>
-/// Implementation of <see cref="IEncryptionService"/> using AES encryption with enhanced security
+/// Implementation of <see cref="IEncryptionService"/> using authenticated AES-256-GCM with per-message HKDF-SHA256 key derivation.
+/// Supports transparent decryption of legacy v1 AES-CBC ciphertexts for seamless migration.
 /// </summary>
 public class AesEncryptionService : IEncryptionService, IDisposable
 {
-    private readonly byte[] _key;
+    private static readonly byte[] V2MagicHeader = "MCA2"u8.ToArray();
+    private static readonly byte[] HkdfInfo = "MinimalCleanArch.AesGcm.v2"u8.ToArray();
+
+    private const int SaltLength = 16;
+    private const int NonceLength = 12;
+    private const int TagLength = 16;
+    private const int KeyLength = 32;
+    private const int V2HeaderLength = 4 + SaltLength + NonceLength + TagLength;
+
+    private readonly byte[] _ikm;
+    private readonly byte[] _legacyCbcKey;
     private readonly ILogger<AesEncryptionService>? _logger;
     private bool _disposed;
 
@@ -21,14 +32,13 @@ public class AesEncryptionService : IEncryptionService, IDisposable
     /// <param name="logger">Optional logger for security events</param>
     public AesEncryptionService(EncryptionOptions encryptionOptions, ILogger<AesEncryptionService>? logger = null)
     {
-        if (encryptionOptions == null)
-            throw new ArgumentNullException(nameof(encryptionOptions));
+        ArgumentNullException.ThrowIfNull(encryptionOptions);
 
         if (string.IsNullOrWhiteSpace(encryptionOptions.Key))
-            throw new ArgumentException("Encryption key must be provided and cannot be empty", nameof(encryptionOptions.Key));
+            throw new ArgumentException("Encryption key must be provided and cannot be empty", nameof(encryptionOptions));
 
         // Validate key strength
-        if (encryptionOptions.Key.Length < 32) // Minimum recommended length
+        if (encryptionOptions.Key.Length < 32)
         {
             logger?.LogWarning("Encryption key length ({Length}) is below recommended minimum of 32 characters", encryptionOptions.Key.Length);
         }
@@ -37,11 +47,10 @@ public class AesEncryptionService : IEncryptionService, IDisposable
 
         try
         {
-            // Create a strong key from the key string using SHA-256
-            using var sha256 = SHA256.Create();
-            _key = sha256.ComputeHash(Encoding.UTF8.GetBytes(encryptionOptions.Key));
+            _ikm = Encoding.UTF8.GetBytes(encryptionOptions.Key);
+            _legacyCbcKey = SHA256.HashData(_ikm);
 
-            _logger?.LogInformation("AES encryption service initialized successfully");
+            _logger?.LogInformation("AES-GCM encryption service initialized successfully");
         }
         catch (Exception ex)
         {
@@ -51,71 +60,72 @@ public class AesEncryptionService : IEncryptionService, IDisposable
     }
 
     /// <summary>
-    /// Encrypts the specified plaintext
+    /// Encrypts the specified plaintext using AES-256-GCM with a random salt, HKDF-derived key, and random 96-bit nonce.
     /// </summary>
     /// <param name="plainText">The plaintext to encrypt</param>
-    /// <returns>The encrypted ciphertext</returns>
+    /// <returns>The Base64-encoded versioned ciphertext</returns>
     public string Encrypt(string plainText)
     {
         ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(plainText);
 
-        if (plainText == null)
-            throw new ArgumentNullException(nameof(plainText));
-
-        // Handle empty string explicitly
         if (plainText.Length == 0)
         {
             _logger?.LogDebug("Encrypting empty string");
         }
 
+        byte[]? derivedKey = null;
         try
         {
-            using var aes = Aes.Create();
-            aes.Key = _key;
-            aes.Mode = CipherMode.CBC; // Explicitly set secure mode
-            aes.Padding = PaddingMode.PKCS7; // Explicitly set padding
+            var plainBytes = Encoding.UTF8.GetBytes(plainText);
+            var payload = new byte[V2HeaderLength + plainBytes.Length];
 
-            // Generate a new IV for each encryption (crucial for security)
-            aes.GenerateIV();
-            var iv = aes.IV;
+            V2MagicHeader.CopyTo(payload, 0);
 
-            using var encryptor = aes.CreateEncryptor();
-            using var msEncrypt = new MemoryStream();
+            var salt = payload.AsSpan(4, SaltLength);
+            var nonce = payload.AsSpan(4 + SaltLength, NonceLength);
+            var tag = payload.AsSpan(4 + SaltLength + NonceLength, TagLength);
+            var cipherBytes = payload.AsSpan(V2HeaderLength);
 
-            // Write the IV to the beginning of the output stream
-            msEncrypt.Write(iv, 0, iv.Length);
+            RandomNumberGenerator.Fill(salt);
+            RandomNumberGenerator.Fill(nonce);
 
-            using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-            using (var swEncrypt = new StreamWriter(csEncrypt, Encoding.UTF8))
-            {
-                swEncrypt.Write(plainText);
-            }
+            derivedKey = new byte[KeyLength];
+            HKDF.DeriveKey(HashAlgorithmName.SHA256, _ikm, derivedKey, salt, HkdfInfo);
 
-            var result = Convert.ToBase64String(msEncrypt.ToArray());
+            using var aesGcm = new AesGcm(derivedKey, TagLength);
+            aesGcm.Encrypt(nonce, plainBytes, cipherBytes, tag, V2MagicHeader);
+
+            var result = Convert.ToBase64String(payload);
 
             _logger?.LogDebug("Successfully encrypted data (length: {PlainLength} -> {EncryptedLength})",
                 plainText.Length, result.Length);
 
             return result;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not CryptographicException)
         {
             _logger?.LogError(ex, "Encryption operation failed");
             throw new CryptographicException("Encryption operation failed", ex);
         }
+        finally
+        {
+            if (derivedKey is not null)
+            {
+                CryptographicOperations.ZeroMemory(derivedKey);
+            }
+        }
     }
 
     /// <summary>
-    /// Decrypts the specified ciphertext
+    /// Decrypts the specified ciphertext. Supports both v2 AES-GCM payloads and legacy v1 AES-CBC payloads.
     /// </summary>
-    /// <param name="cipherText">The ciphertext to decrypt</param>
+    /// <param name="cipherText">The Base64-encoded ciphertext to decrypt</param>
     /// <returns>The decrypted plaintext</returns>
     public string Decrypt(string cipherText)
     {
         ThrowIfDisposed();
-
-        if (cipherText == null)
-            throw new ArgumentNullException(nameof(cipherText));
+        ArgumentNullException.ThrowIfNull(cipherText);
 
         if (cipherText.Length == 0)
         {
@@ -125,37 +135,11 @@ public class AesEncryptionService : IEncryptionService, IDisposable
 
         try
         {
-            var fullCipher = Convert.FromBase64String(cipherText);
+            var fullPayload = Convert.FromBase64String(cipherText);
 
-            // Validate minimum length (IV + at least one block)
-            const int minLength = 16 + 16; // IV + minimum encrypted content
-            if (fullCipher.Length < minLength)
-            {
-                _logger?.LogError("Encrypted data is too short (length: {Length}, minimum: {MinLength})",
-                    fullCipher.Length, minLength);
-                throw new CryptographicException("Invalid encrypted data - insufficient length");
-            }
-
-            // Extract IV from the beginning of the ciphertext
-            var iv = new byte[16]; // AES block size is always 16 bytes
-            Array.Copy(fullCipher, 0, iv, 0, iv.Length);
-
-            // Extract the actual ciphertext after the IV
-            var cipher = new byte[fullCipher.Length - iv.Length];
-            Array.Copy(fullCipher, iv.Length, cipher, 0, cipher.Length);
-
-            using var aes = Aes.Create();
-            aes.Key = _key;
-            aes.IV = iv;
-            aes.Mode = CipherMode.CBC;
-            aes.Padding = PaddingMode.PKCS7;
-
-            using var decryptor = aes.CreateDecryptor();
-            using var msDecrypt = new MemoryStream(cipher);
-            using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
-            using var srDecrypt = new StreamReader(csDecrypt, Encoding.UTF8);
-
-            var result = srDecrypt.ReadToEnd();
+            var result = IsV2Payload(fullPayload)
+                ? DecryptV2Gcm(fullPayload)
+                : DecryptLegacyV1Cbc(fullPayload);
 
             _logger?.LogDebug("Successfully decrypted data (length: {EncryptedLength} -> {PlainLength})",
                 cipherText.Length, result.Length);
@@ -167,10 +151,10 @@ public class AesEncryptionService : IEncryptionService, IDisposable
             _logger?.LogError(ex, "Invalid encrypted data format");
             throw new CryptographicException("Invalid encrypted data format", ex);
         }
-        catch (Exception ex) when (ex is CryptographicException)
+        catch (CryptographicException ex)
         {
-            _logger?.LogError(ex, "Decryption operation failed - possible key mismatch or data corruption");
-            throw; // Re-throw CryptographicException as-is
+            _logger?.LogError(ex, "Decryption operation failed - possible key mismatch, tampering, or data corruption");
+            throw;
         }
         catch (Exception ex)
         {
@@ -179,29 +163,87 @@ public class AesEncryptionService : IEncryptionService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Throws if the service has been disposed
-    /// </summary>
-    private void ThrowIfDisposed()
+    private static bool IsV2Payload(ReadOnlySpan<byte> payload) =>
+        payload.Length >= V2HeaderLength && payload[..V2MagicHeader.Length].SequenceEqual(V2MagicHeader);
+
+    private string DecryptV2Gcm(ReadOnlySpan<byte> payload)
     {
-        if (_disposed)
+        var salt = payload.Slice(4, SaltLength);
+        var nonce = payload.Slice(4 + SaltLength, NonceLength);
+        var tag = payload.Slice(4 + SaltLength + NonceLength, TagLength);
+        var cipherBytes = payload[V2HeaderLength..];
+
+        var derivedKey = new byte[KeyLength];
+        try
         {
-            throw new ObjectDisposedException(nameof(AesEncryptionService));
+            HKDF.DeriveKey(HashAlgorithmName.SHA256, _ikm, derivedKey, salt, HkdfInfo);
+
+            var plainBytes = new byte[cipherBytes.Length];
+            using var aesGcm = new AesGcm(derivedKey, TagLength);
+            aesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes, V2MagicHeader);
+
+            return Encoding.UTF8.GetString(plainBytes);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(derivedKey);
         }
     }
 
+    private string DecryptLegacyV1Cbc(byte[] fullCipher)
+    {
+        // Legacy format: [16-byte IV][AES-CBC-PKCS7 ciphertext]
+        const int minLength = 16 + 16;
+        if (fullCipher.Length < minLength)
+        {
+            _logger?.LogError("Encrypted data is too short (length: {Length}, minimum: {MinLength})",
+                fullCipher.Length, minLength);
+            throw new CryptographicException("Invalid encrypted data - insufficient length");
+        }
+
+        var iv = new byte[16];
+        Array.Copy(fullCipher, 0, iv, 0, iv.Length);
+
+        var cipher = new byte[fullCipher.Length - iv.Length];
+        Array.Copy(fullCipher, iv.Length, cipher, 0, cipher.Length);
+
+        using var aes = Aes.Create();
+        aes.Key = _legacyCbcKey;
+        aes.IV = iv;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+
+        using var decryptor = aes.CreateDecryptor();
+        using var msDecrypt = new MemoryStream(cipher);
+        using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
+        using var srDecrypt = new StreamReader(csDecrypt, Encoding.UTF8);
+
+        return srDecrypt.ReadToEnd();
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(AesEncryptionService));
+    }
+
     /// <summary>
-    /// Disposes the encryption service and clears sensitive data
+    /// Disposes the encryption service and clears key material from memory.
     /// </summary>
     public void Dispose()
     {
-        if (!_disposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes managed key material.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
         {
-            // Clear the key from memory for security
-            if (_key != null)
-            {
-                Array.Clear(_key, 0, _key.Length);
-            }
+            CryptographicOperations.ZeroMemory(_ikm);
+            CryptographicOperations.ZeroMemory(_legacyCbcKey);
 
             _disposed = true;
             _logger?.LogInformation("AES encryption service disposed");

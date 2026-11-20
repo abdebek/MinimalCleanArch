@@ -80,6 +80,11 @@ jobs:
           -p:Version=${{ env.PACKAGE_VERSION }} \
           -p:PackageVersion=${{ env.PACKAGE_VERSION }}
 
+    - name: Run tests
+      run: |
+        dotnet test tests/MinimalCleanArch.UnitTests/MinimalCleanArch.UnitTests.csproj --configuration Release --no-build --verbosity minimal
+        dotnet test tests/MinimalCleanArch.IntegrationTests/MinimalCleanArch.IntegrationTests.csproj --configuration Release --no-build --verbosity minimal
+
     - name: Pack
       run: |
         mkdir -p ./artifacts/packages

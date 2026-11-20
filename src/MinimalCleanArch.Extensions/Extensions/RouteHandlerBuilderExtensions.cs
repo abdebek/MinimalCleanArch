@@ -17,53 +17,19 @@ public static class RouteHandlerBuilderExtensions
     public static RouteHandlerBuilder WithValidation<TRequest>(this RouteHandlerBuilder builder)
         where TRequest : class
     {
-        builder.AddEndpointFilter(async (context, next) =>
-        {
-            var validator = context.HttpContext.RequestServices.GetService<IValidator<TRequest>>();
-            if (validator is null)
-            {
-                return await next(context);
-            }
-
-            var parameter = context.Arguments.OfType<TRequest>().FirstOrDefault();
-            if (parameter is null)
-            {
-                return await next(context);
-            }
-
-            var validationResult = await validator.ValidateAsync(parameter);
-            if (validationResult.IsValid)
-            {
-                return await next(context);
-            }
-
-            var errors = validationResult.Errors
-                .GroupBy(e => e.PropertyName)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(e => e.ErrorMessage).ToArray());
-
-            var problemDetails = MinimalCleanArchProblemDetailsFactory.CreateValidation(
-                context.HttpContext,
-                errors);
-
-            return Results.ValidationProblem(
-                problemDetails.Errors,
-                detail: problemDetails.Detail,
-                instance: problemDetails.Instance,
-                statusCode: problemDetails.Status,
-                title: problemDetails.Title,
-                type: problemDetails.Type,
-                extensions: problemDetails.Extensions.Count > 0 ? problemDetails.Extensions : null);
-        });
-
-        return builder;
+        return AddValidationFilter<TRequest>(builder);
     }
 
     /// <summary>
     /// Adds validation for a path parameter of a Minimal API endpoint.
     /// </summary>
     public static RouteHandlerBuilder WithPathParamValidation<T>(this RouteHandlerBuilder builder)
+        where T : class
+    {
+        return AddValidationFilter<T>(builder);
+    }
+
+    private static RouteHandlerBuilder AddValidationFilter<T>(RouteHandlerBuilder builder)
         where T : class
     {
         builder.AddEndpointFilter(async (context, next) =>
@@ -80,7 +46,7 @@ public static class RouteHandlerBuilderExtensions
                 return await next(context);
             }
 
-            var validationResult = await validator.ValidateAsync(parameter);
+            var validationResult = await validator.ValidateAsync(parameter, context.HttpContext.RequestAborted);
             if (validationResult.IsValid)
             {
                 return await next(context);

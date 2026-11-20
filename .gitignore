@@ -390,7 +390,7 @@ _api/
 obj/.cache/
 obj/xdoc/
 obj/api/
-api/
+docs/MinimalCleanArch.Docs/api/
 /*.yml
 .manifest
 

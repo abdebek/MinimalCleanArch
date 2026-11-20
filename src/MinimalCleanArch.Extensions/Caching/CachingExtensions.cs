@@ -23,7 +23,7 @@ public static class CachingExtensions
         services.AddMemoryCache();
         services.AddSingleton(options);
         services.AddSingleton<ICacheService, MemoryCacheService>();
-        services.AddSingleton<ICachedRepositoryFactory, CachedRepositoryFactory>();
+        services.AddScoped<ICachedRepositoryFactory, CachedRepositoryFactory>();
 
         return services;
     }
@@ -45,7 +45,7 @@ public static class CachingExtensions
 
         services.AddSingleton(options);
         services.AddSingleton<ICacheService, TCacheService>();
-        services.AddSingleton<ICachedRepositoryFactory, CachedRepositoryFactory>();
+        services.AddScoped<ICachedRepositoryFactory, CachedRepositoryFactory>();
 
         return services;
     }
@@ -66,7 +66,7 @@ public static class CachingExtensions
 
         services.AddSingleton(options);
         services.AddSingleton<ICacheService, DistributedCacheService>();
-        services.AddSingleton<ICachedRepositoryFactory, CachedRepositoryFactory>();
+        services.AddScoped<ICachedRepositoryFactory, CachedRepositoryFactory>();
 
         return services;
     }

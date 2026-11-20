@@ -5,7 +5,7 @@ using Wolverine;
 namespace MinimalCleanArch.Messaging.Jobs;
 
 /// <summary>
-/// Dispatches jobs through Wolverine: invoke now, <see cref="IMessageBus.ScheduleAsync"/> for delay.
+/// Dispatches jobs through Wolverine: invoke now, <c>IMessageBus.ScheduleAsync</c> for delay.
 /// Resolves <see cref="IMessageBus"/> per call — it is scoped, while <see cref="IJobExecutor"/> is a singleton.
 /// </summary>
 public sealed class WolverineJobExecutor : IDelayedJobExecutor

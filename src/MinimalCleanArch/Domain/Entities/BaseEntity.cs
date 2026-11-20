@@ -1,4 +1,6 @@
-﻿namespace MinimalCleanArch.Domain.Entities;
+﻿using System.Runtime.CompilerServices;
+
+namespace MinimalCleanArch.Domain.Entities;
 
 /// <summary>
 /// Base implementation of <see cref="IEntity{TKey}"/>
@@ -10,6 +12,11 @@ public abstract class BaseEntity<TKey> : IEntity<TKey> where TKey : IEquatable<T
     /// Gets or sets the unique identifier for this entity
     /// </summary>
     public TKey Id { get; set; } = default!;
+
+    /// <summary>
+    /// Determines whether this entity has not yet been assigned a non-default identity.
+    /// </summary>
+    private bool IsTransient => EqualityComparer<TKey>.Default.Equals(Id, default!);
 
     /// <summary>
     /// Determines whether the specified entity is equal to the current entity
@@ -28,7 +35,7 @@ public abstract class BaseEntity<TKey> : IEntity<TKey> where TKey : IEquatable<T
         if (obj is not BaseEntity<TKey> other)
             return false;
 
-        if (Id is null || other.Id is null)
+        if (IsTransient || other.IsTransient)
             return false;
 
         return Id.Equals(other.Id);
@@ -39,7 +46,9 @@ public abstract class BaseEntity<TKey> : IEntity<TKey> where TKey : IEquatable<T
     /// </summary>
     public override int GetHashCode()
     {
-        return Id?.GetHashCode() ?? 0;
+        return IsTransient
+            ? RuntimeHelpers.GetHashCode(this)
+            : EqualityComparer<TKey>.Default.GetHashCode(Id);
     }
 
     /// <summary>

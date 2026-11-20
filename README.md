@@ -1,6 +1,6 @@
 # MinimalCleanArch
 
-A Clean Architecture **kernel** with host adapters and optional client surfaces. ASP.NET Minimal APIs on .NET 9 and .NET 10 are the first host adapter.
+A Clean Architecture **kernel** with host adapters and optional client surfaces. ASP.NET Minimal APIs on .NET 11 are the first host adapter.
 
 **Navigate the repo:** start at [`docs/index.md`](docs/index.md). Product layers: [`docs/07-bootstrap-product.md`](docs/07-bootstrap-product.md).
 

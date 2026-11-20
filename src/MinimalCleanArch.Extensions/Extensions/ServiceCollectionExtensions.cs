@@ -102,12 +102,13 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Assembly assembly)
     {
-        // Register all validators in the assembly
+        // Register all concrete, non-open-generic validators in the assembly
         var validatorType = typeof(IValidator<>);
         var validatorTypes = assembly.GetTypes()
-            .Where(t => t.GetInterfaces().Any(i =>
-                i.IsGenericType &&
-                i.GetGenericTypeDefinition() == validatorType));
+            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false } &&
+                        t.GetInterfaces().Any(i =>
+                            i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == validatorType));
 
         foreach (var validator in validatorTypes)
         {

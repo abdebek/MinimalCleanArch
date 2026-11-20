@@ -26,7 +26,7 @@ internal static class MinimalCleanArchProblemDetailsFactory
             Instance = instance ?? context.Request.Path
         };
 
-        Enrich(problemDetails, ErrorResponseMapper.CreateBaseExtensions(context, error));
+        Enrich(problemDetails, ErrorResponseMapper.CreateBaseExtensions(context, error, includeSensitiveDetails));
         return problemDetails;
     }
 
@@ -49,7 +49,7 @@ internal static class MinimalCleanArchProblemDetailsFactory
             Instance = instance ?? context.Request.Path
         };
 
-        Enrich(problemDetails, ErrorResponseMapper.CreateBaseExtensions(context, exception));
+        Enrich(problemDetails, ErrorResponseMapper.CreateBaseExtensions(context, exception, includeSensitiveDetails));
 
         if (!problemDetails.Extensions.ContainsKey("correlationId"))
         {

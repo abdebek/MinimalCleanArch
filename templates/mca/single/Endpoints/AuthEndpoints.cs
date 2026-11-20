@@ -177,23 +177,18 @@ public static class AuthEndpoints
 #else
             var result = await handler.Handle(command, cancellationToken);
 #endif
-            if (result.IsSuccess)
+            return result switch
             {
-                return string.IsNullOrWhiteSpace(result.Value.RedirectUrl)
+                AuthLoginResult login => string.IsNullOrWhiteSpace(login.RedirectUrl)
                     ? Results.Ok(new { message = "Signed in" })
-                    : Results.Ok(new { message = "Signed in", redirectUrl = result.Value.RedirectUrl });
-            }
-
-            if (result.Error.Code == "LOCKED_OUT")
-            {
-                return Results.Problem(
+                    : Results.Ok(new { message = "Signed in", redirectUrl = login.RedirectUrl }),
+                Error { Code: "LOCKED_OUT" } error => Results.Problem(
                     title: "Locked Out",
-                    detail: result.Error.Message,
+                    detail: error.Message,
                     statusCode: StatusCodes.Status423Locked,
-                    instance: httpContext.Request.Path);
-            }
-
-            return Results.Unauthorized();
+                    instance: httpContext.Request.Path),
+                Error => Results.Unauthorized()
+            };
         })
         .AllowAnonymous()
 #if (UseRateLimiting)
@@ -273,18 +268,15 @@ public static class AuthEndpoints
 #else
                 var result = await handler.Handle(command, cancellationToken);
 #endif
-                if (result.IsSuccess)
+                return result switch
                 {
                     // LocalRedirect preserves '?' in relative return URLs (OpenIddict authorize query).
                     // Results.Redirect can percent-encode '?' to %3F, which breaks /connect/authorize routing.
-                    return Results.LocalRedirect(result.Value.RedirectUrl ?? "/");
-                }
-
-                if (result.Error.Code == "LOCKED_OUT")
-                    return Results.Redirect("/auth/login?error=Account+is+locked+out");
-
-                return Results.Redirect(
-                    $"/auth/login?error=Invalid+credentials&returnUrl={Uri.EscapeDataString(returnUrl)}");
+                    AuthLoginResult login => Results.LocalRedirect(login.RedirectUrl ?? "/"),
+                    Error { Code: "LOCKED_OUT" } => Results.Redirect("/auth/login?error=Account+is+locked+out"),
+                    Error => Results.Redirect(
+                        $"/auth/login?error=Invalid+credentials&returnUrl={Uri.EscapeDataString(returnUrl)}")
+                };
             })
             .AllowAnonymous()
 #if (UseRateLimiting)

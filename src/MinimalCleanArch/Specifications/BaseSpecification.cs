@@ -239,6 +239,46 @@ public abstract class BaseSpecification<T> : ISpecification<T>
 }
 
 /// <summary>
+/// Base implementation of <see cref="ISpecification{T, TResult}"/> for database-level projections.
+/// </summary>
+/// <typeparam name="T">The source entity type.</typeparam>
+/// <typeparam name="TResult">The projected result type.</typeparam>
+public abstract class BaseSpecification<T, TResult> : BaseSpecification<T>, ISpecification<T, TResult>
+{
+    private Expression<Func<T, TResult>>? _selector;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseSpecification{T, TResult}"/> class.
+    /// </summary>
+    protected BaseSpecification()
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseSpecification{T, TResult}"/> class with a filter expression.
+    /// </summary>
+    /// <param name="criteria">The filter expression.</param>
+    protected BaseSpecification(Expression<Func<T, bool>> criteria)
+        : base(criteria)
+    {
+    }
+
+    /// <inheritdoc />
+    public Expression<Func<T, TResult>> Selector =>
+        _selector ?? throw new InvalidOperationException(
+            $"Projection specification '{GetType().Name}' must configure a selector via ApplySelector(...).");
+
+    /// <summary>
+    /// Configures the projection expression for this specification.
+    /// </summary>
+    /// <param name="selector">The projection expression.</param>
+    protected void ApplySelector(Expression<Func<T, TResult>> selector)
+    {
+        _selector = selector ?? throw new ArgumentNullException(nameof(selector));
+    }
+}
+
+/// <summary>
 /// Extension methods for combining expressions
 /// </summary>
 internal static class ExpressionExtensions

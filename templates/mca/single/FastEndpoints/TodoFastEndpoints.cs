@@ -4,6 +4,7 @@ using MCA.Application.Commands;
 using MCA.Application.DTOs;
 using MCA.Application.Handlers;
 using MinimalCleanArch.Domain.Common;
+using MinimalCleanArch.Extensions.Extensions;
 #if (UseMessaging)
 using Wolverine;
 #endif
@@ -43,13 +44,13 @@ public sealed class GetTodosEndpoint : EndpointWithoutRequest<List<TodoResponse>
 #else
         var result = await _handler.Handle(new GetAllTodosQuery(), ct);
 #endif
-        if (result.IsFailure)
+        if (!result.TryGetValue(out TodoListResult? list))
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
-        await Send.OkAsync(result.Value.Items.ToList(), ct);
+        await Send.OkAsync(list.Items.ToList(), ct);
     }
 }
 
@@ -81,13 +82,13 @@ public sealed class GetTodoEndpoint : EndpointWithoutRequest<TodoResponse>
 #else
         var result = await _handler.Handle(new GetTodoByIdQuery(id), ct);
 #endif
-        if (result.IsFailure)
+        if (!result.TryGetValue(out TodoResponse? todo))
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
-        await Send.OkAsync(result.Value, ct);
+        await Send.OkAsync(todo, ct);
     }
 }
 
@@ -119,14 +120,14 @@ public sealed class CreateTodoEndpoint : Endpoint<CreateTodoRequest, TodoRespons
 #else
         var result = await _handler.Handle(command, ct);
 #endif
-        if (result.IsFailure)
+        if (!result.TryGetValue(out TodoResponse? created))
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
-        HttpContext.Response.Headers.Location = $"/api/todos/{result.Value.Id}";
-        await Send.ResponseAsync(result.Value, 201, ct);
+        HttpContext.Response.Headers.Location = $"/api/todos/{created.Id}";
+        await Send.ResponseAsync(created, 201, ct);
     }
 }
 
@@ -159,13 +160,13 @@ public sealed class UpdateTodoEndpoint : Endpoint<UpdateTodoRequest, TodoRespons
 #else
         var result = await _handler.Handle(command, ct);
 #endif
-        if (result.IsFailure)
+        if (!result.TryGetValue(out TodoResponse? updated))
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
-        await Send.OkAsync(result.Value, ct);
+        await Send.OkAsync(updated, ct);
     }
 }
 
@@ -199,7 +200,7 @@ public sealed class CompleteTodoEndpoint : EndpointWithoutRequest
 #endif
         if (result.IsFailure)
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
@@ -237,7 +238,7 @@ public sealed class DeleteTodoEndpoint : EndpointWithoutRequest
 #endif
         if (result.IsFailure)
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
@@ -274,22 +275,13 @@ public sealed class RestoreTodoEndpoint : EndpointWithoutRequest<TodoResponse>
 #else
         var result = await _handler.Handle(new RestoreTodoCommand(id), ct);
 #endif
-        if (result.IsFailure)
+        if (!result.TryGetValue(out TodoResponse? restored))
         {
-            await FastEndpointErrors.Write(HttpContext, result.Error, ct);
+            await result.Error.WriteProblemAsync(HttpContext, ct);
             return;
         }
 
-        await Send.OkAsync(result.Value, ct);
-    }
-}
-
-internal static class FastEndpointErrors
-{
-    public static Task Write(HttpContext http, Error error, CancellationToken ct)
-    {
-        http.Response.StatusCode = error.StatusCode;
-        return http.Response.WriteAsJsonAsync(new { error.Code, error.Message }, ct);
+        await Send.OkAsync(restored, ct);
     }
 }
 #endif

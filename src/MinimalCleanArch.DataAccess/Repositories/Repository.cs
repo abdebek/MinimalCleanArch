@@ -75,6 +75,14 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     }
 
     /// <inheritdoc />
+    public virtual async Task<IReadOnlyList<TResult>> GetAsync<TResult>(
+        ISpecification<TEntity, TResult> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public virtual async Task<bool> AnyAsync(
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default)
@@ -123,6 +131,14 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <returns>A task that represents the asynchronous operation</returns>
     public virtual async Task<TEntity?> GetFirstAsync(
         ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public virtual async Task<TResult?> GetFirstAsync<TResult>(
+        ISpecification<TEntity, TResult> specification,
         CancellationToken cancellationToken = default)
     {
         return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
@@ -285,6 +301,17 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <param name="specification">The specification to apply</param>
     /// <returns>The IQueryable with the specification applied</returns>
     protected virtual IQueryable<TEntity> ApplySpecification(ISpecification<TEntity> specification)
+    {
+        return SpecificationEvaluator<TEntity>.GetQuery(DbSet.AsQueryable(), specification);
+    }
+
+    /// <summary>
+    /// Applies a projection specification to an IQueryable.
+    /// </summary>
+    /// <typeparam name="TResult">The projected result type.</typeparam>
+    /// <param name="specification">The projection specification to apply.</param>
+    /// <returns>The projected IQueryable.</returns>
+    protected virtual IQueryable<TResult> ApplySpecification<TResult>(ISpecification<TEntity, TResult> specification)
     {
         return SpecificationEvaluator<TEntity>.GetQuery(DbSet.AsQueryable(), specification);
     }

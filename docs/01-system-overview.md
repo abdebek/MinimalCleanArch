@@ -4,7 +4,7 @@ Start here if you are new. This repo ships a Clean Architecture **kernel** (NuGe
 
 ## What the product does
 
-MinimalCleanArch (MCA) is a Clean Architecture kernel with host adapters and optional client surfaces. ASP.NET Core Minimal APIs on .NET 9 and .NET 10 are adapter one, not the product name. The kernel gives you:
+MinimalCleanArch (MCA) is a Clean Architecture kernel with host adapters and optional client surfaces. ASP.NET Core Minimal APIs on .NET 11 are adapter one, not the product name. The kernel gives you:
 
 - Domain primitives: entities, `Result`/`Error`, specifications, `IRepository`, `IUnitOfWork`, domain events, `IExecutionContext`
 - Persistence adapter: EF Core repositories and audited/soft delete `DbContext` bases (`MinimalCleanArch.DataAccess`)

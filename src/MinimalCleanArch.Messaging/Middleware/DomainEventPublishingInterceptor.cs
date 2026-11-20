@@ -47,30 +47,25 @@ public class DomainEventPublishingInterceptor : SaveChangesInterceptor
         SaveChangesCompletedEventData eventData,
         int result)
     {
-        // Note: For sync SavedChanges, we queue events for later async processing
-        // This avoids the sync-over-async anti-pattern that can cause deadlocks
         if (eventData.Context is not null)
         {
-            var events = CollectDomainEvents(eventData.Context);
+            var entitiesWithEvents = CollectEntitiesWithEvents(eventData.Context);
+            var events = entitiesWithEvents.SelectMany(e => e.DomainEvents).ToList();
             if (events.Count > 0)
             {
                 _logger.LogWarning(
                     "Sync SavedChanges called with {EventCount} domain events. " +
-                    "Events will be published asynchronously. Consider using SaveChangesAsync for immediate publishing.",
+                    "Consider using SaveChangesAsync to avoid blocking on asynchronous event publishing.",
                     events.Count);
 
-                // Fire and forget - queue for async processing
-                _ = Task.Run(async () =>
+                // Execute on a thread-pool thread and wait before returning so the scoped IMessageBus
+                // is not disposed mid-publish and events are not silently dropped on shutdown.
+                Task.Run(() => PublishEventsAsync(events, CancellationToken.None)).GetAwaiter().GetResult();
+
+                foreach (var entity in entitiesWithEvents)
                 {
-                    try
-                    {
-                        await PublishEventsAsync(events, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to publish {EventCount} domain events from sync SavedChanges", events.Count);
-                    }
-                });
+                    entity.ClearDomainEvents();
+                }
             }
         }
 
@@ -131,19 +126,5 @@ public class DomainEventPublishingInterceptor : SaveChangesInterceptor
             .Where(e => e.Entity.DomainEvents.Count > 0)
             .Select(e => e.Entity)
             .ToList();
-    }
-
-    private static List<IDomainEvent> CollectDomainEvents(DbContext context)
-    {
-        var entities = CollectEntitiesWithEvents(context);
-        var events = entities.SelectMany(e => e.DomainEvents).ToList();
-
-        // Clear events after collecting (for sync path, we must clear before fire-and-forget)
-        foreach (var entity in entities)
-        {
-            entity.ClearDomainEvents();
-        }
-
-        return events;
     }
 }

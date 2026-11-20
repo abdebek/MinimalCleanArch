@@ -41,6 +41,26 @@ public interface IRepository<TEntity, TKey>
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets projected results using a projection specification.
+    /// </summary>
+    /// <typeparam name="TResult">The projected result type.</typeparam>
+    /// <param name="specification">The projection specification.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it to project in SQL.
+    /// </remarks>
+    async Task<IReadOnlyList<TResult>> GetAsync<TResult>(
+        ISpecification<TEntity, TResult> specification,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+        var entities = await GetAsync((ISpecification<TEntity>)specification, cancellationToken).ConfigureAwait(false);
+        var selector = specification.Selector.Compile();
+        return entities.Select(selector).ToList();
+    }
+
+    /// <summary>
     /// Determines whether any entity matches the specified filter.
     /// </summary>
     /// <param name="filter">The filter expression.</param>
@@ -101,6 +121,25 @@ public interface IRepository<TEntity, TKey>
     Task<TEntity?> GetFirstAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the first projected result that matches the projection specification, or default if none exists.
+    /// </summary>
+    /// <typeparam name="TResult">The projected result type.</typeparam>
+    /// <param name="specification">The projection specification.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <remarks>
+    /// This default implementation is a compatibility fallback for direct repository implementors.
+    /// Database-backed repositories should override it to project in SQL.
+    /// </remarks>
+    async Task<TResult?> GetFirstAsync<TResult>(
+        ISpecification<TEntity, TResult> specification,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+        var entity = await GetFirstAsync((ISpecification<TEntity>)specification, cancellationToken).ConfigureAwait(false);
+        return entity is null ? default : specification.Selector.Compile()(entity);
+    }
 
     /// <summary>
     /// Gets a single entity that matches the specified filter, or null if none exists.

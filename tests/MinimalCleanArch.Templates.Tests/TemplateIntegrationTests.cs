@@ -1043,6 +1043,8 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         var appHostProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.AppHost", "Program.cs"));
         appHostProgram.Should().Contain("AddDatabase(\"appdb\")");
         appHostProgram.Should().NotContain("AddDatabase(\"mca\")");
+        appHostProgram.Should().Contain($"AddDotnetProject(\"api\", \"../src/{projectName}.Api/{projectName}.Api.csproj\")");
+        appHostProgram.Should().NotContain("AddProject<");
 
         var apiProgram = File.ReadAllText(MultiSrc(projectDir, projectName, "Api", "Program.cs"));
         apiProgram.Should().Contain("GetConnectionString(\"appdb\")");
@@ -1056,10 +1058,11 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
 
         AssertTargetFramework(projectDir, projectName);
 
-        _output.WriteLine("Building Aspire solution (AppHost)...");
+        _output.WriteLine("Building Aspire solution...");
+        var solutionPath = Path.Combine(projectDir, $"{projectName}.slnx");
         await RunDotnetCommandAsync(
             "build",
-            appHostCsproj,
+            solutionPath,
             "/nodeReuse:false",
             "/p:NuGetAudit=false",
             "/p:TreatWarningsAsErrors=false");
@@ -1080,14 +1083,16 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
         var appHostCsproj = Path.Combine(projectDir, $"{projectName}.AppHost", $"{projectName}.AppHost.csproj");
         File.Exists(appHostCsproj).Should().BeTrue("AppHost project should be generated for single-project");
         File.Exists(Path.Combine(projectDir, $"{projectName}.csproj")).Should().BeTrue();
-        File.Exists(Path.Combine(projectDir, $"{projectName}.slnx")).Should().BeTrue("single + aspire should include solution file");
+        var solutionPath = Path.Combine(projectDir, $"{projectName}.slnx");
+        File.Exists(solutionPath).Should().BeTrue("single + aspire should include solution file");
 
         var appHostProgram = File.ReadAllText(Path.Combine(projectDir, $"{projectName}.AppHost", "Program.cs"));
         appHostProgram.Should().Contain("AddDatabase(\"appdb\")");
         appHostProgram.Should().Contain("AddSqlServer");
-        // Single-project host references Projects.{Name} not Projects.{Name}_Api
-        appHostProgram.Should().Contain($"Projects.{projectName}");
-        appHostProgram.Should().NotContain($"Projects.{projectName}_Api");
+        // Single-project host registers ../<Name>.csproj not ../src/<Name>.Api/
+        appHostProgram.Should().Contain($"AddDotnetProject(\"api\", \"../{projectName}.csproj\")");
+        appHostProgram.Should().NotContain($"../src/{projectName}.Api/");
+        appHostProgram.Should().NotContain("AddProject<");
 
         var program = File.ReadAllText(Path.Combine(projectDir, "Program.cs"));
         program.Should().Contain("GetConnectionString(\"appdb\")");
@@ -1095,10 +1100,10 @@ public class TemplateIntegrationTests : IClassFixture<TemplateTestFixture>, IAsy
 
         AssertTargetFramework(projectDir, projectName);
 
-        _output.WriteLine("Building Aspire single-project AppHost...");
+        _output.WriteLine("Building Aspire single-project solution...");
         await RunDotnetCommandAsync(
             "build",
-            appHostCsproj,
+            solutionPath,
             "/nodeReuse:false",
             "/p:NuGetAudit=false",
             "/p:TreatWarningsAsErrors=false");

@@ -24,7 +24,7 @@ Minimal API extensions for MinimalCleanArch.
 ## Overview
 - Validation: request/body validation helpers (e.g., `WithValidation<T>()`).
 - Error handling: standard error pipeline middleware helpers, including structured `DomainException`/`Error` mapping to RFC 7807.
-- Result mapping: `Result`/`Error` to `IResult` helpers for expected API outcomes (`MatchHttp`, `ToProblem`).
+- Result mapping: `Result`/`Result<T>`/`Error` to RFC 7807 ProblemDetails across Minimal APIs (`MatchHttp`, `ToProblem`), MVC Controllers (`MatchActionResult`, `ToActionResult`), and direct `HttpContext` hosts like FastEndpoints (`WriteProblemAsync`).
 - OpenAPI helpers: standard response definitions and filters.
 - Rate limiting: global and named endpoint policies with consistent `429` responses.
 - Misc: path parameter validation, minimal API conveniences.

@@ -28,12 +28,6 @@ public class EncryptionOptions
     }
 
     /// <summary>
-    /// Gets or sets the encryption initialization vector (deprecated - IVs are now generated per encryption)
-    /// </summary>
-    [Obsolete("IV is now generated automatically for each encryption operation for better security. This property is ignored.")]
-    public string? IV { get; set; }
-
-    /// <summary>
     /// Gets or sets whether to validate the encryption key strength
     /// </summary>
     public bool ValidateKeyStrength { get; set; } = true;
@@ -241,19 +235,7 @@ public class EncryptionOptions
         // Use only alphanumeric and safe symbols to avoid encoding issues
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
 
-        using var rng = RandomNumberGenerator.Create();
-        var bytes = new byte[length * 2]; // Generate more bytes than needed for better randomness
-        rng.GetBytes(bytes);
-
-        var result = new StringBuilder(length);
-        for (int i = 0; i < length; i++)
-        {
-            // Use two bytes to get better distribution
-            var randomIndex = (bytes[i * 2] << 8 | bytes[i * 2 + 1]) % chars.Length;
-            result.Append(chars[randomIndex]);
-        }
-
-        return result.ToString();
+        return RandomNumberGenerator.GetString(chars, length);
     }
 
     /// <summary>

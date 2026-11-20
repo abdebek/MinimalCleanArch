@@ -26,6 +26,9 @@
     <Project Path="src/MinimalCleanArch.Validation/MinimalCleanArch.Validation.csproj" />
     <Project Path="src/MinimalCleanArch/MinimalCleanArch.csproj" />
   </Folder>
+  <Folder Name="/templates/">
+    <Project Path="templates/MinimalCleanArch.Templates.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MinimalCleanArch.Benchmarks/MinimalCleanArch.Benchmarks.csproj" />
     <Project Path="tests/MinimalCleanArch.IntegrationTests/MinimalCleanArch.IntegrationTests.csproj" />
