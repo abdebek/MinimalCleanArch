@@ -66,7 +66,7 @@ public class TemplateTestFixture : IAsyncLifetime
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .FirstOrDefault();
 
-        var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.2.0-preview";
+        var version = ExtractVersion(packagePath) ?? ReadVersionFromCsproj() ?? "0.2.1-preview";
 
         return (packagePath ?? TemplatePath, version);
     }
@@ -99,7 +99,7 @@ public class TemplateTestFixture : IAsyncLifetime
         }
 
         var version = fileName[prefix.Length..];
-        // Guard against mis-parsed symbol package names (e.g. 0.2.0-preview.symbols).
+        // Guard against mis-parsed symbol package names (e.g. 0.2.1-preview.symbols).
         if (version.EndsWith(".symbols", StringComparison.OrdinalIgnoreCase))
         {
             version = version[..^".symbols".Length];

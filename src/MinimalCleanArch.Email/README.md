@@ -3,7 +3,7 @@
 SMTP and HTTP API email adapters behind a framework-neutral port.
 
 ## Version
-- Current: 0.2.0-preview (net11.0).
+- Current: 0.2.1-preview (net11.0).
 
 ## Why Use It
 - send templated messages (to, subject, html/text, correlation) without ASP.NET types on the port
@@ -21,7 +21,7 @@ SMTP and HTTP API email adapters behind a framework-neutral port.
 ## Usage
 
 ```bash
-dotnet add package MinimalCleanArch.Email --version 0.2.0-preview
+dotnet add package MinimalCleanArch.Email --version 0.2.1-preview
 ```
 
 ```csharp

@@ -3,7 +3,7 @@
 Feature-flag port: `IFeatureGate.IsEnabled(feature, tenant)`. Configuration backing; optional `IFeatureStore` for table overrides. No ASP.NET types on the port.
 
 ## Version
-- Current: 0.2.0-preview (net11.0).
+- Current: 0.2.1-preview (net11.0).
 
 ## Why Use It
 - gate an endpoint or workflow without putting flag checks in domain handlers
@@ -23,7 +23,7 @@ Feature-flag port: `IFeatureGate.IsEnabled(feature, tenant)`. Configuration back
 ## Usage
 
 ```bash
-dotnet add package MinimalCleanArch.Features --version 0.2.0-preview
+dotnet add package MinimalCleanArch.Features --version 0.2.1-preview
 ```
 
 ```json

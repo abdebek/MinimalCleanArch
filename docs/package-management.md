@@ -70,7 +70,7 @@ Generated templates use **AspNetCore.HealthChecks.\*** **9.0.0** (Xabaril) (repl
 Always pass `--mcaVersion` when validating against a local feed:
 
 ```bash
-dotnet new mca -n App --mcaVersion 0.2.0-preview
+dotnet new mca -n App --mcaVersion 0.2.1-preview
 ```
 
 ## Future (not implemented)

@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.2.1-preview] - 2026-11-20
+
 ### Changed (Breaking)
 - Redesigned `Result` and `Result<TValue>` as **non-boxing C# 15 `[Union]` `readonly struct`s** (`Success` / `Error` and `TValue` / `Error`) supporting exhaustive `switch` expressions and implicit union conversions without heap allocations. Replaced typed `Result<TValue>.Value` with C# 15 pattern matching, `TryGetValue(...)`, and `GetValueOrThrow()`.
 - Made `Error.Metadata` immutable (`IReadOnlyDictionary<string, object>`) and removed mutable `Error.Details`. `Error.FromException(...)` now omits stack traces by default unless `includeStackTrace: true` is passed.
