@@ -11,6 +11,8 @@
     <IsPackable>false</IsPackable>
     <UserSecretsId>mca-aspire-apphost</UserSecretsId>
     <Description>Aspire AppHost for MinimalCleanArch.Sample (Postgres + Redis + API).</Description>
+    <!-- Transitive Aspire.Hosting / Dashboard / MessagePack advisories (sample-only project) -->
+    <NoWarn>$(NoWarn);NU1902;NU1903;NU1904</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

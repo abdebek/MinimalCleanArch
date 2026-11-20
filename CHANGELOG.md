@@ -6,6 +6,32 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed (Breaking)
+- Redesigned `Result` and `Result<TValue>` as **non-boxing C# 15 `[Union]` `readonly struct`s** (`Success` / `Error` and `TValue` / `Error`) supporting exhaustive `switch` expressions and implicit union conversions without heap allocations. Replaced typed `Result<TValue>.Value` with C# 15 pattern matching, `TryGetValue(...)`, and `GetValueOrThrow()`.
+- Made `Error.Metadata` immutable (`IReadOnlyDictionary<string, object>`) and removed mutable `Error.Details`. `Error.FromException(...)` now omits stack traces by default unless `includeStackTrace: true` is passed.
+- `Result<TValue>.Map` and `Bind` no longer silently swallow unexpected exceptions into `Error`.
+- `IUnitOfWork` now inherits `IAsyncDisposable`.
+- Removed duplicate unused `ValidationFilter<T>` classes from `MinimalCleanArch.Extensions` and `MinimalCleanArch.Validation`.
+- Removed `[Obsolete]` `EncryptionOptions.IV` property.
+- Fixed `BaseEntity<TKey>` equality so transient entities (`Id == default`) are not treated as equal.
+
+### Added
+- Projection specifications (`ISpecification<T, TResult>` / `BaseSpecification<T, TResult>`) with SQL-level `SELECT` translation in `Repository` and in-memory support in `InMemorySpecificationEvaluator`.
+- Unified RFC 7807 ProblemDetails helpers for all host adapters: `ToActionResult` / `MatchActionResult` (MVC Controllers) and `WriteProblemAsync` (FastEndpoints), wired into both `multi` and `single` templates.
+- Optional `TimeProvider` injection across `DbContextBase`, `IdentityDbContextBase`, `AuditSaveChangesInterceptor`, `HostedJobScheduler`, `AzureBlobStorage`, `R2BlobStorage`, `DataProtectionEncryptionService`, and `HealthCheckExtensions`.
+- Root `.editorconfig` enforcing standard .NET/C# formatting and naming conventions.
+
+### Fixed & Hardened
+- Upgraded `AesEncryptionService` to authenticated **AES-256-GCM + HKDF-SHA256** (`MCA2` versioned header) with transparent legacy v1 AES-CBC decrypt fallback; switched `EncryptionOptions.GenerateStrongKey` to unbiased `RandomNumberGenerator.GetString`.
+- Redacted sensitive metadata keys (`StackTrace`, `ExceptionType`, `InnerException`) in `ErrorResponseMapper` when `includeSensitiveDetails` is `false`.
+- Fixed `AuditSaveChangesInterceptor` to audit newly created entities with database-generated primary keys (async and sync) and clear pending state on save failure.
+- Fixed `UnitOfWork` to apply custom `IsolationLevel` on relational databases and dispose synchronously in `Dispose()` without sync-over-async blocking.
+- Fixed `CachedRepositoryDecorator` to isolate cache keys by `IExecutionContext.TenantId` and invalidate exact `"all"` list keys for `IDistributedCache` providers.
+- Fixed `src/Directory.Build.props` to import root `Directory.Build.props` (restoring Release XML docs, SourceLink, deterministic CI builds, `TreatWarningsAsErrors`, and `EnablePackageValidation`).
+- Fixed `AddValidatorsFromAssembly` to skip abstract, interface, and open-generic validator types; deduplicated `WithValidation` and `WithPathParamValidation`.
+- Fixed `DomainEventPublishingInterceptor` sync `SavedChanges` path to avoid fire-and-forget publishing against a disposed scoped `IMessageBus`.
+- Gated `nuget.yml` and `publish-nuget.yml` workflows on both unit and integration tests; updated docs to `.NET 11`.
+
 ## [0.2.0-preview] - 2026-11-14
 
 ### Changed (Breaking)

@@ -5,6 +5,8 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <!-- Explicit PackageVersion in src/Directory.Build.props (or /p:PackageVersion=...) is the source of truth -->
+    <MinVerSkip>true</MinVerSkip>
 
     <!-- Package Information -->
     <PackageVersion>0.2.0-preview</PackageVersion>

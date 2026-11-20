@@ -27,8 +27,8 @@ Terms below mean what this codebase implements, not textbook DDD. Each row cites
 | DbContext base | Soft delete filter + tenant filter + audit/tenant stamping. | `DbContextBase` | `src/MinimalCleanArch.DataAccess/DbContextBase.cs` |
 | Identity DbContext base | Same plus ASP.NET Identity. | `IdentityDbContextBase<...>` | `src/MinimalCleanArch.DataAccess/IdentityDbContextBase.cs` |
 | Specification evaluator | Turns a spec into `IQueryable`. | `SpecificationEvaluator<T>` | `src/MinimalCleanArch.DataAccess/Specifications/SpecificationEvaluator.cs` |
-| MatchHttp | Maps `Result` to `IResult` ProblemDetails. | `ResultHttpExtensions.MatchHttp` | `src/MinimalCleanArch.Extensions/Extensions/ResultHttpExtensions.cs` |
-| ValidateAsync / WithValidation | FluentValidation at the endpoint. | `ValidationHttpExtensions`, `ValidationFilter<T>` | `src/MinimalCleanArch.Extensions/Extensions/`, `Filters/` |
+| MatchHttp | Maps `Result` to `IResult` / `IActionResult` ProblemDetails. | `ResultHttpExtensions.MatchHttp`, `MatchActionResult`, `WriteProblemAsync` | `src/MinimalCleanArch.Extensions/Extensions/ResultHttpExtensions.cs` |
+| ValidateAsync / WithValidation | FluentValidation at the endpoint. | `ValidationHttpExtensions`, `RouteHandlerBuilderExtensions` | `src/MinimalCleanArch.Extensions/Extensions/` |
 
 ## Messaging and audit
 

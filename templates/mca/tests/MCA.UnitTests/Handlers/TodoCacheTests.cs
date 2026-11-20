@@ -36,8 +36,8 @@ public class TodoCacheTests
 
         first.IsSuccess.Should().BeTrue();
         second.IsSuccess.Should().BeTrue();
-        first.Value!.Title.Should().Be("cached");
-        second.Value!.Title.Should().Be("cached");
+        first.GetValueOrThrow().Title.Should().Be("cached");
+        second.GetValueOrThrow().Title.Should().Be("cached");
         repository.LoadCalls.Should().Be(1);
     }
 
@@ -63,8 +63,8 @@ public class TodoCacheTests
 
         first.IsSuccess.Should().BeTrue();
         second.IsSuccess.Should().BeTrue();
-        first.Value!.Items.Should().ContainSingle(x => x.Title == "cached");
-        second.Value!.Items.Should().ContainSingle(x => x.Title == "cached");
+        first.GetValueOrThrow().Items.Should().ContainSingle(x => x.Title == "cached");
+        second.GetValueOrThrow().Items.Should().ContainSingle(x => x.Title == "cached");
         repository.LoadAllCalls.Should().Be(1);
     }
 #endif
@@ -155,6 +155,7 @@ public class TodoCacheTests
         public Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default) => action();
         public Task ExecuteInTransactionAsync(Func<Task> action, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default) => action();
         public void Dispose() { }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
     private sealed class DictionaryCacheService : ICacheService

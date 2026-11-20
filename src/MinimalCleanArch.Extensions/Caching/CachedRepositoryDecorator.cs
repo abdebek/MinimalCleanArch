@@ -77,6 +77,14 @@ public class CachedRepositoryDecorator<TEntity, TKey> : IRepository<TEntity, TKe
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<TResult>> GetAsync<TResult>(
+        ISpecification<TEntity, TResult> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.GetAsync(specification, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<bool> AnyAsync(
         Expression<Func<TEntity, bool>> filter,
         CancellationToken cancellationToken = default)
@@ -120,6 +128,14 @@ public class CachedRepositoryDecorator<TEntity, TKey> : IRepository<TEntity, TKe
     /// <inheritdoc />
     public Task<TEntity?> GetFirstAsync(
         ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+    {
+        return _innerRepository.GetFirstAsync(specification, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<TResult?> GetFirstAsync<TResult>(
+        ISpecification<TEntity, TResult> specification,
         CancellationToken cancellationToken = default)
     {
         return _innerRepository.GetFirstAsync(specification, cancellationToken);

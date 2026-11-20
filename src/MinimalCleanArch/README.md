@@ -23,9 +23,9 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 
 ## Contents
 - Domain entities: `IEntity<TKey>`, `BaseEntity<TKey>`, `BaseAuditableEntity`, `BaseSoftDeleteEntity`, `IAuditableEntity`, `ISoftDelete`, `ITenantEntity`.
-- Common types: `Result`/`Result<T>`, `Error` (status code + metadata support, with `Match`/`Bind` helpers).
-- Repositories: `IRepository<TEntity, TKey>`, `IUnitOfWork`.
-- Specifications: `ISpecification<T>`, `BaseSpecification<T>`, composable `And/Or/Not`, `InMemorySpecificationEvaluator`, and query flags (`AsNoTracking`, `AsSplitQuery`, `IgnoreQueryFilters`, `IsCountOnly`).
+- Common types: C# 15 non-boxing `[Union]` structs `Result`/`Result<T>` (`Success` / `T` / `Error`), immutable `Error` (status code + `Metadata`), `TryGetValue`, `GetValueOrThrow`, `Match`/`Map`/`Bind`.
+- Repositories: `IRepository<TEntity, TKey>`, `IUnitOfWork` (`IDisposable` + `IAsyncDisposable`).
+- Specifications: `ISpecification<T>`, `ISpecification<T, TResult>` (SQL projections), `BaseSpecification<T>`, `BaseSpecification<T, TResult>`, composable `And/Or/Not`, `InMemorySpecificationEvaluator`, and query flags (`TrackingMode`, `AsNoTracking`, `AsSplitQuery`, `IgnoreQueryFilters`, `IsCountOnly`).
 
 ## Design Guidance
 - Keep domain entities, repository contracts, result types, and specifications here.
@@ -37,7 +37,29 @@ Core primitives for Clean Architecture: entities, repositories, specifications, 
 dotnet add package MinimalCleanArch --version 0.2.0-preview
 ```
 
-Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` for typed operation results.
+Use `BaseAuditableEntity`/`BaseSoftDeleteEntity` for entities that need auditing and soft delete. Use `Result`/`Result<T>` with native C# 15 exhaustive pattern matching:
+
+```csharp
+Result<TodoResponse> result = await handler.Handle(query, ct);
+
+return result switch
+{
+    TodoResponse todo => Results.Ok(todo),
+    Error error => error.ToProblem(httpContext)
+};
+```
+
+### Projection specification example
+```csharp
+public sealed class ActiveTodoSummarySpec : BaseSpecification<Todo, TodoSummary>
+{
+    public ActiveTodoSummarySpec() : base(t => !t.IsCompleted)
+    {
+        ApplyOrderByDescending(t => t.Priority);
+        ApplySelector(t => new TodoSummary(t.Id, t.Title, t.Priority));
+    }
+}
+```
 
 ### Specification example
 ```csharp

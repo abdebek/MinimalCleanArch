@@ -11,7 +11,6 @@
 
   <ItemGroup>
     <!-- Build / packaging -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
 
     <!-- Microsoft.Extensions / ASP.NET (.NET 11) -->

@@ -96,6 +96,21 @@ public static class SpecificationEvaluator<T> where T : class
         return query;
     }
 
+    /// <summary>
+    /// Gets a projected query with the specification and selector applied.
+    /// </summary>
+    /// <typeparam name="TResult">The projected result type.</typeparam>
+    /// <param name="inputQuery">The input query.</param>
+    /// <param name="specification">The projection specification to apply.</param>
+    /// <returns>The projected query.</returns>
+    public static IQueryable<TResult> GetQuery<TResult>(
+        IQueryable<T> inputQuery,
+        ISpecification<T, TResult> specification)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+        return GetQuery(inputQuery, (ISpecification<T>)specification).Select(specification.Selector);
+    }
+
     private static IQueryable<T> ApplyTracking(IQueryable<T> query, ISpecification<T> specification) =>
         specification.TrackingMode switch
         {

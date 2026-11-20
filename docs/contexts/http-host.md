@@ -11,8 +11,8 @@
 |---|---|---|
 | Bootstrap | `AddMinimalCleanArchApi`, `AddMinimalCleanArchExtensions` | `src/MinimalCleanArch.Extensions/Extensions/ServiceCollectionExtensions.cs` |
 | Pipeline | `UseMinimalCleanArchApiDefaults` | `ApplicationBuilderExtensions.cs` |
-| Results | `MatchHttp`, `ToProblem` | `ResultHttpExtensions.cs` |
-| Validation | `WithValidation<T>`, `ValidateAsync` | `ValidationHttpExtensions.cs`, `Filters/ValidationFilter.cs` |
+| Results | `MatchHttp`, `ToProblem`, `MatchActionResult`, `WriteProblemAsync` | `ResultHttpExtensions.cs` |
+| Validation | `WithValidation<T>`, `ValidateAsync` | `ValidationHttpExtensions.cs`, `RouteHandlerBuilderExtensions.cs` |
 | Errors | `ErrorHandlingMiddleware`, `MinimalCleanArchProblemDetailsFactory` | `Middlewares/`, `Errors/` |
 | Execution | `HttpExecutionContext` | `Execution/HttpExecutionContext.cs` |
 | Rate limiting | `AddMinimalCleanArchRateLimiting` | `RateLimiting/` |

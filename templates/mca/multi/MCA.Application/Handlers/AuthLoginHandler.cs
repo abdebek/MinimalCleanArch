@@ -17,12 +17,12 @@ public class AuthLoginHandler(
             command.Email,
             command.Password,
             cancellationToken);
-        if (!validateResult.TryGetValue(out var user))
+        if (validateResult is Error error)
         {
-            return Result.Failure<AuthLoginResult>(validateResult.Error);
+            return Result.Failure<AuthLoginResult>(error);
         }
 
-        await _authSessionService.SignInAsync(user, isPersistent: false, cancellationToken);
+        await _authSessionService.SignInAsync(validateResult.GetValueOrThrow(), isPersistent: false, cancellationToken);
 
         var redirectUrl = IsSafeRelativeUrl(command.ReturnUrl) ? command.ReturnUrl : null;
         return Result.Success(new AuthLoginResult(redirectUrl));
