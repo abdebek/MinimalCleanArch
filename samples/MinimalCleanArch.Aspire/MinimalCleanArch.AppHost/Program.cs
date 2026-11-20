@@ -9,7 +9,7 @@ var postgres = builder.AddPostgres("postgres")
 var redis = builder.AddRedis("redis")
     .WithDataVolume("mca-aspire-redis");
 
-builder.AddProject<Projects.MinimalCleanArch_Sample>("api")
+builder.AddDotnetProject("api", "../../MinimalCleanArch.Sample/MinimalCleanArch.Sample.csproj")
     .WithReference(postgres)
     .WithReference(redis)
     .WaitFor(postgres)

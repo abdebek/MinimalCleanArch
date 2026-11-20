@@ -117,13 +117,18 @@ function Assert-AspireScaffold {
         throw "AppHost still uses connection name mca (must be appdb to avoid sourceName rewrite)"
     }
 
+    if ($appHostProgram -match 'AddProject<') {
+        throw "AppHost must use Aspire 17 AddDotnetProject instead of obsolete AddProject<...>"
+    }
+
     if ($SingleProject) {
         $apiProgramPath = Join-Path $OutDir "Program.cs"
-        if ($appHostProgram -notmatch [regex]::Escape("Projects.$ProjName")) {
-            throw "Single-project AppHost should reference Projects.$ProjName"
+        $expectedProjectPath = "../$ProjName.csproj"
+        if ($appHostProgram -notmatch [regex]::Escape("AddDotnetProject(""api"", ""$expectedProjectPath"")")) {
+            throw "Single-project AppHost should register $expectedProjectPath via AddDotnetProject"
         }
-        if ($appHostProgram -match [regex]::Escape("Projects.${ProjName}_Api")) {
-            throw "Single-project AppHost should not reference Projects.${ProjName}_Api"
+        if ($appHostProgram -match [regex]::Escape("../src/$ProjName.Api/")) {
+            throw "Single-project AppHost should not reference multi-project path ../src/$ProjName.Api/"
         }
         $mainCsproj = Join-Path $OutDir "$ProjName.csproj"
         if (-not (Test-Path -Path $mainCsproj -PathType Leaf)) {
@@ -136,8 +141,9 @@ function Assert-AspireScaffold {
     }
     else {
         $apiProgramPath = Join-Path $OutDir "src" "$ProjName.Api" "Program.cs"
-        if ($appHostProgram -notmatch [regex]::Escape("Projects.${ProjName}_Api")) {
-            throw "Multi-project AppHost should reference Projects.${ProjName}_Api"
+        $expectedProjectPath = "../src/$ProjName.Api/$ProjName.Api.csproj"
+        if ($appHostProgram -notmatch [regex]::Escape("AddDotnetProject(""api"", ""$expectedProjectPath"")")) {
+            throw "Multi-project AppHost should register $expectedProjectPath via AddDotnetProject"
         }
     }
 
@@ -385,16 +391,16 @@ foreach ($scenario in $scenarios) {
                 $solution = Get-ChildItem -Path $outDir -Filter "*.sln" -ErrorAction SilentlyContinue | Select-Object -First 1
             }
 
-            # Prefer AppHost for Aspire (builds ServiceDefaults + API + host graph)
+            # Prefer solution file (builds AppHost + ServiceDefaults + API + tests together)
             $restoreTarget = $null
-            if ($isAspire) {
+            if ($solution) {
+                $restoreTarget = $solution.FullName
+            }
+            if (-not $restoreTarget -and $isAspire) {
                 $appHostCsproj = Join-Path $outDir "$projName.AppHost" "$projName.AppHost.csproj"
                 if (Test-Path -Path $appHostCsproj -PathType Leaf) {
                     $restoreTarget = $appHostCsproj
                 }
-            }
-            if (-not $restoreTarget -and $solution) {
-                $restoreTarget = $solution.FullName
             }
             if (-not $restoreTarget) {
                 $entryProject = Get-ChildItem -Path $outDir -Filter "*.csproj" -ErrorAction SilentlyContinue |

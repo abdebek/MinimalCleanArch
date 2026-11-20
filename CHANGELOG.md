@@ -31,6 +31,7 @@ The format is based on Keep a Changelog.
 - Fixed `AddValidatorsFromAssembly` to skip abstract, interface, and open-generic validator types; deduplicated `WithValidation` and `WithPathParamValidation`.
 - Fixed `DomainEventPublishingInterceptor` sync `SavedChanges` path to avoid fire-and-forget publishing against a disposed scoped `IMessageBus`.
 - Gated `nuget.yml` and `publish-nuget.yml` workflows on both unit and integration tests; updated docs to `.NET 11`.
+- Upgraded .NET Aspire samples and `--aspire` templates from `13.4.6` to `17.0.0` (migrating to `Aspire.Hosting.Dotnet` / path-based `AddDotnetProject` and bumping core `OpenTelemetry.*` packages to `1.18.0`), resolving all Aspire and transitive `MessagePack` security advisories.
 
 ## [0.2.0-preview] - 2026-11-14
 

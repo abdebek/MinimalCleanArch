@@ -75,15 +75,15 @@
     <PackageReference Include="OpenIddict.Validation.ServerIntegration" Version="7.6.0" />
     <!--#endif-->
     <!--#if (UseOpenTelemetry && !UseAspire)-->
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
-    <PackageReference Include="OpenTelemetry.Api" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.18.0" />
     <!--#endif-->
     <!--#if (UseAspire && UseCaching)-->
-    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.4.6" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="17.0.0" />
     <!--#endif-->
   </ItemGroup>
 

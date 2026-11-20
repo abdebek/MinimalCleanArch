@@ -16,9 +16,9 @@ var redis = builder.AddRedis("redis")
 #endif
 
 #if (MultiProject)
-var api = builder.AddProject<Projects.MCA_Api>("api")
+var api = builder.AddDotnetProject("api", "../src/MCA.Api/MCA.Api.csproj")
 #else
-var api = builder.AddProject<Projects.MCA>("api")
+var api = builder.AddDotnetProject("api", "../MCA.csproj")
 #endif
 #if (UsePostgres || UseSqlServer)
     .WithReference(database)
