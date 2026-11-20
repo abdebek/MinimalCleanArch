@@ -16,24 +16,28 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
     private readonly IAmazonS3 _s3;
     private readonly BlobStorageOptions _options;
     private readonly ILogger<R2BlobStorage> _logger;
+    private readonly TimeProvider _timeProvider;
     private readonly string _bucket;
     private readonly string _keyPrefix;
 
     public R2BlobStorage(
         IOptions<BlobStorageOptions> options,
-        ILogger<R2BlobStorage> logger)
-        : this(CreateClient(options.Value), options, logger)
+        ILogger<R2BlobStorage> logger,
+        TimeProvider? timeProvider = null)
+        : this(CreateClient(options.Value), options, logger, timeProvider)
     {
     }
 
     internal R2BlobStorage(
         IAmazonS3 s3,
         IOptions<BlobStorageOptions> options,
-        ILogger<R2BlobStorage> logger)
+        ILogger<R2BlobStorage> logger,
+        TimeProvider? timeProvider = null)
     {
         _s3 = s3;
         _options = options.Value;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _bucket = _options.ResolveBucketOrContainer();
         if (string.IsNullOrWhiteSpace(_bucket))
         {
@@ -112,7 +116,7 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
 
         var ttl = Math.Max(1, _options.UploadUrlTtlMinutes);
-        var expires = DateTime.UtcNow.AddMinutes(ttl);
+        var expires = _timeProvider.GetUtcNow().UtcDateTime.AddMinutes(ttl);
 
         var request = new GetPreSignedUrlRequest
         {
@@ -189,7 +193,7 @@ public sealed class R2BlobStorage : IBlobStorage, IDisposable
         }
 
         var ttl = Math.Max(1, _options.DownloadUrlTtlMinutes);
-        var expires = DateTime.UtcNow.AddMinutes(ttl);
+        var expires = _timeProvider.GetUtcNow().UtcDateTime.AddMinutes(ttl);
 
         var request = new GetPreSignedUrlRequest
         {

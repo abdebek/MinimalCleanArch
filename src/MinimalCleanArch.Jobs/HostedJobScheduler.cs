@@ -13,6 +13,7 @@ public sealed class HostedJobScheduler : BackgroundService, IJobScheduler
     private readonly IJobExecutor _executor;
     private readonly JobsOptions _options;
     private readonly ILogger<HostedJobScheduler> _logger;
+    private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, RecurringState> _recurring = new(StringComparer.Ordinal);
     private readonly List<DelayedItem> _delayed = [];
     private readonly object _delayedGate = new();
@@ -20,11 +21,13 @@ public sealed class HostedJobScheduler : BackgroundService, IJobScheduler
     public HostedJobScheduler(
         IJobExecutor executor,
         JobsOptions options,
-        ILogger<HostedJobScheduler> logger)
+        ILogger<HostedJobScheduler> logger,
+        TimeProvider? timeProvider = null)
     {
         _executor = executor;
         _options = options;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async Task DelayAsync<TJob>(TJob job, TimeSpan delay, CancellationToken cancellationToken = default)
@@ -44,7 +47,7 @@ public sealed class HostedJobScheduler : BackgroundService, IJobScheduler
 
         lock (_delayedGate)
         {
-            _delayed.Add(new DelayedItem(job, DateTimeOffset.UtcNow + delay));
+            _delayed.Add(new DelayedItem(job, _timeProvider.GetUtcNow() + delay));
         }
     }
 
@@ -58,7 +61,7 @@ public sealed class HostedJobScheduler : BackgroundService, IJobScheduler
             throw new ArgumentOutOfRangeException(nameof(interval));
         }
 
-        _recurring[name] = new RecurringState(name, interval, () => factory(), DateTimeOffset.UtcNow);
+        _recurring[name] = new RecurringState(name, interval, () => factory(), _timeProvider.GetUtcNow());
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -69,7 +72,7 @@ public sealed class HostedJobScheduler : BackgroundService, IJobScheduler
                 registration.Name,
                 registration.Interval,
                 registration.Factory,
-                DateTimeOffset.UtcNow);
+                _timeProvider.GetUtcNow());
         }
 
         var interval = _options.TickInterval <= TimeSpan.Zero
@@ -92,7 +95,7 @@ public sealed class HostedJobScheduler : BackgroundService, IJobScheduler
 
     private async Task TickAsync(CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = _timeProvider.GetUtcNow();
         List<DelayedItem> due;
         lock (_delayedGate)
         {

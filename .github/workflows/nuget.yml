@@ -62,14 +62,12 @@ jobs:
     - name: Build solution
       run: dotnet build MinimalCleanArch.slnx --configuration Release --no-restore --verbosity minimal
 
-    - name: Run tests (if any exist)
+    - name: Run tests
       run: |
-        if find . -name "*.Test*.csproj" -o -name "*Test.csproj" -o -name "*Tests.csproj" | grep -q .; then
-          echo "Running tests..."
-          dotnet test tests/MinimalCleanArch.UnitTests/MinimalCleanArch.UnitTests.csproj --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
-        else
-          echo "No test projects found in solution, skipping tests"
-        fi
+        echo "Running unit tests..."
+        dotnet test tests/MinimalCleanArch.UnitTests/MinimalCleanArch.UnitTests.csproj --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
+        echo "Running integration tests..."
+        dotnet test tests/MinimalCleanArch.IntegrationTests/MinimalCleanArch.IntegrationTests.csproj --configuration Release --no-build --verbosity minimal --logger trx --results-directory "TestResults"
 
     - name: Upload test results
       uses: actions/upload-artifact@v6

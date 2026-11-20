@@ -7,6 +7,13 @@ namespace MinimalCleanArch.Extensions.Errors;
 
 internal static class ErrorResponseMapper
 {
+    private static readonly HashSet<string> SensitiveMetadataKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "StackTrace",
+        "ExceptionType",
+        "InnerException"
+    };
+
     public static int ResolveStatusCode(Error error)
     {
         ArgumentNullException.ThrowIfNull(error);
@@ -86,13 +93,16 @@ internal static class ErrorResponseMapper
         return exception.Message;
     }
 
-    public static Dictionary<string, object?> CreateBaseExtensions(HttpContext context, Exception exception)
+    public static Dictionary<string, object?> CreateBaseExtensions(
+        HttpContext context,
+        Exception exception,
+        bool includeSensitiveDetails = false)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         if (exception is DomainException domainException && domainException.Error != Error.None)
         {
-            return CreateBaseExtensions(context, domainException.Error);
+            return CreateBaseExtensions(context, domainException.Error, includeSensitiveDetails);
         }
 
         var extensions = new Dictionary<string, object?>
@@ -108,7 +118,10 @@ internal static class ErrorResponseMapper
         return extensions;
     }
 
-    public static Dictionary<string, object?> CreateBaseExtensions(HttpContext context, Error error)
+    public static Dictionary<string, object?> CreateBaseExtensions(
+        HttpContext context,
+        Error error,
+        bool includeSensitiveDetails = false)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(error);
@@ -127,7 +140,21 @@ internal static class ErrorResponseMapper
         extensions["errorType"] = error.Type.ToString();
         if (error.Metadata.Count > 0)
         {
-            extensions["metadata"] = error.Metadata;
+            if (includeSensitiveDetails)
+            {
+                extensions["metadata"] = error.Metadata;
+            }
+            else
+            {
+                var safeMetadata = error.Metadata
+                    .Where(kvp => !SensitiveMetadataKeys.Contains(kvp.Key))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                if (safeMetadata.Count > 0)
+                {
+                    extensions["metadata"] = safeMetadata;
+                }
+            }
         }
 
         return extensions;

@@ -7,7 +7,8 @@ namespace MinimalCleanArch.Storage;
 
 public sealed class AzureBlobStorage(
     BlobServiceClient blobServiceClient,
-    IOptions<AzureBlobStorageOptions> options) : IBlobStorage
+    IOptions<AzureBlobStorageOptions> options,
+    TimeProvider? timeProvider = null) : IBlobStorage
 {
     private const string DefaultContentType = "application/octet-stream";
 
@@ -18,6 +19,7 @@ public sealed class AzureBlobStorage(
 
     private readonly AzureBlobStorageOptions _options = options.Value;
     private readonly string _keyPrefix = options.Value.ResolveKeyPrefix();
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     public async Task<BlobUploadDescriptor> CreateUploadAsync(
         string blobKey,
@@ -31,7 +33,7 @@ public sealed class AzureBlobStorage(
             ? DefaultContentType
             : contentType.Trim();
         var blobClient = containerClient.GetBlobClient(_keyPrefix + normalizedKey);
-        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(Math.Max(1, _options.UploadUrlTtlMinutes));
+        var expiresAt = _timeProvider.GetUtcNow().AddMinutes(Math.Max(1, _options.UploadUrlTtlMinutes));
 
         return new BlobUploadDescriptor(
             normalizedKey,
@@ -67,7 +69,7 @@ public sealed class AzureBlobStorage(
         var normalizedKey = BlobKeyValidator.NormalizeOrThrow(blobKey);
         var containerClient = await GetContainerClientAsync(cancellationToken);
         var blobClient = containerClient.GetBlobClient(_keyPrefix + normalizedKey);
-        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(Math.Max(1, _options.DownloadUrlTtlMinutes));
+        var expiresAt = _timeProvider.GetUtcNow().AddMinutes(Math.Max(1, _options.DownloadUrlTtlMinutes));
         return CreateSasUri(blobClient, BlobSasPermissions.Read, expiresAt);
     }
 

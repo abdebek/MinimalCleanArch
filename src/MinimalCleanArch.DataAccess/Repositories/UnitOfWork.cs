@@ -32,37 +32,15 @@ public class UnitOfWork : IUnitOfWork
     /// </summary>
     /// <param name="cancellationToken">A token to observe while waiting for the task to complete</param>
     /// <returns>The number of state entries written to the database</returns>
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception)
-        {
-            // If we have an active transaction, we might want to roll it back
-            // This is optional - depends on your error handling strategy
-            throw;
-        }
-    }
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        => _dbContext.SaveChangesAsync(cancellationToken);
 
     /// <summary>
     /// Saves all pending changes to the database synchronously
     /// </summary>
     /// <returns>The number of state entries written to the database</returns>
     public int SaveChanges()
-    {
-        try
-        {
-            return _dbContext.SaveChanges();
-        }
-        catch (Exception)
-        {
-            // If we have an active transaction, we might want to roll it back
-            // This is optional - depends on your error handling strategy
-            throw;
-        }
-    }
+        => _dbContext.SaveChanges();
 
     /// <summary>
     /// Begins a database transaction
@@ -77,19 +55,9 @@ public class UnitOfWork : IUnitOfWork
             throw new InvalidOperationException("A transaction is already in progress");
         }
 
-        // Always use the async version with default isolation level
-        // EF Core doesn't provide good async support for custom isolation levels
-        _currentTransaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-        // Note: Custom isolation levels are not fully supported in this implementation
-        // Most applications work fine with the default ReadCommitted level
-        // If you need custom isolation levels, consider managing transactions at a higher level
-        if (isolationLevel != IsolationLevel.ReadCommitted)
-        {
-            // Log a warning that custom isolation level is ignored
-            // In a real implementation, you might want to use a logger here
-            System.Diagnostics.Debug.WriteLine($"Warning: Custom isolation level {isolationLevel} is not supported. Using default ReadCommitted.");
-        }
+        _currentTransaction = _dbContext.Database.IsRelational()
+            ? await _dbContext.Database.BeginTransactionAsync(isolationLevel, cancellationToken)
+            : await _dbContext.Database.BeginTransactionAsync(cancellationToken);
     }
 
     /// <summary>
@@ -149,8 +117,7 @@ public class UnitOfWork : IUnitOfWork
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
         CancellationToken cancellationToken = default)
     {
-        if (action == null)
-            throw new ArgumentNullException(nameof(action));
+        ArgumentNullException.ThrowIfNull(action);
 
         var hadActiveTransaction = HasActiveTransaction;
 
@@ -192,10 +159,12 @@ public class UnitOfWork : IUnitOfWork
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         await ExecuteInTransactionAsync(async () =>
         {
             await action();
-            return true; // Dummy return value
+            return true;
         }, isolationLevel, cancellationToken);
     }
 
@@ -212,22 +181,32 @@ public class UnitOfWork : IUnitOfWork
     }
 
     /// <summary>
-    /// Disposes the unit of work
+    /// Disposes the unit of work synchronously without blocking on async code.
     /// </summary>
     public void Dispose()
     {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// Disposes the unit of work asynchronously
+    /// Disposes managed resources synchronously.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing && _currentTransaction != null)
+        {
+            _currentTransaction.Dispose();
+            _currentTransaction = null;
+        }
+    }
+
+    /// <summary>
+    /// Disposes the unit of work asynchronously.
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_currentTransaction != null)
-        {
-            await _currentTransaction.DisposeAsync();
-            _currentTransaction = null;
-        }
+        await DisposeTransactionAsync();
+        GC.SuppressFinalize(this);
     }
 }

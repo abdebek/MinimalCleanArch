@@ -11,13 +11,14 @@ namespace MinimalCleanArch.DataAccess;
 public abstract class DbContextBase : DbContext
 {
     private readonly IExecutionContext? _executionContext;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DbContextBase"/> class
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
     protected DbContextBase(DbContextOptions options)
-        : this(options, null)
+        : this(options, null, null)
     {
     }
 
@@ -26,10 +27,12 @@ public abstract class DbContextBase : DbContext
     /// </summary>
     /// <param name="options">The options to be used by the DbContext</param>
     /// <param name="executionContext">The execution context for audit stamping.</param>
-    protected DbContextBase(DbContextOptions options, IExecutionContext? executionContext)
+    /// <param name="timeProvider">Optional time provider for deterministic audit timestamps.</param>
+    protected DbContextBase(DbContextOptions options, IExecutionContext? executionContext, TimeProvider? timeProvider = null)
         : base(options)
     {
         _executionContext = executionContext;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -73,7 +76,7 @@ public abstract class DbContextBase : DbContext
                        (e.State == EntityState.Added || e.State == EntityState.Modified));
 
         string? userId = GetCurrentUserId();
-        DateTime now = DateTime.UtcNow;
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
 
         foreach (var entityEntry in entries)
         {

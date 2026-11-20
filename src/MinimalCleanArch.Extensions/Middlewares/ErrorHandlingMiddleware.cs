@@ -12,6 +12,12 @@ namespace MinimalCleanArch.Extensions.Middlewares;
 /// </summary>
 public sealed class ErrorHandlingMiddleware
 {
+    private static readonly JsonSerializerOptions ProblemJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
     private readonly IHostEnvironment? _environment;
@@ -65,12 +71,6 @@ public sealed class ErrorHandlingMiddleware
         problemDetails.Extensions["correlationId"] = correlationId;
         context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-
         if (context.RequestServices is not null &&
             context.RequestServices.GetService(typeof(IProblemDetailsService)) is IProblemDetailsService problemDetailsService)
         {
@@ -84,6 +84,6 @@ public sealed class ErrorHandlingMiddleware
         }
 
         context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails, options);
+        await context.Response.WriteAsJsonAsync(problemDetails, ProblemJsonOptions);
     }
 }

@@ -12,6 +12,12 @@ namespace MinimalCleanArch.Extensions.HealthChecks;
 /// </summary>
 public static class HealthCheckExtensions
 {
+    private static readonly JsonSerializerOptions DetailedJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
     /// <summary>
     /// Adds health check services with common configurations.
     /// </summary>
@@ -86,11 +92,12 @@ public static class HealthCheckExtensions
     private static async Task WriteSimpleResponse(HttpContext context, HealthReport report)
     {
         context.Response.ContentType = "application/json";
+        var timeProvider = context.RequestServices?.GetService<TimeProvider>() ?? TimeProvider.System;
 
         var response = new
         {
             status = report.Status.ToString(),
-            timestamp = DateTime.UtcNow
+            timestamp = timeProvider.GetUtcNow().UtcDateTime
         };
 
         await context.Response.WriteAsJsonAsync(response);
@@ -99,12 +106,13 @@ public static class HealthCheckExtensions
     private static async Task WriteDetailedResponse(HttpContext context, HealthReport report)
     {
         context.Response.ContentType = "application/json";
+        var timeProvider = context.RequestServices?.GetService<TimeProvider>() ?? TimeProvider.System;
 
         var response = new
         {
             status = report.Status.ToString(),
             totalDuration = report.TotalDuration.TotalMilliseconds,
-            timestamp = DateTime.UtcNow,
+            timestamp = timeProvider.GetUtcNow().UtcDateTime,
             checks = report.Entries.Select(entry => new
             {
                 name = entry.Key,
@@ -116,13 +124,7 @@ public static class HealthCheckExtensions
             })
         };
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-
-        await context.Response.WriteAsJsonAsync(response, options);
+        await context.Response.WriteAsJsonAsync(response, DetailedJsonOptions);
     }
 }
 

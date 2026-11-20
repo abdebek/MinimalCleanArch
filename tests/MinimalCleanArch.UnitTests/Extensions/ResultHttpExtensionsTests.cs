@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using MinimalCleanArch.Domain.Common;
 using MinimalCleanArch.Extensions.Extensions;
@@ -38,6 +39,30 @@ public class ResultHttpExtensionsTests
     }
 
     [Fact]
+    public async Task ToProblem_RedactsSensitiveMetadataInProduction()
+    {
+        var context = CreateHttpContext();
+        var error = Error.SystemError("BOOM", "Internal details")
+            .WithMetadata("StackTrace", "at Secret.Method()")
+            .WithMetadata("ExceptionType", "SqlException")
+            .WithMetadata("PublicKey", "safe-value");
+
+        var result = error.ToProblem(context, includeSensitiveDetails: false);
+        await result.ExecuteAsync(context);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        context.Response.Body.Position = 0;
+        using var document = await JsonDocument.ParseAsync(context.Response.Body);
+        var root = document.RootElement;
+
+        root.GetProperty("detail").GetString().Should().Be("An unexpected error occurred. Please try again later.");
+        var metadata = root.GetProperty("metadata");
+        metadata.TryGetProperty("StackTrace", out _).Should().BeFalse();
+        metadata.TryGetProperty("ExceptionType", out _).Should().BeFalse();
+        metadata.GetProperty("PublicKey").GetString().Should().Be("safe-value");
+    }
+
+    [Fact]
     public async Task MatchHttp_WhenFailure_ReturnsProblem()
     {
         var context = CreateHttpContext();
@@ -61,6 +86,38 @@ public class ResultHttpExtensionsTests
         await httpResult.ExecuteAsync(context);
 
         context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+    }
+
+    [Fact]
+    public void MatchActionResult_WhenFailure_ReturnsProblemDetailsObjectResult()
+    {
+        var context = CreateHttpContext();
+        Result<int> result = Error.NotFound("TODO_NOT_FOUND", "Todo 7 not found");
+
+        var actionResult = result.MatchActionResult(context, v => new OkObjectResult(v));
+
+        var objectResult = actionResult.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status404NotFound);
+        objectResult.ContentTypes.Should().Contain("application/problem+json");
+        var problem = objectResult.Value.Should().BeOfType<ProblemDetails>().Subject;
+        problem.Extensions["code"].Should().Be("TODO_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task WriteProblemAsync_WritesRfc7807ProblemDetails()
+    {
+        var context = CreateHttpContext();
+        var error = Error.Conflict("DUPLICATE", "Already exists");
+
+        await error.WriteProblemAsync(context);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        context.Response.Body.Position = 0;
+        using var document = await JsonDocument.ParseAsync(context.Response.Body);
+        var root = document.RootElement;
+
+        root.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status409Conflict);
+        root.GetProperty("code").GetString().Should().Be("DUPLICATE");
     }
 
     private static DefaultHttpContext CreateHttpContext()

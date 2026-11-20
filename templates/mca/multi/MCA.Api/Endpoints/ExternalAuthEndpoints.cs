@@ -110,12 +110,12 @@ public static class ExternalAuthEndpoints
 #else
             var signInResult = await handler.Handle(command, cancellationToken);
 #endif
-            if (!signInResult.IsSuccess)
+            if (!signInResult.TryGetValue(out ExternalAuthSignInResult? signIn))
                 return Results.BadRequest(new { error = signInResult.Error.Message });
 
             await context.SignOutAsync("ExternalCookie");
 
-            return Results.Redirect(signInResult.Value.RedirectUrl);
+            return Results.Redirect(signIn.RedirectUrl);
         })
         .AllowAnonymous()
         .WithName("ExternalLoginCallback")

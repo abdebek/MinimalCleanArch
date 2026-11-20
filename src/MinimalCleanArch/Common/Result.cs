@@ -1,58 +1,112 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Runtime.CompilerServices;
 
 namespace MinimalCleanArch.Domain.Common;
 
 /// <summary>
-/// Represents the result of an operation that can succeed or fail.
+/// Marker case type representing a successful operation with no payload value.
 /// </summary>
-public class Result
+public readonly record struct Success;
+
+/// <summary>
+/// Non-boxing C# 15 union representing an operation that either succeeds (<see cref="Success"/>)
+/// or fails with an <see cref="Error"/>.
+/// </summary>
+[Union]
+public readonly struct Result
 {
-    /// <summary>
-    /// Gets a value indicating whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; }
+    private static readonly Error UninitializedError = Error.Failure(
+        "RESULT_UNINITIALIZED",
+        "Result was not initialized.");
+
+    private readonly Error? _error;
+    private readonly bool _isSuccess;
 
     /// <summary>
-    /// Gets a value indicating whether the operation failed.
+    /// Initializes a successful <see cref="Result"/>.
     /// </summary>
-    public bool IsFailure => !IsSuccess;
-
-    /// <summary>
-    /// Gets the error associated with the failed operation.
-    /// </summary>
-    public Error Error { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Result"/> class.
-    /// </summary>
-    /// <param name="isSuccess">Whether the operation was successful.</param>
-    /// <param name="error">The error if the operation failed.</param>
-    protected Result(bool isSuccess, Error error)
+    public Result(Success _)
     {
-        if (isSuccess && error != Error.None)
-        {
-            throw new InvalidOperationException("Successful result cannot have an error");
-        }
+        _isSuccess = true;
+        _error = null;
+    }
 
-        if (!isSuccess && error == Error.None)
+    /// <summary>
+    /// Initializes a failed <see cref="Result"/> with the specified error.
+    /// </summary>
+    /// <param name="error">The error describing the failure.</param>
+    public Result(Error error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        if (error == Error.None)
         {
             throw new InvalidOperationException("Failed result must have an error");
         }
 
-        IsSuccess = isSuccess;
-        Error = error;
+        _isSuccess = false;
+        _error = error;
+    }
+
+    /// <summary>
+    /// Gets the active union case value (<see cref="Success"/> or <see cref="Error"/>) for C# 15 union pattern matching.
+    /// </summary>
+    public object? Value => _isSuccess ? default(Success) : _error;
+
+    /// <summary>
+    /// Gets a value indicating whether this union holds an initialized case value.
+    /// </summary>
+    public bool HasValue => _isSuccess || _error is not null;
+
+    /// <summary>
+    /// Gets a value indicating whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess => _isSuccess;
+
+    /// <summary>
+    /// Gets a value indicating whether the operation failed.
+    /// </summary>
+    public bool IsFailure => !_isSuccess;
+
+    /// <summary>
+    /// Gets the error associated with a failed operation, or <see cref="Error.None"/> if successful.
+    /// </summary>
+    public Error Error => _isSuccess ? Error.None : (_error ?? UninitializedError);
+
+    /// <summary>
+    /// Non-boxing union accessor for the <see cref="Success"/> case.
+    /// </summary>
+    public bool TryGetValue(out Success value)
+    {
+        value = default;
+        return _isSuccess;
+    }
+
+    /// <summary>
+    /// Non-boxing union accessor for the <see cref="Error"/> case.
+    /// </summary>
+    public bool TryGetValue([NotNullWhen(true)] out Error? error)
+    {
+        if (!_isSuccess)
+        {
+            error = _error ?? UninitializedError;
+            return true;
+        }
+
+        error = null;
+        return false;
     }
 
     /// <summary>
     /// Creates a successful result.
     /// </summary>
-    public static Result Success() => new(true, Error.None);
+    public static Result Success() => new(default(Success));
 
     /// <summary>
     /// Creates a failed result with the specified error.
     /// </summary>
-    public static Result Failure(Error error) => new(false, error);
+    public static Result Failure(Error error) => new(error);
 
     /// <summary>
     /// Creates a failed result from code/message/type values.
@@ -62,18 +116,18 @@ public class Result
         string message,
         ErrorType type = ErrorType.Failure,
         int? statusCode = null,
-        Dictionary<string, object>? details = null) =>
-        new(false, new Error(code, message, type, details, statusCode));
+        IReadOnlyDictionary<string, object>? metadata = null) =>
+        new(new Error(code, message, type, metadata, statusCode));
 
     /// <summary>
     /// Creates a successful result with a value.
     /// </summary>
-    public static Result<TValue> Success<TValue>(TValue value) => new(value, true, Error.None);
+    public static Result<TValue> Success<TValue>(TValue value) => new(value);
 
     /// <summary>
     /// Creates a failed result with the specified error.
     /// </summary>
-    public static Result<TValue> Failure<TValue>(Error error) => new(default, false, error);
+    public static Result<TValue> Failure<TValue>(Error error) => new(error);
 
     /// <summary>
     /// Creates a failed result with the specified error values.
@@ -83,127 +137,227 @@ public class Result
         string message,
         ErrorType type = ErrorType.Failure,
         int? statusCode = null,
-        Dictionary<string, object>? details = null) =>
-        new(default, false, new Error(code, message, type, details, statusCode));
+        IReadOnlyDictionary<string, object>? metadata = null) =>
+        new(new Error(code, message, type, metadata, statusCode));
 
     /// <summary>
     /// Matches the result and returns a value.
     /// </summary>
-    public TResult Match<TResult>(Func<TResult> onSuccess, Func<Error, TResult> onFailure) =>
-        IsSuccess ? onSuccess() : onFailure(Error);
+    public TResult Match<TResult>(Func<TResult> onSuccess, Func<Error, TResult> onFailure)
+    {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
+
+        return _isSuccess ? onSuccess() : onFailure(Error);
+    }
 
     /// <summary>
-    /// Chains another result operation when current result is successful.
+    /// Chains another result operation when the current result is successful.
     /// </summary>
-    public Result Bind(Func<Result> next) => IsSuccess ? next() : this;
+    public Result Bind(Func<Result> next)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+        return _isSuccess ? next() : this;
+    }
 
     /// <summary>
-    /// Implicitly converts an <see cref="Error"/> to a failed result.
+    /// Executes an action if the result is successful.
     /// </summary>
-    public static implicit operator Result(Error error) => Failure(error);
+    public Result OnSuccess(Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (_isSuccess)
+        {
+            action();
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Executes an action if the result is failed.
+    /// </summary>
+    public Result OnFailure(Action<Error> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (!_isSuccess)
+        {
+            action(Error);
+        }
+
+        return this;
+    }
 }
 
 /// <summary>
-/// Represents the result of an operation that can succeed with a value or fail.
+/// Non-boxing C# 15 union representing an operation that either succeeds with a <typeparamref name="TValue"/>
+/// or fails with an <see cref="Error"/>.
 /// </summary>
-public class Result<TValue> : Result
+/// <typeparam name="TValue">The success payload type.</typeparam>
+[Union]
+public readonly struct Result<TValue>
 {
+    private static readonly Error UninitializedError = Error.Failure(
+        "RESULT_UNINITIALIZED",
+        "Result was not initialized.");
+
     private readonly TValue? _value;
+    private readonly Error? _error;
+    private readonly bool _isSuccess;
 
     /// <summary>
-    /// Gets the value if the operation was successful.
+    /// Initializes a successful <see cref="Result{TValue}"/> with the specified value.
     /// </summary>
-    public TValue Value
-    {
-        get
-        {
-            if (IsFailure)
-            {
-                throw new InvalidOperationException("Cannot access value of a failed result");
-            }
-
-            return _value!;
-        }
-    }
-
-    internal Result(TValue? value, bool isSuccess, Error error) : base(isSuccess, error)
+    /// <param name="value">The success value.</param>
+    public Result(TValue value)
     {
         _value = value;
+        _error = null;
+        _isSuccess = true;
     }
 
     /// <summary>
-    /// Tries to get the value if the result is successful.
+    /// Initializes a failed <see cref="Result{TValue}"/> with the specified error.
     /// </summary>
-    public bool TryGetValue([NotNullWhen(true)] out TValue? value)
+    /// <param name="error">The error describing the failure.</param>
+    public Result(Error error)
     {
-        value = IsSuccess ? _value : default;
-        return IsSuccess;
+        ArgumentNullException.ThrowIfNull(error);
+        if (error == Error.None)
+        {
+            throw new InvalidOperationException("Failed result must have an error");
+        }
+
+        _value = default;
+        _error = error;
+        _isSuccess = false;
     }
 
     /// <summary>
-    /// Gets the value if successful, otherwise returns the default value.
+    /// Gets the active union case value (<typeparamref name="TValue"/> or <see cref="Error"/>) for C# 15 union pattern matching.
+    /// Prefer C# 15 pattern matching, <see cref="TryGetValue(out TValue)"/>, or <see cref="GetValueOrThrow"/> for typed access.
     /// </summary>
-    public TValue GetValueOrDefault(TValue defaultValue = default!) => IsSuccess ? _value! : defaultValue;
+    public object? Value => _isSuccess ? _value : _error;
+
+    /// <summary>
+    /// Gets a value indicating whether this union holds an initialized case value.
+    /// </summary>
+    public bool HasValue => _isSuccess || _error is not null;
+
+    /// <summary>
+    /// Gets a value indicating whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess => _isSuccess;
+
+    /// <summary>
+    /// Gets a value indicating whether the operation failed.
+    /// </summary>
+    public bool IsFailure => !_isSuccess;
+
+    /// <summary>
+    /// Gets the error associated with a failed operation, or <see cref="Error.None"/> if successful.
+    /// </summary>
+    public Error Error => _isSuccess ? Error.None : (_error ?? UninitializedError);
+
+    /// <summary>
+    /// Non-boxing union accessor for the <typeparamref name="TValue"/> success case.
+    /// </summary>
+    public bool TryGetValue([MaybeNullWhen(false)] out TValue value)
+    {
+        if (_isSuccess)
+        {
+            value = _value!;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Non-boxing union accessor for the <see cref="Error"/> failure case.
+    /// </summary>
+    public bool TryGetValue([NotNullWhen(true)] out Error? error)
+    {
+        if (!_isSuccess)
+        {
+            error = _error ?? UninitializedError;
+            return true;
+        }
+
+        error = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the success value, or throws <see cref="InvalidOperationException"/> if the result failed.
+    /// </summary>
+    public TValue GetValueOrThrow()
+    {
+        if (!_isSuccess)
+        {
+            throw new InvalidOperationException($"Cannot access value of a failed result: {Error}");
+        }
+
+        return _value!;
+    }
+
+    /// <summary>
+    /// Gets the value if successful, otherwise returns the provided default value.
+    /// </summary>
+    public TValue GetValueOrDefault(TValue defaultValue = default!) => _isSuccess ? _value! : defaultValue;
 
     /// <summary>
     /// Matches the result and returns a value.
     /// </summary>
-    public TResult Match<TResult>(Func<TValue, TResult> onSuccess, Func<Error, TResult> onFailure) =>
-        IsSuccess ? onSuccess(Value) : onFailure(Error);
+    public TResult Match<TResult>(Func<TValue, TResult> onSuccess, Func<Error, TResult> onFailure)
+    {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
+
+        return _isSuccess ? onSuccess(_value!) : onFailure(Error);
+    }
 
     /// <summary>
     /// Maps the result value to another type if successful.
+    /// Unexpected exceptions thrown by <paramref name="mapper"/> propagate rather than being swallowed.
     /// </summary>
     public Result<TOutput> Map<TOutput>(Func<TValue, TOutput> mapper)
     {
-        if (IsFailure)
-        {
-            return Result.Failure<TOutput>(Error);
-        }
+        ArgumentNullException.ThrowIfNull(mapper);
 
-        try
-        {
-            return Result.Success(mapper(Value));
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<TOutput>(Error.FromException(ex));
-        }
+        return _isSuccess
+            ? new Result<TOutput>(mapper(_value!))
+            : new Result<TOutput>(Error);
     }
 
     /// <summary>
     /// Binds the result to another operation if successful.
+    /// Unexpected exceptions thrown by <paramref name="binder"/> propagate rather than being swallowed.
     /// </summary>
     public Result<TOutput> Bind<TOutput>(Func<TValue, Result<TOutput>> binder)
     {
-        if (IsFailure)
-        {
-            return Result.Failure<TOutput>(Error);
-        }
+        ArgumentNullException.ThrowIfNull(binder);
 
-        try
-        {
-            return binder(Value);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<TOutput>(Error.FromException(ex));
-        }
+        return _isSuccess
+            ? binder(_value!)
+            : new Result<TOutput>(Error);
     }
 
     /// <summary>
-    /// Converts this generic result to a non-generic result.
+    /// Converts this generic result to a non-generic <see cref="Result"/>.
     /// </summary>
-    public Result ToResult() => IsSuccess ? Result.Success() : Result.Failure(Error);
+    public Result ToResult() => _isSuccess ? Result.Success() : Result.Failure(Error);
 
     /// <summary>
     /// Executes an action if the result is successful.
     /// </summary>
     public Result<TValue> OnSuccess(Action<TValue> action)
     {
-        if (IsSuccess)
+        ArgumentNullException.ThrowIfNull(action);
+        if (_isSuccess)
         {
-            action(Value);
+            action(_value!);
         }
 
         return this;
@@ -214,31 +368,24 @@ public class Result<TValue> : Result
     /// </summary>
     public Result<TValue> OnFailure(Action<Error> action)
     {
-        if (IsFailure)
+        ArgumentNullException.ThrowIfNull(action);
+        if (!_isSuccess)
         {
             action(Error);
         }
 
         return this;
     }
-
-    /// <summary>
-    /// Implicitly converts a value to a successful result.
-    /// </summary>
-    public static implicit operator Result<TValue>(TValue value) => Result.Success(value);
-
-    /// <summary>
-    /// Implicitly converts an <see cref="Error"/> to a failed result.
-    /// </summary>
-    public static implicit operator Result<TValue>(Error error) => Result.Failure<TValue>(error);
-
 }
 
 /// <summary>
-/// Represents an error that can occur during an operation.
+/// Represents an immutable structured error that can occur during an operation.
 /// </summary>
-public class Error : IEquatable<Error>
+public sealed class Error : IEquatable<Error>
 {
+    private static readonly IReadOnlyDictionary<string, object> EmptyMetadata =
+        new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+
     /// <summary>
     /// Represents no error.
     /// </summary>
@@ -265,14 +412,9 @@ public class Error : IEquatable<Error>
     public int StatusCode { get; }
 
     /// <summary>
-    /// Gets additional error details.
+    /// Gets additional immutable error metadata.
     /// </summary>
-    public Dictionary<string, object> Details { get; }
-
-    /// <summary>
-    /// Gets additional error metadata as a read-only view.
-    /// </summary>
-    public IReadOnlyDictionary<string, object> Metadata => Details;
+    public IReadOnlyDictionary<string, object> Metadata { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Error"/> class.
@@ -281,8 +423,8 @@ public class Error : IEquatable<Error>
         string code,
         string message,
         ErrorType type = ErrorType.Failure,
-        Dictionary<string, object>? details = null)
-        : this(code, message, type, details, null)
+        IReadOnlyDictionary<string, object>? metadata = null)
+        : this(code, message, type, metadata, null)
     {
     }
 
@@ -293,14 +435,16 @@ public class Error : IEquatable<Error>
         string code,
         string message,
         ErrorType type,
-        Dictionary<string, object>? details = null,
+        IReadOnlyDictionary<string, object>? metadata = null,
         int? statusCode = null)
     {
-        Code = code;
-        Message = message;
+        Code = code ?? throw new ArgumentNullException(nameof(code));
+        Message = message ?? throw new ArgumentNullException(nameof(message));
         Type = type;
         StatusCode = statusCode ?? GetDefaultStatusCode(type);
-        Details = details is null ? new Dictionary<string, object>() : new Dictionary<string, object>(details);
+        Metadata = metadata is null || metadata.Count == 0
+            ? EmptyMetadata
+            : new ReadOnlyDictionary<string, object>(new Dictionary<string, object>(metadata));
     }
 
     /// <summary>
@@ -308,24 +452,34 @@ public class Error : IEquatable<Error>
     /// </summary>
     public Error WithMetadata(string key, object value)
     {
-        var details = new Dictionary<string, object>(Details)
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var copy = new Dictionary<string, object>(Metadata)
         {
             [key] = value
         };
 
-        return new Error(Code, Message, Type, details, StatusCode);
+        return new Error(Code, Message, Type, copy, StatusCode);
     }
 
     /// <summary>
     /// Creates an error from an exception.
+    /// Stack traces are omitted by default so internal details are not accidentally exposed to callers.
     /// </summary>
-    public static Error FromException(Exception exception)
+    public static Error FromException(Exception exception, bool includeStackTrace = false)
     {
-        var details = new Dictionary<string, object>
+        ArgumentNullException.ThrowIfNull(exception);
+
+        Dictionary<string, object>? metadata = null;
+        if (includeStackTrace)
         {
-            ["ExceptionType"] = exception.GetType().Name,
-            ["StackTrace"] = exception.StackTrace ?? string.Empty
-        };
+            metadata = new Dictionary<string, object>
+            {
+                ["ExceptionType"] = exception.GetType().Name,
+                ["StackTrace"] = exception.StackTrace ?? string.Empty
+            };
+        }
 
         var (errorType, statusCode) = exception switch
         {
@@ -341,7 +495,7 @@ public class Error : IEquatable<Error>
             exception.GetType().Name,
             exception.Message,
             errorType,
-            details,
+            metadata,
             statusCode);
     }
 
@@ -350,13 +504,16 @@ public class Error : IEquatable<Error>
     /// </summary>
     public static Error Validation(string code, string message, string? field = null)
     {
-        var details = new Dictionary<string, object>();
+        Dictionary<string, object>? metadata = null;
         if (!string.IsNullOrWhiteSpace(field))
         {
-            details["Field"] = field;
+            metadata = new Dictionary<string, object>
+            {
+                ["Field"] = field
+            };
         }
 
-        return new Error(code, message, ErrorType.Validation, details, (int)HttpStatusCode.BadRequest);
+        return new Error(code, message, ErrorType.Validation, metadata, (int)HttpStatusCode.BadRequest);
     }
 
     /// <summary>
@@ -433,8 +590,8 @@ public class Error : IEquatable<Error>
         string message,
         ErrorType type,
         int statusCode,
-        Dictionary<string, object>? details = null) =>
-        new(code, message, type, details, statusCode);
+        IReadOnlyDictionary<string, object>? metadata = null) =>
+        new(code, message, type, metadata, statusCode);
 
     public bool Equals(Error? other)
     {

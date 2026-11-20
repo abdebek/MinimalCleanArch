@@ -13,6 +13,7 @@ public class DataProtectionEncryptionService : IEncryptionService
     private readonly IDataProtector _dataProtector;
     private readonly ILogger<DataProtectionEncryptionService>? _logger;
     private readonly DataProtectionEncryptionOptions _options;
+    private readonly TimeProvider _timeProvider;
     private bool _disposed;
 
     /// <summary>
@@ -21,16 +22,19 @@ public class DataProtectionEncryptionService : IEncryptionService
     /// <param name="dataProtectionProvider">The data protection provider</param>
     /// <param name="options">The data protection encryption options</param>
     /// <param name="logger">Optional logger for security events</param>
+    /// <param name="timeProvider">Optional time provider for time-limited protection expiration.</param>
     public DataProtectionEncryptionService(
         IDataProtectionProvider dataProtectionProvider,
         DataProtectionEncryptionOptions options,
-        ILogger<DataProtectionEncryptionService>? logger = null)
+        ILogger<DataProtectionEncryptionService>? logger = null,
+        TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(dataProtectionProvider);
         ArgumentNullException.ThrowIfNull(options);
 
         _options = options;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
 
         try
         {
@@ -72,7 +76,7 @@ public class DataProtectionEncryptionService : IEncryptionService
             if (_options.KeyLifetime.HasValue && _dataProtector is ITimeLimitedDataProtector timeLimitedProtector)
             {
                 // Use time-limited protection
-                var expiration = DateTimeOffset.UtcNow.Add(_options.KeyLifetime.Value);
+                var expiration = _timeProvider.GetUtcNow().Add(_options.KeyLifetime.Value);
                 result = timeLimitedProtector.Protect(plainText, expiration);
 
                 _logger?.LogDebug("Successfully encrypted data with expiration: {Expiration}", expiration);

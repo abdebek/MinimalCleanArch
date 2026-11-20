@@ -1,44 +1,40 @@
 <Project>
-        <PropertyGroup>
-                <TargetFramework>net11.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<GenerateDocumentationFile Condition="'$(Configuration)' == 'Debug'">true</GenerateDocumentationFile>
-		<GenerateDocumentationFile Condition="'$(Configuration)' == 'Release'">false</GenerateDocumentationFile>
-		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-		<WarningsAsErrors />
+  <!-- Import repository-wide build settings (analysis, warnings-as-errors, deterministic CI, SourceLink) -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-		<!-- Package Information -->
-		<PackageVersion>0.2.0-preview</PackageVersion>
-		<Authors>Abdullah D.</Authors>
-		<Company>Waanfeetan</Company>
-		<Product>MinimalCleanArch</Product>
-		<Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
-		<!-- Allow CI/manual pack to override the docs branch explicitly. -->
-		<PackageDocsBranch Condition="'$(PackageDocsBranch)' == '' and ('$(GITHUB_REF_NAME)' == 'master' or '$(GITHUB_REF_NAME)' == 'dev')">$(GITHUB_REF_NAME)</PackageDocsBranch>
-		<!-- Preview packages should point at dev docs by default. -->
-		<PackageDocsBranch Condition="'$(PackageDocsBranch)' == '' and $([System.String]::Copy('$(PackageVersion)').Contains('-'))">dev</PackageDocsBranch>
-		<!-- Stable packages should point at the published docs branch. -->
-		<PackageDocsBranch Condition="'$(PackageDocsBranch)' == ''">master</PackageDocsBranch>
-		<PackageProjectUrl>https://github.com/abdebek/MinimalCleanArch/tree/$(PackageDocsBranch)/src/$(MSBuildProjectName)</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/abdebek/MinimalCleanArch</RepositoryUrl>
-		<RepositoryType>git</RepositoryType>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageIcon>icon.png</PackageIcon>
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnablePackageValidation>true</EnablePackageValidation>
 
-		<!-- Build Configuration -->
-		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	</PropertyGroup>
+    <!-- Package Information -->
+    <PackageVersion>0.2.0-preview</PackageVersion>
+    <Authors>Abdullah D.</Authors>
+    <Company>Waanfeetan</Company>
+    <Product>MinimalCleanArch</Product>
+    <Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
+    <!-- Allow CI/manual pack to override the docs branch explicitly. -->
+    <PackageDocsBranch Condition="'$(PackageDocsBranch)' == '' and ('$(GITHUB_REF_NAME)' == 'master' or '$(GITHUB_REF_NAME)' == 'dev')">$(GITHUB_REF_NAME)</PackageDocsBranch>
+    <!-- Preview packages should point at dev docs by default. -->
+    <PackageDocsBranch Condition="'$(PackageDocsBranch)' == '' and $([System.String]::Copy('$(PackageVersion)').Contains('-'))">dev</PackageDocsBranch>
+    <!-- Stable packages should point at the published docs branch. -->
+    <PackageDocsBranch Condition="'$(PackageDocsBranch)' == ''">master</PackageDocsBranch>
+    <PackageProjectUrl>https://github.com/abdebek/MinimalCleanArch/tree/$(PackageDocsBranch)/src/$(MSBuildProjectName)</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/abdebek/MinimalCleanArch</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
 
-	<!-- Include README and icon for all packages -->
-	<ItemGroup>
-		<None Include="$(MSBuildProjectDirectory)\README.md" Pack="true" PackagePath="\" />
-		<None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
-	</ItemGroup>
+    <!-- Build Configuration -->
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Include README and icon for all packages -->
+  <ItemGroup>
+    <None Include="$(MSBuildProjectDirectory)\README.md" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+  </ItemGroup>
 </Project>
-
-

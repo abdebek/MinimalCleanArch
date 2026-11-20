@@ -4,6 +4,7 @@ using MCA.Application.DTOs;
 using MCA.Application.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using MinimalCleanArch.Domain.Common;
+using MinimalCleanArch.Extensions.Extensions;
 #if (UseMessaging)
 using Wolverine;
 #endif
@@ -117,9 +118,9 @@ public class TodoController : ControllerBase
     }
 
     private IActionResult ToAction<T>(Result<T> result, Func<T, IActionResult> ok) =>
-        result.Match(ok, error => StatusCode(error.StatusCode, new { error.Code, error.Message }));
+        result.MatchActionResult(HttpContext, ok);
 
     private IActionResult ToAction(Result result) =>
-        result.Match<IActionResult>(() => NoContent(), error => StatusCode(error.StatusCode, new { error.Code, error.Message }));
+        result.MatchActionResult(HttpContext, NoContent);
 }
 #endif
